@@ -1,0 +1,58 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/online"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Online players</a>
+
+  <section class="card profile-hero reveal" style="--i:1" aria-labelledby="profile-name">
+    <span class="stat__grade stat__grade--xl"><%= soldier.grade %></span>
+    <div class="profile-hero__body">
+      <p class="eyebrow">Service record</p>
+      <h1 id="profile-name" class="profile-hero__name"><%= soldier.username %></h1>
+      <p class="profile-hero__rank"><%= soldier.rank %> · Level <%= soldier.level %></p>
+      <ul class="profile-hero__meta">
+        <li>
+          <% if (soldier.online) { %>
+            <span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online now</span>
+          <% } else { %>
+            <span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Last seen <%= soldier.lastSeen %></span>
+          <% } %>
+        </li>
+        <li>Enlisted <time datetime="<%= soldier.enlistedIso %>"><%= soldier.enlisted %></time></li>
+      </ul>
+    </div>
+    <% if (soldier.isYou) { %>
+      <p class="profile-hero__note">This is how other soldiers see you. <a href="/hq">Back to HQ</a></p>
+    <% } %>
+  </section>
+
+  <div class="profile-grid">
+    <section class="card reveal" style="--i:2" aria-labelledby="record-title">
+      <h2 id="record-title" class="card__title">Combat record</h2>
+      <dl class="figures">
+        <div><dt>Level</dt><dd><%= soldier.level %></dd></div>
+        <div><dt>Missions won</dt><dd><%= soldier.missionsCompleted %></dd></div>
+        <div><dt>Missions lost</dt><dd><%= soldier.missionsFailed %></dd></div>
+        <div><dt>Success rate</dt><dd><%= soldier.successRate === null ? '—' : soldier.successRate + '%' %></dd></div>
+      </dl>
+      <p class="progress-line__note profile-next">
+        <%= soldier.nextRank ? `Next promotion: ${soldier.nextRank.name} (${soldier.nextRank.grade}) at level ${soldier.nextRank.level}.` : 'Holds the highest rank in EliteForces.' %>
+      </p>
+    </section>
+
+    <section class="card reveal" style="--i:3" aria-labelledby="ops-title">
+      <h2 id="ops-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Recent operations</h2>
+      <% if (activity.length) { %>
+        <ol class="dossier__log">
+          <% activity.forEach(function (a) { %>
+            <li class="log log--<%= a.kind %>"><time class="log__time" datetime="<%= new Date(a.created_at).toISOString() %>"><%= a.ago %></time> <%= a.message %></li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted">No operations on record yet.</p>
+      <% } %>
+    </section>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

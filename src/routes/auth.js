@@ -107,6 +107,7 @@ function authRoutes(players) {
   });
 
   router.post('/logout', (req, res, next) => {
+    if (req.session.userId) players.signOut(req.session.userId);
     req.session.destroy((err) => {
       if (err) return next(err);
       res.clearCookie('ef.sid');

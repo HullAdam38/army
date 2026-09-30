@@ -3,6 +3,7 @@
 const express = require('express');
 const game = require('../game');
 const { wantsJson } = require('../middleware');
+const presence = require('../presence');
 
 function gameRoutes(players) {
   const router = express.Router();
@@ -14,6 +15,11 @@ function gameRoutes(players) {
       if (req.method === 'GET') req.session.returnTo = req.originalUrl;
       req.flash('info', 'Sign in to report for duty.');
       return res.redirect('/login');
+    }
+    const now = Date.now();
+    if (!user.last_seen_at || now - user.last_seen_at > presence.SEEN_THROTTLE_MS) {
+      players.touchSeen(user.id, now);
+      user.last_seen_at = now;
     }
     req.player = user;
     res.locals.player = game.playerView(user);
@@ -89,6 +95,55 @@ function gameRoutes(players) {
       }
     }
     res.redirect('/missions');
+  });
+
+  router.get('/online', requireAuth, (req, res) => {
+    const now = Date.now();
+    const soldiers = players.listOnline(now - presence.ONLINE_WINDOW_MS).map((u) => {
+      const rank = game.rankFor(u.level);
+      return {
+        username: u.username,
+        level: u.level,
+        rank: rank.name,
+        grade: rank.grade,
+        lastSeen: presence.timeAgo(u.last_seen_at, now),
+        isYou: u.username === req.player.username,
+      };
+    });
+    res.render('online', {
+      title: 'Online',
+      nav: 'online',
+      soldiers,
+      windowMinutes: presence.ONLINE_WINDOW_MS / 60000,
+    });
+  });
+
+  router.get('/profile/:username', requireAuth, (req, res, next) => {
+    const user = players.findByUsername(String(req.params.username));
+    if (!user) return next(); // falls through to the 404 page
+    const now = Date.now();
+    const rank = game.rankFor(user.level);
+    const total = user.missions_completed + user.missions_failed;
+    res.render('profile', {
+      title: user.username,
+      nav: user.id === req.player.id ? 'profile' : null,
+      soldier: {
+        username: user.username,
+        level: user.level,
+        rank: rank.name,
+        grade: rank.grade,
+        nextRank: game.nextRankFor(user.level),
+        online: presence.isOnline(user, now),
+        lastSeen: presence.timeAgo(user.last_seen_at, now),
+        enlisted: new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+        enlistedIso: new Date(user.created_at).toISOString(),
+        missionsCompleted: user.missions_completed,
+        missionsFailed: user.missions_failed,
+        successRate: total ? Math.round((user.missions_completed / total) * 100) : null,
+        isYou: user.id === req.player.id,
+      },
+      activity: players.publicActivity(user.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
+    });
   });
 
   router.post('/hospital', requireAuth, (req, res) => {

@@ -118,3 +118,56 @@ test('public pages render and unknown routes 404', async (t) => {
   assert.ok(res.headers.get('content-security-policy'));
   assert.equal((await c.request('/nowhere')).res.status, 404);
 });
+
+async function register(c, username) {
+  const token = await c.csrf('/register');
+  const { res } = await c.request('/register', {
+    method: 'POST',
+    form: { _csrf: token, username, email: `${username}@example.com`, password: 'password123', confirm: 'password123', adult: 'on', terms: 'on' },
+  });
+  assert.equal(res.status, 302);
+}
+
+test('online page lists active players and profiles show public info only', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const alpha = client(base);
+  const bravo = client(base);
+  await register(alpha, 'Alpha');
+  await register(bravo, 'Bravo');
+
+  let { res, text } = await alpha.request('/online');
+  assert.equal(res.status, 200);
+  assert.match(text, /href="\/profile\/Alpha"/);
+  assert.match(text, /href="\/profile\/Bravo"/);
+  assert.match(text, /2 soldiers/);
+
+  ({ res, text } = await alpha.request('/profile/bravo'));
+  assert.equal(res.status, 200);
+  assert.match(text, /Bravo/);
+  assert.match(text, /Online now/);
+  assert.doesNotMatch(text, /bravo@example\.com/);
+  assert.doesNotMatch(text, /how other soldiers see you/);
+
+  ({ text } = await alpha.request('/profile/Alpha'));
+  assert.match(text, /how other soldiers see you/);
+
+  assert.equal((await alpha.request('/profile/nobody')).res.status, 404);
+
+  // Signing out drops you from the roll call and shows "last seen" instead.
+  const token = await bravo.csrf('/hq');
+  await bravo.request('/logout', { method: 'POST', form: { _csrf: token } });
+  ({ text } = await alpha.request('/online'));
+  assert.doesNotMatch(text, /href="\/profile\/Bravo"/);
+  assert.match(text, />1 soldier</);
+  ({ text } = await alpha.request('/profile/Bravo'));
+  assert.match(text, /Last seen/);
+});
+
+test('online and profile pages require sign-in', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const c = client(base);
+  assert.equal((await c.request('/online')).res.status, 302);
+  assert.equal((await c.request('/profile/anyone')).res.status, 302);
+});

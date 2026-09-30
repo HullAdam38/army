@@ -86,3 +86,16 @@ test('hospital heals for cash', () => {
   assert.match(game.visitHospital(newPlayer(), { now: T0 }).error, /full health/);
   assert.match(game.visitHospital(newPlayer({ health: 10, cash: 5 }), { now: T0 }).error, /costs/);
 });
+
+test('presence: online window, sign-out and relative times', () => {
+  const presence = require('../src/presence');
+  const now = T0;
+  assert.equal(presence.isOnline({ last_seen_at: now - 60_000 }, now), true);
+  assert.equal(presence.isOnline({ last_seen_at: now - presence.ONLINE_WINDOW_MS - 1 }, now), false);
+  assert.equal(presence.isOnline({ last_seen_at: now - 1000, signed_out_at: now }, now), false);
+  assert.equal(presence.isOnline({ last_seen_at: now, signed_out_at: now - 1000 }, now), true);
+  assert.equal(presence.isOnline({ last_seen_at: null }, now), false);
+  assert.equal(presence.timeAgo(now - 10_000, now), 'just now');
+  assert.equal(presence.timeAgo(now - 5 * 60_000, now), '5m ago');
+  assert.equal(presence.timeAgo(now - 3 * 3600_000, now), '3h ago');
+});

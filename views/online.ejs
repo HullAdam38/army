@@ -1,0 +1,38 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Roll call</p>
+      <h1 class="page-head__title">Online now</h1>
+      <p class="page-head__sub">
+        <span class="count-pill"><span class="status-dot" aria-hidden="true"></span><%= soldiers.length %> <%= soldiers.length === 1 ? 'soldier' : 'soldiers' %></span>
+        active in the last <%= windowMinutes %> minutes. Select a callsign to view their service record.
+      </p>
+    </div>
+  </div>
+
+  <% if (soldiers.length) { %>
+    <ol class="roster" aria-label="Online players">
+      <% soldiers.forEach(function (s, i) { %>
+        <li class="reveal" style="--i:<%= Math.min(i + 1, 12) %>">
+          <a class="roster__row<%= s.isYou ? ' roster__row--you' : '' %>" href="/profile/<%= encodeURIComponent(s.username) %>">
+            <span class="stat__grade"><%= s.grade %></span>
+            <span class="roster__who">
+              <span class="roster__name"><%= s.username %><% if (s.isYou) { %> <span class="tag">You</span><% } %></span>
+              <span class="roster__rank"><%= s.rank %></span>
+            </span>
+            <span class="roster__level"><span class="roster__label">Level</span><%= s.level %></span>
+            <span class="roster__seen"><span class="status-dot" aria-hidden="true"></span><%= s.lastSeen %></span>
+            <svg class="roster__arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </a>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted">No one else is on the line right now.</p>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

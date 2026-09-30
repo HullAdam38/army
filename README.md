@@ -51,7 +51,8 @@ src/
   session-store.js   express-session store on SQLite
   middleware.js      security headers, CSRF, flash messages, rate limiting
   routes/auth.js     register / login / logout
-  routes/game.js     HQ, missions, hospital
+  routes/game.js     HQ, missions, hospital, online list, profiles
+  presence.js        online/last-seen rules
 views/               EJS pages + partials
 public/              CSS, JS, favicon
 test/                node:test suites
@@ -63,3 +64,5 @@ test/                node:test suites
 - `/register`, `/login`: account forms (registration requires confirming you are 18+)
 - `/hq`: dashboard with service record, next orders, readiness (live regen timers), field hospital and radio log
 - `/missions`: operations board. Deploying uses `fetch` and updates stats in place, and falls back to a normal form post without JavaScript.
+- `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.
+- `/profile/:username`: a player's public service record, showing rank, level, online status or last seen, enlistment date, mission stats and recent operations. Email, cash, energy, health and hospital visits stay private.
