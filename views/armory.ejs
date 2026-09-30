@@ -1,0 +1,72 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const icons = { weapon: 'i-weapon', body: 'i-body', helmet: 'i-helmet', kit: 'i-kit' }; %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Quartermaster</p>
+      <h1 class="page-head__title">Armory</h1>
+      <p class="page-head__sub">Gear raises your combat rating, which improves mission success by up to 15%. Armour cuts the damage you take. The same stats will decide PvP fights.</p>
+    </div>
+  </div>
+
+  <section class="card armory-summary reveal" style="--i:1" aria-labelledby="loadout-title">
+    <h2 id="loadout-title" class="card__title">Your loadout</h2>
+    <%- include('partials/loadout', { loadout, editable: true }) %>
+    <details class="formula">
+      <summary>How damage is calculated</summary>
+      <div class="formula__body">
+        <p>Every bonus is a modifier on a stat, and they combine in three ways:</p>
+        <ul>
+          <li><strong>Flat</strong> (+10 attack) adds to the base value.</li>
+          <li><strong>Increased</strong> (+10% damage) is added together with other increased bonuses, then applied once.</li>
+          <li><strong>More</strong> (×1.10 damage) multiplies separately, so these compound. They're rare.</li>
+        </ul>
+        <p class="formula__eq">Hit = attack × damage × crit (if it lands) × (1 − target's armour reduction)</p>
+        <p>Armour reduction is armour ÷ (armour + 100), capped at 75%.</p>
+      </div>
+    </details>
+  </section>
+
+  <% catalogue.forEach(function (slot, si) { %>
+    <section class="armory-slot" id="slot-<%= slot.id %>" aria-labelledby="slot-<%= slot.id %>-title">
+      <h2 id="slot-<%= slot.id %>-title" class="armory-slot__title"><svg aria-hidden="true"><use href="#<%= icons[slot.id] %>"/></svg><%= slot.label %></h2>
+      <ul class="item-grid">
+        <% slot.items.forEach(function (item) { %>
+          <li class="card item item--<%= item.state %>">
+            <div class="mission__head">
+              <span class="mission__theatre"><%= slot.label %></span>
+              <span class="mission__level">Lv <%= item.minLevel %>+</span>
+            </div>
+            <h3 class="item__name"><%= item.name %></h3>
+            <p class="item__blurb"><%= item.blurb %></p>
+            <ul class="item__mods">
+              <% item.modText.forEach(function (t) { %><li><%= t %></li><% }) %>
+            </ul>
+            <div class="item__foot">
+              <span class="item__price"><%= item.state === 'equipped' || item.state === 'owned' ? 'Owned' : '$' + item.price.toLocaleString('en-US') %></span>
+              <% if (item.state === 'equipped') { %>
+                <span class="item__status"><span class="status-dot" aria-hidden="true"></span>Equipped</span>
+              <% } else if (item.state === 'owned') { %>
+                <form method="post" action="/armory/equip/<%= item.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn--ghost btn--sm" type="submit">Equip</button>
+                </form>
+              <% } else if (item.state === 'locked') { %>
+                <span class="item__status item__status--muted"><svg aria-hidden="true"><use href="#i-lock"/></svg>Level <%= item.minLevel %></span>
+              <% } else { %>
+                <form method="post" action="/armory/buy/<%= item.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn--primary btn--sm" type="submit" <%- item.state === 'expensive' ? 'disabled' : '' %>><%= item.state === 'expensive' ? 'Need funds' : 'Buy' %></button>
+                </form>
+              <% } %>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% }) %>
+</main>
+
+<%- include('partials/foot') %>

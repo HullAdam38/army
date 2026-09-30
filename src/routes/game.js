@@ -4,30 +4,17 @@ const express = require('express');
 const game = require('../game');
 const { wantsJson } = require('../middleware');
 const presence = require('../presence');
+const { loadoutView } = require('../armory');
+const { createRequireAuth } = require('../require-auth');
 
 function gameRoutes(players) {
   const router = express.Router();
 
-  function requireAuth(req, res, next) {
-    const user = req.session.userId && players.findById(req.session.userId);
-    if (!user) {
-      if (wantsJson(req)) return res.status(401).json({ ok: false, error: 'Signed out.' });
-      if (req.method === 'GET') req.session.returnTo = req.originalUrl;
-      req.flash('info', 'Sign in to report for duty.');
-      return res.redirect('/login');
-    }
-    const now = Date.now();
-    if (!user.last_seen_at || now - user.last_seen_at > presence.SEEN_THROTTLE_MS) {
-      players.touchSeen(user.id, now);
-      user.last_seen_at = now;
-    }
-    req.player = user;
-    res.locals.player = game.playerView(user);
-    next();
-  }
+  const requireAuth = createRequireAuth(players);
+  const statsOf = (user) => game.statsFor(user.level, Object.values(players.equipment(user.id)));
 
   router.get('/hq', requireAuth, (req, res) => {
-    const missions = game.missionViews(req.player);
+    const missions = game.missionViews(req.player, Date.now(), statsOf(req.player));
     const nextMission = missions.find((m) => !m.blocker) || null;
     res.render('hq', {
       title: 'Headquarters',
@@ -35,6 +22,7 @@ function gameRoutes(players) {
       activity: players.recentActivity(req.player.id),
       nextMission,
       nextRank: game.nextRankFor(req.player.level),
+      loadout: loadoutView(req.player.level, players.equipment(req.player.id)),
     });
   });
 
@@ -42,7 +30,7 @@ function gameRoutes(players) {
     res.render('missions', {
       title: 'Missions',
       nav: 'missions',
-      missions: game.missionViews(req.player),
+      missions: game.missionViews(req.player, Date.now(), statsOf(req.player)),
       result: null,
     });
   });
@@ -51,7 +39,7 @@ function gameRoutes(players) {
     const outcome = players.transaction(() => {
       // Re-read inside the transaction so we act on the freshest state.
       const fresh = players.findById(req.player.id);
-      const out = game.runMission(req.params.id, fresh);
+      const out = game.runMission(req.params.id, fresh, { stats: statsOf(fresh) });
       if (out.error) return out;
       players.save(out.player);
       const r = out.result;
@@ -60,7 +48,7 @@ function gameRoutes(players) {
         r.success ? 'success' : 'failure',
         r.success
           ? `${r.missionName}: objective secured. +${r.xp} XP, +$${r.cash}.`
-          : `${r.missionName}: mission failed. Took ${r.damage} damage, +${r.xp} XP.`,
+          : `${r.missionName}: mission failed. Took ${r.damage} damage${r.absorbed ? ` (armour absorbed ${r.absorbed})` : ''}, +${r.xp} XP.`,
       );
       for (const lvl of r.levelsGained) {
         const rank = game.rankFor(lvl);
@@ -76,7 +64,7 @@ function gameRoutes(players) {
         error: outcome.error || null,
         result: outcome.result || null,
         player: game.playerView(latest),
-        missions: game.missionViews(latest).map(({ id, blocker, chancePct, locked }) => ({ id, blocker, chancePct, locked })),
+        missions: game.missionViews(latest, Date.now(), statsOf(latest)).map(({ id, blocker, chancePct, locked }) => ({ id, blocker, chancePct, locked })),
       });
     }
 
@@ -88,7 +76,7 @@ function gameRoutes(players) {
         r.success ? 'success' : 'error',
         r.success
           ? `${r.missionName} complete. +${r.xp} XP, +$${r.cash}.`
-          : `${r.missionName} failed. You took ${r.damage} damage but earned ${r.xp} XP.`,
+          : `${r.missionName} failed. You took ${r.damage} damage${r.absorbed ? ` (armour absorbed ${r.absorbed})` : ''} but earned ${r.xp} XP.`,
       );
       if (r.levelsGained.length) {
         req.flash('success', `Promotion! You are now level ${r.levelsGained.at(-1)}.`);
@@ -142,6 +130,7 @@ function gameRoutes(players) {
         successRate: total ? Math.round((user.missions_completed / total) * 100) : null,
         isYou: user.id === req.player.id,
       },
+      loadout: loadoutView(user.level, players.equipment(user.id)),
       activity: players.publicActivity(user.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
     });
   });

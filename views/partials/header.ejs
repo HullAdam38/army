@@ -8,6 +8,7 @@
       <nav class="game-nav" aria-label="Game">
         <a href="/hq" class="game-nav__link" <%- nav === 'hq' ? 'aria-current="page"' : '' %>>HQ</a>
         <a href="/missions" class="game-nav__link" <%- nav === 'missions' ? 'aria-current="page"' : '' %>>Missions</a>
+        <a href="/armory" class="game-nav__link" <%- nav === 'armory' ? 'aria-current="page"' : '' %>>Armory</a>
         <a href="/online" class="game-nav__link" <%- nav === 'online' ? 'aria-current="page"' : '' %>>Online</a>
         <a href="/profile/<%= encodeURIComponent(player.username) %>" class="game-nav__link" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>Profile</a>
       </nav>

@@ -990,6 +990,104 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .profile-grid .figures { margin-top: 0; grid-template-columns: repeat(2, 1fr); }
 .profile-next { margin-top: 14px; }
 
+/* Armory & loadout */
+.armory-summary { margin-bottom: 36px; }
+.combat-profile { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: stretch; }
+.combat-profile__rating {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-width: 150px;
+  padding: 16px 20px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+.combat-profile__label, .loadout__label {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.combat-profile__value { font-family: var(--font-display); font-size: 3rem; line-height: 1; color: var(--accent); text-shadow: 0 0 30px var(--accent-glow); }
+.combat-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.combat-stats > div { padding: 10px 14px; background: var(--bg-raised); }
+.combat-stats dt { font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); }
+.combat-stats dd { font-family: var(--font-ui); font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.combat-stats small { font-size: 0.75rem; font-weight: 600; color: var(--health); }
+
+.loadout { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; padding: 0; list-style: none; }
+.loadout__slot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--olive);
+  border-radius: var(--radius);
+}
+.loadout__slot--empty { border-left-color: var(--line-strong); border-style: dashed; border-left-style: solid; }
+.loadout__slot--empty .loadout__name { color: var(--text-faint); }
+.loadout__icon { flex: none; width: 26px; height: 26px; color: var(--olive); }
+.loadout__slot--empty .loadout__icon { color: var(--line-strong); }
+.loadout__body { display: grid; flex: 1; min-width: 0; }
+.loadout__name { font-family: var(--font-ui); font-weight: 700; }
+.loadout__mods { font-size: 0.85rem; color: var(--health); }
+.profile-grid .loadout, .profile-grid .combat-profile { grid-template-columns: 1fr; }
+.profile-grid .combat-profile__rating { justify-items: start; }
+.profile-grid__wide { grid-column: 1 / -1; }
+
+.formula { margin-top: 18px; border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+.formula summary {
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.formula summary:hover { color: var(--text); }
+.formula__body { display: grid; gap: 10px; margin-top: 12px; max-width: 60rem; color: var(--text-muted); font-size: 0.95rem; }
+.formula__body ul { display: grid; gap: 4px; padding-left: 1.2em; }
+.formula__body strong { color: var(--text); }
+.formula__eq { padding: 10px 14px; font-family: var(--font-ui); font-weight: 600; color: var(--text); background: var(--bg-raised); border-left: 3px solid var(--accent); }
+
+.armory-slot { margin-top: 32px; scroll-margin-top: 150px; }
+.armory-slot__title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 1.3rem; }
+.armory-slot__title svg { width: 24px; height: 24px; color: var(--accent); }
+.item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 16px; padding: 0; list-style: none; }
+.item { display: flex; flex-direction: column; padding: 18px; }
+.item:hover { border-color: var(--line-strong); transform: translateY(-3px); }
+.item__name { margin-top: 10px; font-size: 1.2rem; }
+.item__blurb { margin-top: 4px; font-size: 0.92rem; color: var(--text-muted); flex: 1; }
+.item__mods { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; padding: 0; list-style: none; }
+.item__mods li { padding: 2px 9px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 600; color: var(--health); background: rgb(95 207 122 / 0.08); border: 1px solid rgb(95 207 122 / 0.25); border-radius: 2px; }
+.item__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.item__price { font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.item__status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--health); }
+.item__status--muted { color: var(--text-faint); }
+.item__status svg { width: 14px; height: 14px; }
+.item--equipped { border-color: rgb(95 207 122 / 0.45); }
+.item--equipped::before { border-color: var(--health); }
+.item--locked { opacity: 0.55; }
+.item--owned .item__price, .item--equipped .item__price { color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.figure-link { color: var(--accent); text-decoration: none; }
+.figure-link:hover { text-decoration: underline; }
+
 /* Error */
 .error-page { display: grid; justify-items: start; gap: 16px; padding-block: clamp(64px, 12vw, 140px); }
 .error-page__code { font-family: var(--font-display); font-size: clamp(5rem, 18vw, 10rem); line-height: 0.9; color: var(--accent); }
@@ -1036,6 +1134,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .rank-ladder li { transform: none !important; }
   .hq-card--dossier, .hq-card--orders, .hq-card--status, .hq-card--log { grid-column: span 12; }
   .profile-grid { grid-template-columns: 1fr; }
+  .combat-profile { grid-template-columns: 1fr; }
+  .combat-profile__rating { justify-items: start; }
   .statbar__grid { grid-template-columns: 1fr 1fr; }
   .stat--cash { justify-self: stretch; }
 }
@@ -1055,6 +1155,11 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .game-nav__link::after { bottom: 0; }
   .statbar__grid { gap: 10px 16px; }
   .figures { grid-template-columns: repeat(2, 1fr); }
+  .combat-stats, .loadout { grid-template-columns: repeat(2, 1fr); }
+  .loadout { grid-template-columns: 1fr; }
+  .armory-slot { scroll-margin-top: 230px; }
+  .game-nav { overflow-x: auto; scrollbar-width: none; }
+  .game-nav__link { flex: 1 0 auto; }
   .game-nav { gap: 0; }
   .game-nav__link { padding-inline: 4px; font-size: 0.8rem; letter-spacing: 0.08em; }
   .roster__row { grid-template-columns: auto 1fr auto; gap: 6px 14px; padding: 12px 14px; }

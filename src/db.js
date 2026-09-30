@@ -37,6 +37,20 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_activity_user ON activity(user_id, created_at DESC);
 
+  CREATE TABLE IF NOT EXISTS inventory (
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    item_id      TEXT    NOT NULL,
+    acquired_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, item_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS equipment (
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    slot     TEXT    NOT NULL,
+    item_id  TEXT    NOT NULL,
+    PRIMARY KEY (user_id, slot)
+  );
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,

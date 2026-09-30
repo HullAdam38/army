@@ -185,7 +185,7 @@
         strong,
         r.success
           ? ` — objective secured. +${r.xp} XP, +$${r.cash}.`
-          : ` — mission failed. You took ${r.damage} damage but earned ${r.xp} XP.`,
+          : ` — mission failed. You took ${r.damage} damage${r.absorbed ? ` (armour absorbed ${r.absorbed})` : ''} but earned ${r.xp} XP.`,
       );
       if (r.levelsGained.length) {
         const promo = document.createElement('span');

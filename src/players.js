@@ -28,6 +28,12 @@ function createPlayerRepo(db) {
       WHERE last_seen_at >= ? AND (signed_out_at IS NULL OR signed_out_at < last_seen_at)
       ORDER BY level DESC, xp DESC, username
       LIMIT ?`),
+    owned: db.prepare('SELECT item_id FROM inventory WHERE user_id = ?'),
+    addItem: db.prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, acquired_at) VALUES (?, ?, ?)'),
+    equipped: db.prepare('SELECT slot, item_id FROM equipment WHERE user_id = ?'),
+    equip: db.prepare(`INSERT INTO equipment (user_id, slot, item_id) VALUES (?, ?, ?)
+                       ON CONFLICT(user_id, slot) DO UPDATE SET item_id = excluded.item_id`),
+    unequip: db.prepare('DELETE FROM equipment WHERE user_id = ? AND slot = ?'),
     publicLog: db.prepare(`
       SELECT kind, message, created_at FROM activity
       WHERE user_id = ? AND kind IN ('success', 'failure', 'promotion')
@@ -72,6 +78,13 @@ function createPlayerRepo(db) {
     touchSeen: (id, now = Date.now()) => stmts.touchSeen.run(now, id),
     signOut: (id) => stmts.signOut.run(Date.now(), id),
     listOnline: (since, limit = 200) => stmts.online.all(since, limit),
+    ownedItemIds: (id) => new Set(stmts.owned.all(id).map((r) => r.item_id)),
+    addItem: (id, itemId) => stmts.addItem.run(id, itemId, Date.now()),
+    /** { weapon: 'carbine', body: 'flak-vest', ... } for filled slots only. */
+    equipment: (id) => Object.fromEntries(stmts.equipped.all(id).map((r) => [r.slot, r.item_id])),
+    equip: (id, slot, itemId) => stmts.equip.run(id, slot, itemId),
+    unequip: (id, slot) => stmts.unequip.run(id, slot),
+
     /** Mission results and promotions only; hospital visits and the like stay private. */
     publicActivity: (id, limit = 8) => stmts.publicLog.all(id, limit),
     log: (id, kind, message) => stmts.log.run(id, kind, message, Date.now()),

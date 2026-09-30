@@ -40,7 +40,12 @@
       </p>
     </section>
 
-    <section class="card reveal" style="--i:3" aria-labelledby="ops-title">
+    <section class="card reveal" style="--i:3" aria-labelledby="gear-title">
+      <h2 id="gear-title" class="card__title">Loadout</h2>
+      <%- include('partials/loadout', { loadout, editable: false }) %>
+    </section>
+
+    <section class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="ops-title">
       <h2 id="ops-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Recent operations</h2>
       <% if (activity.length) { %>
         <ol class="dossier__log">

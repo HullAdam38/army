@@ -33,7 +33,7 @@
         <div><dt>Missions won</dt><dd><%= player.missionsCompleted %></dd></div>
         <div><dt>Missions lost</dt><dd><%= player.missionsFailed %></dd></div>
         <div><dt>Success rate</dt><dd><%= player.successRate === null ? '—' : player.successRate + '%' %></dd></div>
-        <div><dt>Funds</dt><dd>$<%= player.cash.toLocaleString('en-US') %></dd></div>
+        <div><dt>Combat rating</dt><dd><a class="figure-link" href="/armory"><%= loadout.rating %></a></dd></div>
       </dl>
     </section>
 

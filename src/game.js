@@ -1,5 +1,8 @@
 'use strict';
 
+const combat = require('./combat');
+const { modifiersFor } = require('./items');
+
 /**
  * Pure game rules. Nothing here touches the database, so the whole loop can be
  * unit tested by passing in a plain player object, a clock and an RNG.
@@ -9,6 +12,7 @@ const ENERGY_REGEN_MS = 2 * 60 * 1000; // +1 energy every 2 minutes
 const HEALTH_REGEN_MS = 60 * 1000; // +1 health every minute
 const MIN_DEPLOY_HEALTH = 15;
 const HOSPITAL_COST_PER_HP = 2;
+const MAX_GEAR_SUCCESS_BONUS = 0.15;
 
 const RANKS = [
   { name: 'Recruit', grade: 'E-1' },
@@ -128,8 +132,24 @@ function applyRegen(player, now = Date.now()) {
   };
 }
 
-function successChance(mission, player) {
+/** Combat stats for a player at `level` wearing the given item ids. */
+function statsFor(level, itemIds = []) {
+  return combat.buildStats(level, modifiersFor(itemIds));
+}
+
+/**
+ * Mission success bonus from gear: compares your combat rating to what you'd
+ * have unarmed at the same level. Doubling it gives +10%, capped at +15%.
+ */
+function gearBonus(level, stats) {
+  const baseline = combat.combatRating(statsFor(level));
+  const ratio = combat.combatRating(stats) / baseline;
+  return Math.min(MAX_GEAR_SUCCESS_BONUS, Math.max(0, (ratio - 1) * 0.1));
+}
+
+function successChance(mission, player, stats = statsFor(player.level)) {
   let chance = mission.chance + 0.01 * Math.max(0, player.level - mission.minLevel);
+  chance += gearBonus(player.level, stats);
   if (player.health < player.max_health / 2) chance -= 0.1;
   return Math.max(0.05, Math.min(0.97, chance));
 }
@@ -162,7 +182,7 @@ function grantXp(player, amount) {
  * Resolves a mission. Returns { player, result } where `player` is the updated
  * copy to persist, or { error } when the mission can't be attempted.
  */
-function runMission(missionId, current, { now = Date.now(), rng = Math.random } = {}) {
+function runMission(missionId, current, { now = Date.now(), rng = Math.random, stats } = {}) {
   const mission = MISSIONS_BY_ID.get(missionId);
   if (!mission) return { error: 'Unknown mission.' };
 
@@ -170,13 +190,14 @@ function runMission(missionId, current, { now = Date.now(), rng = Math.random } 
   const blocker = missionBlocker(mission, player);
   if (blocker) return { error: `${blocker}.`, player };
 
-  const chance = successChance(mission, player);
+  stats = stats || statsFor(player.level);
+  const chance = successChance(mission, player, stats);
   const wasFullEnergy = player.energy >= player.max_energy;
   player.energy -= mission.energy;
   if (wasFullEnergy) player.energy_updated_at = now; // regen clock starts now
 
   const success = rng() < chance;
-  const result = { missionId, missionName: mission.name, success, chance, xp: 0, cash: 0, damage: 0 };
+  const result = { missionId, missionName: mission.name, success, chance, xp: 0, cash: 0, damage: 0, absorbed: 0 };
 
   if (success) {
     result.xp = randInt(mission.xp, rng);
@@ -185,7 +206,10 @@ function runMission(missionId, current, { now = Date.now(), rng = Math.random } 
     player.missions_completed += 1;
   } else {
     result.xp = Math.max(1, Math.round(randInt(mission.xp, rng) * 0.25));
-    result.damage = Math.min(player.health - 1, randInt(mission.damage, rng));
+    const raw = randInt(mission.damage, rng);
+    const reduced = Math.max(1, Math.round(raw * (1 - combat.mitigation(stats.armor))));
+    result.damage = Math.min(player.health - 1, reduced);
+    result.absorbed = raw - reduced;
     if (player.health >= player.max_health) player.health_updated_at = now;
     player.health -= result.damage;
     player.missions_failed += 1;
@@ -258,13 +282,13 @@ function playerView(raw, now = Date.now()) {
   };
 }
 
-function missionViews(raw, now = Date.now()) {
+function missionViews(raw, now = Date.now(), stats = statsFor(raw.level)) {
   const p = applyRegen(raw, now);
   return MISSIONS.map((m) => ({
     ...m,
     locked: p.level < m.minLevel,
     blocker: missionBlocker(m, p),
-    chancePct: Math.round(successChance(m, p) * 100),
+    chancePct: Math.round(successChance(m, p, stats) * 100),
   }));
 }
 
@@ -282,7 +306,9 @@ module.exports = {
   nextRankFor,
   playerView,
   rankFor,
+  gearBonus,
   runMission,
+  statsFor,
   successChance,
   visitHospital,
   xpToNext,

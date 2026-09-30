@@ -6,10 +6,12 @@ const { createApp } = require('../src/server');
 const { openDatabase } = require('../src/db');
 
 async function startServer() {
-  const app = createApp({ db: openDatabase(':memory:'), secret: 'test-secret' });
+  const db = openDatabase(':memory:');
+  const app = createApp({ db, secret: 'test-secret' });
   const server = await new Promise((resolve) => {
     const s = app.listen(0, () => resolve(s));
   });
+  server.db = db; // lets tests set up state directly
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 }
 
@@ -170,4 +172,48 @@ test('online and profile pages require sign-in', async (t) => {
   const c = client(base);
   assert.equal((await c.request('/online')).res.status, 302);
   assert.equal((await c.request('/profile/anyone')).res.status, 302);
+});
+
+test('armory: buy, auto-equip, stow, re-equip; loadout shows on profile', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const c = client(base);
+  await register(c, 'Quartermaster'); // starts with $100
+
+  let { res, text } = await c.request('/armory');
+  assert.equal(res.status, 200);
+  assert.match(text, /Combat rating/);
+
+  let token = await c.csrf('/armory');
+  ({ res } = await c.request('/armory/buy/flak-vest', { method: 'POST', form: { _csrf: token } }));
+  assert.equal(res.status, 302);
+  ({ text } = await c.request('/armory'));
+  assert.match(text, /costs \$120/); // not enough cash yet
+
+  // Earn cash the honest way isn't deterministic, so top up directly.
+  server.db.prepare("UPDATE users SET cash = 1000 WHERE username = 'Quartermaster'").run();
+  ({ res } = await c.request('/armory/buy/flak-vest', { method: 'POST', form: { _csrf: token } }));
+  assert.equal(res.headers.get('location'), '/armory#slot-body');
+  ({ text } = await c.request('/armory'));
+  assert.match(text, /Flak Vest purchased and equipped/);
+  assert.match(text, /data-stat="cash">880</);
+
+  ({ text } = await c.request('/profile/Quartermaster'));
+  assert.match(text, /loadout__name">Flak Vest/);
+
+  await c.request('/armory/unequip/body', { method: 'POST', form: { _csrf: token } });
+  ({ text } = await c.request('/profile/Quartermaster'));
+  assert.doesNotMatch(text, /loadout__name">Flak Vest/);
+
+  await c.request('/armory/equip/flak-vest', { method: 'POST', form: { _csrf: token } });
+  ({ text } = await c.request('/profile/Quartermaster'));
+  assert.match(text, /loadout__name">Flak Vest/);
+
+  // Can't buy twice, can't equip what you don't own.
+  await c.request('/armory/buy/flak-vest', { method: 'POST', form: { _csrf: token } });
+  ({ text } = await c.request('/armory'));
+  assert.match(text, /already own/);
+  await c.request('/armory/equip/service-pistol', { method: 'POST', form: { _csrf: token } });
+  ({ text } = await c.request('/armory'));
+  assert.match(text, /don’t own/);
 });
