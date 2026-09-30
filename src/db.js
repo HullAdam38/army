@@ -2,7 +2,8 @@
 
 const path = require('node:path');
 const fs = require('node:fs');
-const Database = require('better-sqlite3');
+// Node's built-in SQLite driver: no native compilation needed on install.
+const { DatabaseSync } = require('node:sqlite');
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS users (
@@ -44,10 +45,8 @@ const SCHEMA = `
 
 function openDatabase(file = process.env.DB_FILE || path.join(__dirname, '..', 'data', 'eliteforces.db')) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
-  const db = new Database(file);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  db.pragma('busy_timeout = 5000');
+  const db = new DatabaseSync(file);
+  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   db.exec(SCHEMA);
   return db;
 }

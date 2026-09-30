@@ -4,9 +4,9 @@
   "description": "EliteForces — a text-based military strategy game",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node --test test/*.test.js"
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -20,7 +20,6 @@
   "homepage": "https://github.com/HullAdam38/army#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^13.0.3",
     "compression": "^1.8.2",
     "ejs": "^6.0.1",
     "express": "^5.2.1",
@@ -28,6 +27,6 @@
   },
   "private": true,
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   }
 }

@@ -59,7 +59,17 @@ function createPlayerRepo(db) {
     recentActivity: (id, limit = 8) => stmts.recent.all(id, limit),
 
     /** Run `fn` inside a write transaction so concurrent requests can't double-spend. */
-    transaction: (fn) => db.transaction(fn).immediate(),
+    transaction(fn) {
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        const result = fn();
+        db.exec('COMMIT');
+        return result;
+      } catch (err) {
+        db.exec('ROLLBACK');
+        throw err;
+      }
+    },
   };
 }
 

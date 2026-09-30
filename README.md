@@ -4,8 +4,8 @@ A text-based military strategy game for players aged 18+. You enlist, spend ener
 
 ## Stack
 
-- **Server:** Node.js (20+) and Express 5, with EJS server-rendered views
-- **Data:** SQLite through `better-sqlite3`. Players, the activity log and sessions are all stored in one file.
+- **Server:** Node.js (22.13+) and Express 5, with EJS server-rendered views
+- **Data:** SQLite through Node's built-in `node:sqlite` module, so nothing needs compiling on install. Players, the activity log and sessions are all stored in one file.
 - **Auth:** bcrypt password hashes (cost 12), session cookies (`httpOnly`, `sameSite=lax`, `secure` in production), a new session ID on login, CSRF tokens on every POST, and IP rate limiting on login and register
 - **Frontend:** hand-written CSS with design tokens (no build step) and a small vanilla JS file for progressive enhancement. Every page works without JavaScript.
 - **Fonts:** Saira Stencil One (display), Chakra Petch (UI and headings), Barlow (body)
