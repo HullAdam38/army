@@ -1,0 +1,105 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const fmtTime = (ms) => new Date(ms).toISOString().slice(11, 16).replace(':', '') + 'Z';
+%>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Headquarters</p>
+      <h1 class="page-head__title">Welcome back, <span class="accent"><%= player.username %></span>.</h1>
+    </div>
+    <a class="btn btn--primary" href="/missions">View missions <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </div>
+
+  <div class="hq-grid">
+    <section class="card hq-card hq-card--dossier reveal" style="--i:1" aria-labelledby="dossier-title">
+      <h2 id="dossier-title" class="card__title">Service record</h2>
+      <div class="dossier__who">
+        <span class="stat__grade stat__grade--lg"><%= player.grade %></span>
+        <div>
+          <p class="dossier__name"><%= player.rank %></p>
+          <p class="dossier__meta">Level <%= player.level %><%= nextRank ? ` · ${nextRank.name} at level ${nextRank.level}` : ' · highest rank achieved' %></p>
+        </div>
+      </div>
+      <div class="progress-line">
+        <div class="progress-line__label"><span>Experience</span><span><%= player.xp %> / <%= player.xpNeeded %> XP</span></div>
+        <span class="meter meter--xp meter--lg" role="progressbar" aria-label="Experience" aria-valuemin="0" aria-valuemax="<%= player.xpNeeded %>" aria-valuenow="<%= player.xp %>">
+          <span class="meter__fill" style="width:<%= player.xpPct %>%"></span>
+        </span>
+      </div>
+      <dl class="figures">
+        <div><dt>Missions won</dt><dd><%= player.missionsCompleted %></dd></div>
+        <div><dt>Missions lost</dt><dd><%= player.missionsFailed %></dd></div>
+        <div><dt>Success rate</dt><dd><%= player.successRate === null ? '—' : player.successRate + '%' %></dd></div>
+        <div><dt>Funds</dt><dd>$<%= player.cash.toLocaleString('en-US') %></dd></div>
+      </dl>
+    </section>
+
+    <section class="card hq-card hq-card--orders reveal" style="--i:2" aria-labelledby="orders-title">
+      <h2 id="orders-title" class="card__title">Next orders</h2>
+      <% if (nextMission) { %>
+        <p class="orders__theatre"><%= nextMission.theatre %></p>
+        <p class="orders__name"><%= nextMission.name %></p>
+        <p class="orders__brief"><%= nextMission.brief %></p>
+        <ul class="chips">
+          <li class="chip"><svg aria-hidden="true"><use href="#i-bolt"/></svg><%= nextMission.energy %> energy</li>
+          <li class="chip"><svg aria-hidden="true"><use href="#i-target"/></svg><%= nextMission.chancePct %>% success</li>
+        </ul>
+        <form method="post" action="/missions/<%= nextMission.id %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--primary btn--block" type="submit">Deploy now</button>
+        </form>
+      <% } else if (!player.canDeploy) { %>
+        <p class="orders__brief">You're too injured to deploy. Rest up or visit the field hospital.</p>
+      <% } else { %>
+        <p class="orders__brief">Energy is too low for any available mission.
+          <% if (player.nextEnergyIn !== null) { %>Next energy point in <span data-countdown="energy"><%= player.nextEnergyIn %>s</span>.<% } %>
+        </p>
+        <a class="btn btn--ghost btn--block" href="/missions">Review missions</a>
+      <% } %>
+    </section>
+
+    <section class="card hq-card hq-card--status reveal" style="--i:3" aria-labelledby="status-title">
+      <h2 id="status-title" class="card__title">Readiness</h2>
+      <div class="progress-line">
+        <div class="progress-line__label"><span><svg class="inline-icon inline-icon--energy" aria-hidden="true"><use href="#i-bolt"/></svg>Energy</span><span><%= player.energy %> / <%= player.maxEnergy %></span></div>
+        <span class="meter meter--energy meter--lg"><span class="meter__fill" style="width:<%= player.energyPct %>%"></span></span>
+        <p class="progress-line__note">
+          <% if (player.nextEnergyIn === null) { %>Fully charged.<% } else { %>+1 in <span data-countdown="energy"><%= player.nextEnergyIn %>s</span> · 1 per <%= player.energyRegenSeconds / 60 %> min<% } %>
+        </p>
+      </div>
+      <div class="progress-line">
+        <div class="progress-line__label"><span><svg class="inline-icon inline-icon--health" aria-hidden="true"><use href="#i-health"/></svg>Health</span><span><%= player.health %> / <%= player.maxHealth %></span></div>
+        <span class="meter meter--health meter--lg"><span class="meter__fill" style="width:<%= player.healthPct %>%"></span></span>
+        <p class="progress-line__note">
+          <% if (player.nextHealthIn === null) { %>Combat ready.<% } else { %>+1 in <span data-countdown="health"><%= player.nextHealthIn %>s</span> · 1 per <%= player.healthRegenSeconds / 60 %> min<% } %>
+        </p>
+      </div>
+      <form method="post" action="/hospital" class="hospital">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div>
+          <p class="hospital__title">Field hospital</p>
+          <p class="hospital__note"><%= player.hospitalCost ? `Full treatment: $${player.hospitalCost}` : 'No treatment needed.' %></p>
+        </div>
+        <button class="btn btn--ghost btn--sm" type="submit" <%- player.hospitalCost === 0 || player.hospitalCost > player.cash ? 'disabled' : '' %>>Treat</button>
+      </form>
+    </section>
+
+    <section class="card hq-card hq-card--log reveal" style="--i:4" aria-labelledby="log-title">
+      <h2 id="log-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Radio log</h2>
+      <% if (activity.length) { %>
+        <ol class="dossier__log">
+          <% activity.forEach(function (a) { %>
+            <li class="log log--<%= a.kind %>"><time class="log__time" datetime="<%= new Date(a.created_at).toISOString() %>"><%= fmtTime(a.created_at) %></time> <%= a.message %></li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted">Radio silence. Run a mission to get chatter going.</p>
+      <% } %>
+    </section>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

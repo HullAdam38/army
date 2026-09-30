@@ -1,0 +1,44 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Operations board</p>
+      <h1 class="page-head__title">Missions</h1>
+      <p class="page-head__sub">Every deployment costs energy. Success pays XP and cash; failure costs health but you still learn something.</p>
+    </div>
+  </div>
+
+  <div class="mission-result" data-mission-result aria-live="polite" hidden></div>
+
+  <ul class="mission-grid">
+    <% missions.forEach(function (m, i) { %>
+      <li class="card mission reveal<%= m.locked ? ' mission--locked' : '' %>" style="--i:<%= i + 1 %>" data-mission="<%= m.id %>">
+        <div class="mission__head">
+          <span class="mission__theatre"><%= m.theatre %></span>
+          <span class="mission__level">Lv <%= m.minLevel %>+</span>
+        </div>
+        <h2 class="mission__name"><%= m.name %></h2>
+        <p class="mission__brief"><%= m.brief %></p>
+        <dl class="mission__stats">
+          <div><dt><svg aria-hidden="true"><use href="#i-bolt"/></svg>Energy</dt><dd><%= m.energy %></dd></div>
+          <div><dt><svg aria-hidden="true"><use href="#i-target"/></svg>Success</dt><dd data-chance><%= m.locked ? '—' : m.chancePct + '%' %></dd></div>
+          <div><dt><svg aria-hidden="true"><use href="#i-star"/></svg>XP</dt><dd><%= m.xp[0] %>–<%= m.xp[1] %></dd></div>
+          <div><dt><svg aria-hidden="true"><use href="#i-cash"/></svg>Pay</dt><dd>$<%= m.cash[0] %>–<%= m.cash[1] %></dd></div>
+        </dl>
+        <form method="post" action="/missions/<%= m.id %>" class="mission__form" data-mission-form>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% if (m.locked) { %>
+            <button class="btn btn--locked btn--block" type="button" disabled><svg class="btn__icon" aria-hidden="true"><use href="#i-lock"/></svg>Unlocks at level <%= m.minLevel %></button>
+          <% } else { %>
+            <button class="btn btn--primary btn--block" type="submit" <%- m.blocker ? 'disabled' : '' %>>Deploy</button>
+            <p class="mission__blocker" data-blocker><%= m.blocker || '' %></p>
+          <% } %>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+</main>
+
+<%- include('partials/foot') %>

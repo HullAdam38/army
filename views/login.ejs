@@ -1,0 +1,36 @@
+<%- include('partials/head', { bodyClass: 'page-auth' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="auth">
+  <div class="auth__panel reveal" style="--i:0">
+    <div class="form-card">
+      <div class="form-card__head">
+        <span>Form EF-2</span><span>Duty sign-in</span>
+      </div>
+      <h1 class="form-card__title">Report for duty</h1>
+      <p class="form-card__sub">Sign in with your callsign or email.</p>
+
+      <% if (error) { %><p class="flash flash--error" role="alert"><%= error %></p><% } %>
+
+      <form method="post" action="/login" class="form" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="login">Callsign or email</label>
+          <input id="login" name="login" type="text" autocomplete="username" required autofocus
+                 value="<%= values.login || '' %>" <%- error ? 'aria-invalid="true"' : '' %>>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="field__pw">
+            <input id="password" name="password" type="password" autocomplete="current-password" required <%- error ? 'aria-invalid="true"' : '' %>>
+            <button type="button" class="field__toggle" data-toggle-password="password" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+        <button class="btn btn--primary btn--block" type="submit">Sign in <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      </form>
+      <p class="form-card__alt">New recruit? <a href="/register">Enlist here</a>.</p>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

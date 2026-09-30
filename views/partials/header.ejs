@@ -1,0 +1,35 @@
+<header class="site-header<%= player ? ' site-header--game' : '' %>">
+  <div class="container site-header__bar">
+    <a class="brand" href="<%= signedIn ? '/hq' : '/' %>" aria-label="EliteForces home">
+      <svg class="brand__crest" aria-hidden="true"><use href="#i-crest"/></svg>
+      <span>Elite<b>Forces</b></span>
+    </a>
+    <% if (player) { %>
+      <nav class="game-nav" aria-label="Game">
+        <a href="/hq" class="game-nav__link" <%- nav === 'hq' ? 'aria-current="page"' : '' %>>HQ</a>
+        <a href="/missions" class="game-nav__link" <%- nav === 'missions' ? 'aria-current="page"' : '' %>>Missions</a>
+      </nav>
+      <form method="post" action="/logout" class="site-header__logout">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn--ghost btn--sm" type="submit">Sign out</button>
+      </form>
+    <% } else if (signedIn) { %>
+      <nav class="site-header__actions" aria-label="Account">
+        <a class="btn btn--primary btn--sm" href="/hq">Return to HQ</a>
+      </nav>
+    <% } else { %>
+      <nav class="site-header__actions" aria-label="Account">
+        <a class="btn btn--ghost btn--sm" href="/login">Sign in</a>
+        <a class="btn btn--primary btn--sm" href="/register">Enlist</a>
+      </nav>
+    <% } %>
+  </div>
+  <% if (player) { %><%- include('statbar') %><% } %>
+</header>
+<% if (flash.length) { %>
+  <div class="container flash-stack" role="status">
+    <% flash.forEach(function (f) { %>
+      <p class="flash flash--<%= f.type %>"><%= f.message %></p>
+    <% }) %>
+  </div>
+<% } %>

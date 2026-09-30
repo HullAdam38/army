@@ -1,0 +1,108 @@
+<%- include('partials/head', { bodyClass: 'page-landing' }) %>
+<%- include('partials/header') %>
+
+<main id="main">
+  <section class="hero">
+    <div class="hero__backdrop" aria-hidden="true"></div>
+    <div class="container hero__grid">
+      <div class="hero__copy">
+        <p class="eyebrow reveal" style="--i:0">Text-based military strategy · 18+</p>
+        <h1 class="hero__title reveal" style="--i:1">Earn your<br><span class="hero__accent">stripes.</span></h1>
+        <p class="hero__lede reveal" style="--i:2">
+          Enlist as a raw recruit and fight your way to General. Spend energy on missions,
+          bank your pay, patch up your wounds and climb eighteen ranks of command — all from your browser.
+        </p>
+        <div class="hero__cta reveal" style="--i:3">
+          <a class="btn btn--primary btn--lg" href="/register">
+            Enlist now <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </a>
+          <a class="btn btn--ghost btn--lg" href="/login">I already serve</a>
+        </div>
+        <ul class="hero__facts reveal" style="--i:4">
+          <li><strong>6</strong> mission theatres</li>
+          <li><strong>18</strong> ranks to earn</li>
+          <li><strong>Free</strong> to play</li>
+        </ul>
+      </div>
+
+      <aside class="dossier reveal" style="--i:3" aria-label="Example soldier dossier">
+        <div class="dossier__head">
+          <span class="dossier__tag">Dossier</span>
+          <span class="dossier__id">EF-0417</span>
+        </div>
+        <div class="dossier__who">
+          <span class="stat__grade">E-5</span>
+          <div>
+            <p class="dossier__name">SGT. Nightjar</p>
+            <p class="dossier__meta">Level 9 · 64% to promotion</p>
+          </div>
+        </div>
+        <dl class="dossier__meters">
+          <div><dt>Energy</dt><dd><span class="meter meter--energy"><span class="meter__fill" style="width:72%"></span></span></dd></div>
+          <div><dt>Health</dt><dd><span class="meter meter--health"><span class="meter__fill" style="width:88%"></span></span></dd></div>
+          <div><dt>XP</dt><dd><span class="meter meter--xp"><span class="meter__fill" style="width:64%"></span></span></dd></div>
+        </dl>
+        <ol class="dossier__log">
+          <li class="log log--success"><span class="log__time">0412</span> Secure the Bridge — objective secured. +48 XP</li>
+          <li class="log log--failure"><span class="log__time">0347</span> Forward Recon — ambushed. −12 HP</li>
+          <li class="log log--promotion"><span class="log__time">0215</span> Promoted to Sergeant (E-5)</li>
+        </ol>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="loop-title">
+    <div class="container">
+      <p class="eyebrow">The loop</p>
+      <h2 id="loop-title" class="section__title">Simple to learn. Hard to master.</h2>
+      <div class="feature-grid">
+        <article class="card feature reveal-on-scroll">
+          <span class="feature__num">01</span>
+          <svg class="feature__icon" aria-hidden="true"><use href="#i-target"/></svg>
+          <h3>Run missions</h3>
+          <p>From perimeter patrols to high-value targets. Every deployment costs energy and every success pays out in XP and cash.</p>
+        </article>
+        <article class="card feature reveal-on-scroll">
+          <span class="feature__num">02</span>
+          <svg class="feature__icon" aria-hidden="true"><use href="#i-chevrons"/></svg>
+          <h3>Climb the ranks</h3>
+          <p>Level up to unlock tougher theatres, bigger payouts and deeper energy reserves. Recruit to General — eighteen promotions.</p>
+        </article>
+        <article class="card feature reveal-on-scroll">
+          <span class="feature__num">03</span>
+          <svg class="feature__icon" aria-hidden="true"><use href="#i-health"/></svg>
+          <h3>Manage the fight</h3>
+          <p>Failed ops cost blood. Energy and health regenerate over time — or pay the field hospital to get back in the fight fast.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--ranks" aria-labelledby="ranks-title">
+    <div class="container">
+      <p class="eyebrow">Chain of command</p>
+      <h2 id="ranks-title" class="section__title">Where will you finish?</h2>
+      <ol class="rank-ladder">
+        <li><span>E-1</span>Recruit</li>
+        <li><span>E-4</span>Corporal</li>
+        <li><span>E-7</span>Sergeant First Class</li>
+        <li><span>O-1</span>Second Lieutenant</li>
+        <li><span>O-3</span>Captain</li>
+        <li><span>O-6</span>Colonel</li>
+        <li class="rank-ladder__top"><span>O-10</span>General</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container cta-band">
+      <div>
+        <h2 class="cta-band__title">Your unit is short-handed.</h2>
+        <p>Registration takes thirty seconds. Your first orders are already on the desk.</p>
+      </div>
+      <a class="btn btn--primary btn--lg" href="/register">Report for duty <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

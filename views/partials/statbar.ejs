@@ -1,0 +1,40 @@
+<div class="statbar" data-statbar
+     data-next-energy="<%= player.nextEnergyIn ?? '' %>" data-energy-interval="<%= player.energyRegenSeconds %>"
+     data-next-health="<%= player.nextHealthIn ?? '' %>" data-health-interval="<%= player.healthRegenSeconds %>">
+  <div class="container statbar__grid">
+    <div class="stat stat--rank">
+      <span class="stat__grade" data-stat="grade"><%= player.grade %></span>
+      <span class="stat__body">
+        <span class="stat__label"><span><span data-stat="rank"><%= player.rank %></span> · Lv <span data-stat="level"><%= player.level %></span></span></span>
+        <span class="meter meter--xp" role="progressbar" aria-label="Experience" aria-valuemin="0" aria-valuemax="<%= player.xpNeeded %>" aria-valuenow="<%= player.xp %>" data-meter="xp">
+          <span class="meter__fill" style="width:<%= player.xpPct %>%"></span>
+        </span>
+      </span>
+    </div>
+    <div class="stat">
+      <svg class="stat__icon stat__icon--energy" aria-hidden="true"><use href="#i-bolt"/></svg>
+      <span class="stat__body">
+        <span class="stat__label">Energy <span class="stat__value"><span data-stat="energy"><%= player.energy %></span>/<span data-stat="maxEnergy"><%= player.maxEnergy %></span></span></span>
+        <span class="meter meter--energy" role="progressbar" aria-label="Energy" aria-valuemin="0" aria-valuemax="<%= player.maxEnergy %>" aria-valuenow="<%= player.energy %>" data-meter="energy">
+          <span class="meter__fill" style="width:<%= player.energyPct %>%"></span>
+        </span>
+      </span>
+    </div>
+    <div class="stat">
+      <svg class="stat__icon stat__icon--health" aria-hidden="true"><use href="#i-health"/></svg>
+      <span class="stat__body">
+        <span class="stat__label">Health <span class="stat__value"><span data-stat="health"><%= player.health %></span>/<span data-stat="maxHealth"><%= player.maxHealth %></span></span></span>
+        <span class="meter meter--health" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="<%= player.maxHealth %>" aria-valuenow="<%= player.health %>" data-meter="health">
+          <span class="meter__fill" style="width:<%= player.healthPct %>%"></span>
+        </span>
+      </span>
+    </div>
+    <div class="stat stat--cash">
+      <svg class="stat__icon stat__icon--cash" aria-hidden="true"><use href="#i-cash"/></svg>
+      <span class="stat__body">
+        <span class="stat__label">Funds</span>
+        <span class="stat__big">$<span data-stat="cash"><%= player.cash.toLocaleString('en-US') %></span></span>
+      </span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,73 @@
+<%- include('partials/head', { bodyClass: 'page-auth' }) %>
+<%- include('partials/header') %>
+<%
+  function fieldAttrs(name) {
+    return errors[name] ? `aria-invalid="true" aria-describedby="${name}-error"` : '';
+  }
+  function fieldError(name) {
+    return errors[name] ? `<p class="field__error" id="${name}-error">${errors[name]}</p>` : '';
+  }
+%>
+
+<main id="main" class="auth">
+  <div class="auth__panel reveal" style="--i:0">
+    <div class="form-card">
+      <div class="form-card__head">
+        <span>Form EF-1</span><span>Enlistment</span>
+      </div>
+      <h1 class="form-card__title">Enlist with EliteForces</h1>
+      <p class="form-card__sub">Pick a callsign. It's how the rest of the unit will know you.</p>
+
+      <% if (Object.keys(errors).length) { %>
+        <p class="flash flash--error" role="alert">Fix the highlighted fields and resubmit.</p>
+      <% } %>
+
+      <form method="post" action="/register" class="form" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="username">Callsign</label>
+          <input id="username" name="username" type="text" autocomplete="username" required
+                 minlength="3" maxlength="20" pattern="[A-Za-z0-9_\-]{3,20}"
+                 value="<%= values.username || '' %>" <%- fieldAttrs('username') %>>
+          <p class="field__hint">3–20 characters. Letters, numbers, _ and -.</p>
+          <%- fieldError('username') %>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required maxlength="254"
+                 value="<%= values.email || '' %>" <%- fieldAttrs('email') %>>
+          <%- fieldError('email') %>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="field__pw">
+              <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" <%- fieldAttrs('password') %>>
+              <button type="button" class="field__toggle" data-toggle-password="password" aria-label="Show password" aria-pressed="false">Show</button>
+            </div>
+            <%- fieldError('password') %>
+          </div>
+          <div class="field">
+            <label for="confirm">Confirm password</label>
+            <input id="confirm" name="confirm" type="password" autocomplete="new-password" required minlength="8" <%- fieldAttrs('confirm') %>>
+            <%- fieldError('confirm') %>
+          </div>
+        </div>
+        <div class="check">
+          <input id="adult" name="adult" type="checkbox" required <%- values.adult ? 'checked' : '' %> <%- fieldAttrs('adult') %>>
+          <label for="adult">I confirm I am 18 years of age or older.</label>
+          <%- fieldError('adult') %>
+        </div>
+        <div class="check">
+          <input id="terms" name="terms" type="checkbox" required <%- values.terms ? 'checked' : '' %> <%- fieldAttrs('terms') %>>
+          <label for="terms">I'll follow the rules of engagement: one account per player, no cheating, no harassment.</label>
+          <%- fieldError('terms') %>
+        </div>
+        <button class="btn btn--primary btn--block" type="submit">Enlist <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      </form>
+      <p class="form-card__alt">Already serving? <a href="/login">Sign in</a>.</p>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/foot') %>
