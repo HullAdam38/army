@@ -63,6 +63,24 @@ function createPlayerRepo(db) {
       FROM battles b JOIN users a ON a.id = b.attacker_id JOIN users d ON d.id = b.defender_id
       WHERE b.attacker_id = ?1 OR b.defender_id = ?1
       ORDER BY b.id DESC LIMIT ?2`),
+    notify: db.prepare('INSERT INTO notifications (user_id, kind, message, link, created_at) VALUES (?, ?, ?, ?, ?)'),
+    unread: db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL'),
+    notifications: db.prepare(`
+      SELECT id, kind, message, link, created_at, read_at FROM notifications
+      WHERE user_id = ? ORDER BY id DESC LIMIT ?`),
+    notificationsAfter: db.prepare(`
+      SELECT id, kind, message, link, created_at FROM notifications
+      WHERE user_id = ? AND id > ? ORDER BY id ASC LIMIT 10`),
+    latestNotificationId: db.prepare('SELECT MAX(id) AS id FROM notifications WHERE user_id = ?'),
+    markRead: db.prepare('UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL'),
+    pruneNotifications: db.prepare(`
+      DELETE FROM notifications WHERE user_id = ?1 AND id NOT IN (
+        SELECT id FROM notifications WHERE user_id = ?1 ORDER BY id DESC LIMIT ?2)`),
+    recentBattles: db.prepare(`
+      SELECT b.id, b.attacker_won, b.knockout, b.cash_taken, b.created_at,
+             a.username AS attacker_name, d.username AS defender_name
+      FROM battles b JOIN users a ON a.id = b.attacker_id JOIN users d ON d.id = b.defender_id
+      ORDER BY b.id DESC LIMIT ?`),
     recentTargets: db.prepare(`
       SELECT defender_id, MAX(created_at) AS at FROM battles
       WHERE attacker_id = ? AND created_at >= ? GROUP BY defender_id`),
@@ -160,6 +178,18 @@ function createPlayerRepo(db) {
         FROM users ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset);
       return { rows, total };
     },
+
+    notify(userId, kind, message, link = null) {
+      stmts.notify.run(userId, kind, message, link, Date.now());
+      stmts.pruneNotifications.run(userId, 200); // keep each inbox bounded
+    },
+    unreadCount: (userId) => stmts.unread.get(userId).n,
+    notifications: (userId, limit = 50) => stmts.notifications.all(userId, limit),
+    notificationsAfter: (userId, afterId) => stmts.notificationsAfter.all(userId, afterId),
+    latestNotificationId: (userId) => stmts.latestNotificationId.get(userId).id || 0,
+    markNotificationsRead: (userId) => stmts.markRead.run(Date.now(), userId),
+    /** Latest fights across the whole game, for the HQ combat feed. */
+    recentBattles: (limit = 6) => stmts.recentBattles.all(limit),
 
     /** Map of defender id → time of `attackerId`'s most recent attack on them since `since`. */
     recentTargets(attackerId, since) {

@@ -333,6 +333,69 @@ test('players directory: search, filters, sorting, paging and attacking from the
   assert.equal(res.headers.get('location'), '/players?filter=targets'); // cooldown
   ({ res } = await me.request('/attack/Alpha', { method: 'POST', form: { _csrf: token, back: '//evil.example' } }));
   assert.equal(res.headers.get('location'), '/profile/Alpha');
+  // Fights are random; if Alpha was knocked out the hospital message would show first.
+  set("UPDATE users SET hospital_until = NULL WHERE username = 'Alpha'");
   ({ text } = await me.request('/players?q=alpha'));
   assert.match(text, /attacked Alpha recently/);
+});
+
+test('notifications: welcome, attack alerts, polling, read state, unlocks and the combat feed', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const alpha = client(base);
+  const bravo = client(base);
+  await register(alpha, 'Alpha');
+  await register(bravo, 'Bravo');
+
+  let { text } = await bravo.request('/notifications');
+  assert.match(text, /Welcome to EliteForces/);
+  ({ text } = await bravo.request('/hq'));
+  assert.doesNotMatch(text, /data-bell-count >/); // read after visiting the page
+  const latestId = Number(text.match(/data-latest-id="(\d+)"/)[1]);
+
+  // Alpha attacks Bravo; Bravo is told even though they weren't looking.
+  const set = (sql, ...args) => server.db.prepare(sql).run(...args);
+  set('UPDATE users SET level = 5, max_health = 140, health = 140, cash = 1000');
+  set("UPDATE users SET health = 1 WHERE username = 'Bravo'");
+  const token = await alpha.csrf('/hq');
+  await alpha.request('/attack/Bravo', { method: 'POST', form: { _csrf: token } });
+
+  let res;
+  ({ res, text } = await bravo.request(`/notifications/poll?after=${latestId}`, { headers: { accept: 'application/json' } }));
+  assert.equal(res.headers.get('cache-control'), 'no-store');
+  const poll = JSON.parse(text);
+  assert.equal(poll.unread, 1);
+  assert.equal(poll.items.length, 1);
+  assert.equal(poll.items[0].kind, 'attacked-lost');
+  assert.match(poll.items[0].message, /Alpha attacked you and won\. You lost \$50\. You were knocked out/);
+  assert.match(poll.items[0].link, /^\/battles\/\d+$/);
+  assert.equal(poll.player.hospitalized, true);
+  // Nothing new after the latest id; the attacker gets no notification for their own attack.
+  assert.equal(JSON.parse((await bravo.request(`/notifications/poll?after=${poll.latestId}`, { headers: { accept: 'application/json' } })).text).items.length, 0);
+  assert.equal(JSON.parse((await alpha.request('/notifications/poll?after=0', { headers: { accept: 'application/json' } })).text).items.length, 1); // just the welcome
+
+  ({ text } = await bravo.request('/hq'));
+  assert.match(text, /aria-label="Notifications, 1 unread"/);
+  ({ text } = await bravo.request('/notifications'));
+  assert.match(text, /note--unread/);
+  ({ text } = await bravo.request('/notifications'));
+  assert.doesNotMatch(text, /note--unread/);
+
+  // Combat feed on HQ shows the fight to everyone.
+  ({ text } = await alpha.request('/hq'));
+  assert.match(text, /<strong>Alpha<\/strong> knocked out <strong>Bravo<\/strong> and took \$50/);
+
+  // Levelling to 3 via a mission announces the promotion and the PvP unlock.
+  const charlie = client(base);
+  await register(charlie, 'Charlie');
+  set("UPDATE users SET level = 2, xp = 302 WHERE username = 'Charlie'"); // 1 XP short of level 3
+  const ct = await charlie.csrf('/missions');
+  await charlie.request('/missions/perimeter-patrol', { method: 'POST', form: { _csrf: ct } });
+  ({ text } = await charlie.request('/notifications'));
+  assert.match(text, /Promoted to level 3: Private/);
+  assert.match(text, /PvP unlocked/);
+  assert.match(text, /New mission unlocked: Forward Recon/);
+  assert.match(text, /New gear in the Armory: M4 Carbine/);
+
+  assert.equal((await client(base).request('/notifications/poll', { headers: { accept: 'application/json' } })).res.status, 401);
 });

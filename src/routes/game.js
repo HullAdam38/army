@@ -9,6 +9,7 @@ const { loadoutView } = armory;
 const pvp = require('../pvp');
 const { createRequireAuth } = require('../require-auth');
 const { PLAYER_SORTS } = require('../players');
+const { announceLevels } = require('../notify');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online'];
 const PAGE_SIZE = 25;
@@ -29,6 +30,7 @@ function gameRoutes(players) {
       nextMission,
       nextRank: game.nextRankFor(req.player.level),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id)),
+      feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
     });
   });
 
@@ -60,6 +62,7 @@ function gameRoutes(players) {
         const rank = game.rankFor(lvl);
         players.log(fresh.id, 'promotion', `Promoted to level ${lvl} — ${rank.name} (${rank.grade}).`);
       }
+      announceLevels(players, fresh.id, r.levelsGained);
       return out;
     });
 

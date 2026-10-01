@@ -66,6 +66,17 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_battles_pair ON battles(attacker_id, defender_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_battles_defender ON battles(defender_id, created_at DESC);
 
+  CREATE TABLE IF NOT EXISTS notifications (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind        TEXT    NOT NULL,
+    message     TEXT    NOT NULL,
+    link        TEXT,
+    created_at  INTEGER NOT NULL,
+    read_at     INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, id DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,

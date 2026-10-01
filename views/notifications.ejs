@@ -1,0 +1,31 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const icons = { 'attacked-lost': 'i-target', 'attacked-won': 'i-crest', promotion: 'i-chevrons', unlock: 'i-star', system: 'i-radio' }; %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Signals</p>
+      <h1 class="page-head__title">Notifications</h1>
+      <p class="page-head__sub">Attacks on you, promotions and new unlocks. While the game is open you'll also get a pop-up as they happen.</p>
+    </div>
+  </div>
+
+  <% if (items.length) { %>
+    <ol class="notes reveal" style="--i:1">
+      <% items.forEach(function (n) { %>
+        <li class="note note--<%= n.kind %><%= n.read_at ? '' : ' note--unread' %>">
+          <svg class="note__icon" aria-hidden="true"><use href="#<%= icons[n.kind] || 'i-radio' %>"/></svg>
+          <div class="note__body">
+            <p class="note__msg"><% if (!n.read_at) { %><span class="visually-hidden">New: </span><% } %><%= n.message %></p>
+            <p class="note__meta"><time datetime="<%= new Date(n.created_at).toISOString() %>"><%= n.ago %></time><% if (n.link) { %> · <a href="<%= n.link %>"><%= n.link.startsWith('/battles') ? 'View battle report' : 'Take a look' %></a><% } %></p>
+          </div>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted">Nothing yet. Quiet on the front.</p>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

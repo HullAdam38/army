@@ -269,4 +269,80 @@
       btn.disabled = Boolean(entry && entry.blocker);
     });
   });
+
+  /* ---------- Live notifications: poll, update the bell, pop up toasts ---------- */
+  const bell = document.querySelector('[data-bell]');
+  const toasts = document.querySelector('[data-toasts]');
+  if (bell && toasts && window.fetch) {
+    const POLL_MS = 20000;
+    const MAX_TOASTS = 3;
+    let latestId = Number(bell.dataset.latestId) || 0;
+    let polling = false;
+
+    const setCount = (n) => {
+      const badge = bell.querySelector('[data-bell-count]');
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.hidden = n === 0;
+      bell.setAttribute('aria-label', n ? `Notifications, ${n} unread` : 'Notifications');
+    };
+
+    const toast = (item) => {
+      const el = document.createElement('div');
+      el.className = `toast toast--${item.kind}`;
+      el.setAttribute('role', 'status');
+      const msg = document.createElement('p');
+      msg.className = 'toast__msg';
+      msg.textContent = item.message;
+      el.append(msg);
+      if (item.link) {
+        const a = document.createElement('a');
+        a.href = item.link;
+        a.textContent = item.link.startsWith('/battles') ? 'View report' : 'Take a look';
+        el.append(a);
+      }
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'toast__close';
+      close.setAttribute('aria-label', 'Dismiss');
+      close.textContent = '×';
+      close.addEventListener('click', () => el.remove());
+      el.append(close);
+      toasts.append(el);
+      setTimeout(() => el.classList.add('is-leaving'), 12000);
+      setTimeout(() => el.remove(), 12600);
+    };
+
+    const poll = async () => {
+      if (polling || document.hidden) return;
+      polling = true;
+      try {
+        const res = await fetch(`/notifications/poll?after=${latestId}`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setCount(data.unread);
+        if (data.items.length) {
+          latestId = data.latestId;
+          data.items.slice(-MAX_TOASTS).forEach(toast);
+          if (data.items.length > MAX_TOASTS) {
+            toast({ kind: 'system', message: `+${data.items.length - MAX_TOASTS} more`, link: '/notifications' });
+          }
+          // Someone may have just changed our health or cash: refresh the stat bar.
+          if (statbar && data.player) renderPlayer(data.player);
+          if (data.player && data.player.hospitalized && !document.querySelector('.ward-banner')) {
+            toast({ kind: 'attacked-lost', message: 'You’re in hospital. Missions and PvP are paused.', link: '/hospital' });
+          }
+        }
+      } catch (err) {
+        /* offline or server restarting: try again next tick */
+      } finally {
+        polling = false;
+      }
+    };
+
+    setInterval(poll, POLL_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+  }
 })();

@@ -21,6 +21,8 @@ function createRequireAuth(players) {
     }
     req.player = user;
     res.locals.player = game.playerView(user);
+    res.locals.unreadCount = players.unreadCount(user.id);
+    res.locals.latestNotificationId = players.latestNotificationId(user.id);
     next();
   };
 }

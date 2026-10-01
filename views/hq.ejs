@@ -112,6 +112,31 @@
         <p class="muted">Radio silence. Run a mission to get chatter going.</p>
       <% } %>
     </section>
+    <section class="card hq-card hq-card--feed reveal" style="--i:5" aria-labelledby="feed-title">
+      <h2 id="feed-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>Combat feed</h2>
+      <% if (feed.length) { %>
+        <ol class="feed">
+          <% feed.forEach(function (b) {
+               const winner = b.attacker_won ? b.attacker_name : b.defender_name;
+               const loser = b.attacker_won ? b.defender_name : b.attacker_name; %>
+            <li>
+              <a class="feed__row" href="/battles/<%= b.id %>">
+                <span class="feed__text">
+                  <% if (b.attacker_won) { %>
+                    <strong><%= b.attacker_name %></strong> <%= b.knockout ? 'knocked out' : 'beat' %> <strong><%= b.defender_name %></strong><%= b.cash_taken ? ` and took $${b.cash_taken}` : '' %>
+                  <% } else { %>
+                    <strong><%= b.defender_name %></strong> <%= b.knockout ? 'knocked out' : 'held off' %> <strong><%= b.attacker_name %></strong>
+                  <% } %>
+                </span>
+                <span class="feed__time"><%= b.ago %></span>
+              </a>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted">No fights yet. Someone has to throw the first punch. <a href="/players?filter=targets">Find a target</a>.</p>
+      <% } %>
+    </section>
   </div>
 </main>
 

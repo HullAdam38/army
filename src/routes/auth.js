@@ -68,6 +68,7 @@ function authRoutes(players) {
 
       const passwordHash = await bcrypt.hash(values.password, 12);
       const id = players.create({ username: values.username, email: values.email, passwordHash });
+      players.notify(id, 'system', 'Welcome to EliteForces. Run missions to earn XP and cash. PvP unlocks at level 3.', '/missions');
       startSession(req, id, (err) => {
         if (err) return next(err);
         req.flash('success', `Welcome aboard, ${values.username}. Your first orders are waiting.`);

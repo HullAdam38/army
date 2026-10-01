@@ -6,6 +6,7 @@ const pvp = require('../pvp');
 const presence = require('../presence');
 const { statsOf } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
+const { announceLevels } = require('../notify');
 
 function pvpRoutes(players) {
   const router = express.Router();
@@ -42,6 +43,17 @@ function pvpRoutes(players) {
         players.log(attacker.id, 'pvp-loss', `Attacked ${d} and lost${r.knockout ? '. You were knocked out' : ''}.`, link);
         players.log(defender.id, 'pvp-win', `${a} attacked you and you held them off${r.knockout ? ' with a knockout' : ''}. +${r.xp.defender} XP.`, link);
       }
+      // The attacker sees the report straight away; the defender finds out via a notification.
+      players.notify(
+        defender.id,
+        r.attackerWon ? 'attacked-lost' : 'attacked-won',
+        r.attackerWon
+          ? `${a} attacked you and won. You lost $${r.cashTaken}.${r.knockout ? ' You were knocked out and sent to hospital.' : ''}`
+          : `${a} attacked you and you held them off. +${r.xp.defender} XP.${r.knockout ? ' You knocked them out.' : ''}`,
+        link,
+      );
+      announceLevels(players, attacker.id, r.levelsGained.attacker);
+      announceLevels(players, defender.id, r.levelsGained.defender);
       for (const [p, side] of [[attacker, 'attacker'], [defender, 'defender']]) {
         for (const lvl of r.levelsGained[side]) {
           const rank = game.rankFor(lvl);

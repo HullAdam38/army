@@ -1261,6 +1261,99 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .pager > :last-child { justify-self: end; }
 .pager__info { font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-muted); }
 
+/* Notifications */
+.bell { position: relative; display: grid; place-items: center; width: 40px; height: 40px; margin-left: auto; color: var(--text-muted); border-radius: var(--radius); transition: color 0.2s, background-color 0.2s; }
+.bell:hover, .bell[aria-current='page'] { color: var(--text); background: var(--surface); }
+.bell svg { width: 20px; height: 20px; }
+.bell__count {
+  position: absolute;
+  top: 3px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  background: var(--danger);
+  border: 2px solid var(--bg);
+  border-radius: 999px;
+  animation: bump 0.6s var(--ease-out);
+}
+.bell__count[hidden] { display: none; }
+.site-header--game .site-header__logout { margin-left: 4px; }
+
+.toasts { position: fixed; right: 16px; bottom: 16px; z-index: 50; display: grid; gap: 10px; width: min(380px, calc(100vw - 32px)); }
+.toast {
+  position: relative;
+  padding: 14px 40px 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--xp);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 40px -16px rgb(0 0 0 / 0.8);
+  animation: toast-in 0.35s var(--ease-out) both;
+  transition: opacity 0.5s, transform 0.5s var(--ease-out);
+}
+.toast.is-leaving { opacity: 0; transform: translateX(24px); }
+.toast--attacked-lost { border-left-color: var(--danger); }
+.toast--attacked-won { border-left-color: var(--health); }
+.toast--promotion, .toast--unlock { border-left-color: var(--accent); }
+.toast__msg { font-size: 0.95rem; }
+.toast a { display: inline-block; margin-top: 6px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.toast__close { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; font-size: 1.2rem; line-height: 1; color: var(--text-faint); background: none; border: 0; border-radius: var(--radius); cursor: pointer; }
+.toast__close:hover { color: var(--text); background: var(--surface); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(16px); } }
+
+.notes { display: grid; gap: 8px; padding: 0; list-style: none; }
+.note {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 14px 18px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+.note--unread { background: var(--surface); border-color: var(--line-strong); }
+.note--unread .note__msg { font-weight: 600; }
+.note__icon { width: 22px; height: 22px; margin-top: 2px; color: var(--text-faint); }
+.note--attacked-lost { border-left-color: var(--danger); }
+.note--attacked-lost .note__icon { color: var(--danger); }
+.note--attacked-won { border-left-color: var(--health); }
+.note--attacked-won .note__icon { color: var(--health); }
+.note--promotion, .note--unlock { border-left-color: var(--accent); }
+.note--promotion .note__icon, .note--unlock .note__icon { color: var(--accent); }
+.note--system .note__icon { color: var(--xp); }
+.note__meta { margin-top: 2px; font-size: 0.85rem; color: var(--text-faint); }
+.note__meta a { font-weight: 600; }
+
+.hq-card--feed { grid-column: span 12; }
+.feed { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 0; list-style: none; }
+.feed__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, transform 0.2s var(--ease-out);
+}
+.feed__row:hover { color: var(--text-muted); border-color: var(--line-strong); border-left-color: var(--accent); transform: translateX(3px); }
+.feed__row strong { color: var(--text); }
+.feed__time { flex: none; font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-faint); }
+
 /* Error */
 .error-page { display: grid; justify-items: start; gap: 16px; padding-block: clamp(64px, 12vw, 140px); }
 .error-page__code { font-family: var(--font-display); font-size: clamp(5rem, 18vw, 10rem); line-height: 0.9; color: var(--accent); }
@@ -1334,6 +1427,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .combat-stats, .loadout { grid-template-columns: repeat(2, 1fr); }
   .loadout { grid-template-columns: 1fr; }
   .fighters { grid-template-columns: 1fr; gap: 36px; }
+  .feed { grid-template-columns: 1fr; }
+  .bell { width: 36px; height: 36px; }
   .directory-search, .directory-search input { width: 100%; }
   .directory-search input { flex: 1 1 100%; }
   .directory-search select { flex: 1; }

@@ -15,6 +15,7 @@ const { gameRoutes } = require('./routes/game');
 const { armoryRoutes } = require('./routes/armory');
 const { hospitalRoutes } = require('./routes/hospital');
 const { pvpRoutes } = require('./routes/pvp');
+const { notificationRoutes } = require('./routes/notifications');
 const pkg = require('../package.json');
 
 function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, production = process.env.NODE_ENV === 'production' } = {}) {
@@ -36,7 +37,7 @@ function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, p
   app.locals.siteName = 'EliteForces';
   app.locals.year = new Date().getFullYear();
   // Defaults so any template (including error pages) renders even if a middleware never ran.
-  Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '' });
+  Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, latestNotificationId: 0 });
 
   app.use(compression());
   app.use(securityHeaders);
@@ -77,6 +78,7 @@ function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, p
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players));
+  app.use(notificationRoutes(players));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

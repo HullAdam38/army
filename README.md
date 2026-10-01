@@ -59,6 +59,19 @@ Regeneration is calculated lazily from timestamps, so no background jobs are nee
 
 Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
 
+## Notifications
+
+- **Triggers:**
+  - being attacked (won or lost, including knockouts and cash lost)
+  - promotions
+  - unlocks on level-up (new missions, new Armory gear, PvP at level 3)
+  - a welcome message for new players
+- **The bell** in the header shows the unread count. `/notifications` lists the latest 50 (each inbox keeps up to 200) and marks them read when you view it.
+- **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
+- **The combat feed** on HQ shows the latest fights across the whole game.
+
+`src/notify.js` builds promotion and unlock messages. To add a new type, call `players.notify(userId, kind, message, link)` and give the kind an icon and colour in `views/notifications.ejs` and `main.css`.
+
 ## Combat system (built for PvP)
 
 All combat maths lives in `src/combat.js` and is shared by missions now and PvP later. Every bonus is a **modifier** on a stat (`attack`, `damage`, `critChance`, `critDamage`, `armor`):
@@ -101,6 +114,8 @@ src/
   pvp.js             attack rules, fight simulation, rewards
   routes/pvp.js      attack + battle reports
   routes/hospital.js hospital ward, treatment, early discharge
+  notify.js          promotion & unlock notifications
+  routes/notifications.js  inbox page + polling endpoint
 views/               EJS pages + partials
 public/              CSS, JS, favicon
 test/                node:test suites
@@ -118,3 +133,4 @@ test/                node:test suites
 - `/armory`: your combat profile and loadout, plus the gear catalogue. Buying an item equips it; you can stow items or swap between owned ones. Other players can see your loadout on your profile.
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report
+- `/notifications`: your notification history; unread items are highlighted

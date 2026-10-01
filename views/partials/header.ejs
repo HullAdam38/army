@@ -13,6 +13,11 @@
         <a href="/players" class="game-nav__link" <%- nav === 'players' || nav === 'online' ? 'aria-current="page"' : '' %>>Players</a>
         <a href="/profile/<%= encodeURIComponent(player.username) %>" class="game-nav__link" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>Profile</a>
       </nav>
+      <a class="bell" href="/notifications" data-bell data-latest-id="<%= latestNotificationId %>"
+         aria-label="Notifications<%= unreadCount ? `, ${unreadCount} unread` : '' %>" <%- nav === 'notifications' ? 'aria-current="page"' : '' %>>
+        <svg aria-hidden="true"><use href="#i-bell"/></svg>
+        <span class="bell__count" data-bell-count <%- unreadCount ? '' : 'hidden' %>><%= unreadCount > 99 ? '99+' : unreadCount %></span>
+      </a>
       <form method="post" action="/logout" class="site-header__logout">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button class="btn btn--ghost btn--sm" type="submit">Sign out</button>
@@ -39,6 +44,7 @@
     </div>
   <% } %>
 </header>
+<% if (player) { %><div class="toasts" data-toasts aria-live="polite"></div><% } %>
 <% if (flash.length) { %>
   <div class="container flash-stack" role="status">
     <% flash.forEach(function (f) { %>

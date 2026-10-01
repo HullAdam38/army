@@ -99,3 +99,12 @@ test('presence: online window, sign-out and relative times', () => {
   assert.equal(presence.timeAgo(now - 5 * 60_000, now), '5m ago');
   assert.equal(presence.timeAgo(now - 3 * 3600_000, now), '3h ago');
 });
+
+test('unlocksAt lists missions, gear and PvP for a level', () => {
+  const { unlocksAt } = require('../src/notify');
+  const at3 = unlocksAt(3).map((u) => u.message).join(' | ');
+  assert.match(at3, /Forward Recon/);
+  assert.match(at3, /M4 Carbine/);
+  assert.match(at3, /PvP unlocked/);
+  assert.deepEqual(unlocksAt(13), []);
+});
