@@ -14,6 +14,14 @@ function createRequireAuth(players) {
       req.flash('info', 'Sign in to report for duty.');
       return res.redirect('/login');
     }
+    if (user.banned_at) {
+      // Suspended mid-session: end it immediately.
+      return req.session.regenerate(() => {
+        if (wantsJson(req)) return res.status(401).json({ ok: false, error: 'Account suspended.' });
+        req.flash('error', `Your account has been suspended${user.ban_reason ? `: ${user.ban_reason}` : ''}.`);
+        res.redirect('/login');
+      });
+    }
     const now = Date.now();
     if (!user.last_seen_at || now - user.last_seen_at > presence.SEEN_THROTTLE_MS) {
       players.touchSeen(user.id, now);
@@ -21,6 +29,7 @@ function createRequireAuth(players) {
     }
     req.player = user;
     res.locals.player = game.playerView(user);
+    res.locals.isAdmin = Boolean(user.is_admin);
     res.locals.unreadCount = players.unreadCount(user.id);
     res.locals.latestNotificationId = players.latestNotificationId(user.id);
     next();

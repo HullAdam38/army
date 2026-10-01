@@ -88,6 +88,16 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_bank_user ON bank_transactions(user_id, id DESC);
 
+  CREATE TABLE IF NOT EXISTS admin_actions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id    INTEGER NOT NULL REFERENCES users(id),
+    target_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    action      TEXT    NOT NULL,
+    details     TEXT    NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON admin_actions(target_id, id DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -106,6 +116,9 @@ const ADDED_COLUMNS = [
   ['users', 'pvp_losses', 'INTEGER NOT NULL DEFAULT 0'],
   ['activity', 'link', 'TEXT'],
   ['users', 'bank_balance', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'banned_at', 'INTEGER'],
+  ['users', 'ban_reason', 'TEXT'],
 ];
 
 function migrate(db) {

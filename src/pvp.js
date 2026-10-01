@@ -28,6 +28,7 @@ function selfBlocker(attacker, now = Date.now()) {
 /** Why `defender` can never be a target for `attacker` at the moment, ignoring the attacker's own readiness. */
 function targetBlocker(attacker, defender, { now = Date.now(), lastAttackAt = null } = {}) {
   if (attacker.id === defender.id) return 'You can’t attack yourself';
+  if (defender.banned_at) return `${defender.username} is suspended`;
   if (defender.level < MIN_PVP_LEVEL) return `${defender.username} is a Recruit and protected until level ${MIN_PVP_LEVEL}`;
   if (game.isHospitalized(defender, now)) return `${defender.username} is in hospital`;
   if (defender.level < attacker.level - MAX_LEVELS_BELOW) return `${defender.username} is too far below your level`;

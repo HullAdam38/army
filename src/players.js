@@ -34,7 +34,7 @@ function createPlayerRepo(db) {
     online: db.prepare(`
       SELECT username, level, xp, last_seen_at, hospital_until
       FROM users
-      WHERE last_seen_at >= ? AND (signed_out_at IS NULL OR signed_out_at < last_seen_at)
+      WHERE last_seen_at >= ? AND (signed_out_at IS NULL OR signed_out_at < last_seen_at) AND banned_at IS NULL
       ORDER BY level DESC, xp DESC, username
       LIMIT ?`),
     owned: db.prepare('SELECT item_id FROM inventory WHERE user_id = ?'),
@@ -90,7 +90,7 @@ function createPlayerRepo(db) {
       WHERE attacker_id = ? AND created_at >= ? GROUP BY defender_id`),
     patients: db.prepare(`
       SELECT username, level, hospital_until, hospital_reason FROM users
-      WHERE hospital_until > ? ORDER BY hospital_until DESC LIMIT ?`),
+      WHERE hospital_until > ? AND banned_at IS NULL ORDER BY hospital_until DESC LIMIT ?`),
   };
 
   return {
@@ -160,7 +160,7 @@ function createPlayerRepo(db) {
      * `me` could attack, before per-pair cooldowns). Returns { rows, total }.
      */
     searchPlayers({ q = '', filter = 'all', sort = 'level', me, now = Date.now(), onlineSince, targetRules, limit = 25, offset = 0 }) {
-      const where = [];
+      const where = ['banned_at IS NULL'];
       const params = [];
       if (q) {
         where.push("username LIKE ? ESCAPE '\\'");

@@ -1,0 +1,67 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Command</p>
+      <h1 class="page-head__title">Admin</h1>
+      <p class="page-head__sub">Every change you make here is recorded in the audit log below.</p>
+    </div>
+    <a class="btn btn--primary" href="/admin/players">Find a player <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </div>
+
+  <dl class="admin-stats reveal" style="--i:1">
+    <div><dt>Players</dt><dd><%= stats.players %></dd></div>
+    <div><dt>New today</dt><dd><%= stats.newToday %></dd></div>
+    <div><dt>Online now</dt><dd><%= stats.online %></dd></div>
+    <div><dt>Battles today</dt><dd><%= stats.battlesToday %></dd></div>
+    <div><dt>In hospital</dt><dd><%= stats.inHospital %></dd></div>
+    <div><dt>Suspended</dt><dd><%= stats.banned %></dd></div>
+    <div><dt>Cash on hand</dt><dd><%= money(stats.cash) %></dd></div>
+    <div><dt>Banked</dt><dd><%= money(stats.banked) %></dd></div>
+  </dl>
+
+  <div class="admin-grid">
+    <section class="card reveal" style="--i:2" aria-labelledby="broadcast-title">
+      <h2 id="broadcast-title" class="card__title">Broadcast to all players</h2>
+      <form method="post" action="/admin/broadcast" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="broadcast">Announcement</label>
+          <textarea id="broadcast" name="message" rows="3" maxlength="300" required placeholder="Server restart at 22:00 for maintenance."></textarea>
+        </div>
+        <button class="btn btn--primary" type="submit">Send to everyone</button>
+      </form>
+    </section>
+
+    <section class="card reveal" style="--i:3" aria-labelledby="signups-title">
+      <h2 id="signups-title" class="card__title">Newest players</h2>
+      <ol class="admin-list">
+        <% signups.forEach(function (u) { %>
+          <li><a href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a> <span class="muted">Lv <%= u.level %> · <%= u.ago %></span><% if (u.banned_at) { %> <span class="tag tag--hospital">Suspended</span><% } %></li>
+        <% }) %>
+      </ol>
+    </section>
+
+    <section class="card admin-grid__wide reveal" style="--i:4" aria-labelledby="audit-title">
+      <h2 id="audit-title" class="card__title">Audit log</h2>
+      <% if (actions.length) { %>
+        <ol class="audit">
+          <% actions.forEach(function (a) { %>
+            <li class="audit__row">
+              <span class="audit__action audit__action--<%= a.action %>"><%= a.action %></span>
+              <span class="audit__text"><strong><%= a.admin_name %></strong><% if (a.target_id) { %> → <a href="/admin/players/<%= a.target_id %>"><%= a.target_name %></a><% } %>: <%= a.details %></span>
+              <span class="audit__time"><%= a.ago %></span>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted">No admin actions yet.</p>
+      <% } %>
+    </section>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

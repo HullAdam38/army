@@ -24,7 +24,28 @@ For production:
 SESSION_SECRET="$(openssl rand -hex 32)" NODE_ENV=production npm start
 ```
 
-See `.env.example` for all settings.
+See `.env.example` for all settings, and **[SECURITY.md](SECURITY.md)** for the security review and the production checklist (HTTPS proxy, secrets, backups).
+
+## Admin
+
+Admins are created from the server's command line, never through the website:
+
+```bash
+npm run admin -- grant <callsign>    # make an existing player an admin
+npm run admin -- revoke <callsign>
+npm run admin -- list
+```
+
+Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. From there you can:
+
+- see game stats: players, new today, online, battles, hospital, suspended, money in circulation
+- broadcast an announcement to every player
+- search players by callsign or email
+- adjust cash, set level, restore energy and health, or release from hospital
+- message a single player
+- suspend or unsuspend a player (signs them out immediately)
+
+Every change is recorded in the audit log with a reason.
 
 ## Game loop
 
@@ -118,6 +139,10 @@ src/
   notify.js          promotion & unlock notifications
   bank.js            deposit/withdraw rules (fee, parsing amounts)
   routes/bank.js     bank page and actions
+  admin.js           admin changes (cash, level, restore) with validation
+  admin-repo.js      admin queries, bans, audit log
+  routes/admin.js    admin pages and actions
+scripts/admin.js     grant/revoke admin from the command line
   routes/notifications.js  inbox page + polling endpoint
 views/               EJS pages + partials
 public/              CSS, JS, favicon

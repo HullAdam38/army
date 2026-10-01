@@ -13,6 +13,7 @@
         <a href="/hospital" class="game-nav__link" <%- nav === 'hospital' ? 'aria-current="page"' : '' %>>Hospital</a>
         <a href="/players" class="game-nav__link" <%- nav === 'players' || nav === 'online' ? 'aria-current="page"' : '' %>>Players</a>
         <a href="/profile/<%= encodeURIComponent(player.username) %>" class="game-nav__link" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>Profile</a>
+        <% if (isAdmin) { %><a href="/admin" class="game-nav__link game-nav__link--admin" <%- nav === 'admin' ? 'aria-current="page"' : '' %>>Admin</a><% } %>
       </nav>
       <a class="bell" href="/notifications" data-bell data-latest-id="<%= latestNotificationId %>"
          aria-label="Notifications<%= unreadCount ? `, ${unreadCount} unread` : '' %>" <%- nav === 'notifications' ? 'aria-current="page"' : '' %>>

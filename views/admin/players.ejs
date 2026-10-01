@@ -1,0 +1,47 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Players</h1>
+      <p class="page-head__sub"><%= total %> <%= total === 1 ? 'account' : 'accounts' %><%= q ? ` matching “${q}”` : '' %>, newest first. Search covers callsigns and emails.</p>
+    </div>
+  </div>
+  <form class="directory-search admin-search" method="get" action="/admin/players" role="search">
+    <label class="visually-hidden" for="q">Callsign or email</label>
+    <input id="q" name="q" type="search" value="<%= q %>" placeholder="Callsign or email…" autocomplete="off">
+    <button class="btn btn--ghost btn--sm" type="submit">Search</button>
+  </form>
+
+  <table class="directory">
+    <thead>
+      <tr><th scope="col">Player</th><th scope="col">Email</th><th scope="col" class="num">Level</th><th scope="col" class="num">Cash</th><th scope="col" class="num">Bank</th><th scope="col">Last seen</th></tr>
+    </thead>
+    <tbody>
+      <% rows.forEach(function (u) { %>
+        <tr>
+          <th scope="row"><a class="directory__name" href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a><% if (u.is_admin) { %> <span class="tag">Admin</span><% } %><% if (u.banned_at) { %> <span class="tag tag--hospital">Suspended</span><% } %></th>
+          <td data-label="Email"><%= u.email %></td>
+          <td class="num" data-label="Level"><%= u.level %></td>
+          <td class="num" data-label="Cash"><%= money(u.cash) %></td>
+          <td class="num" data-label="Bank"><%= money(u.bank_balance) %></td>
+          <td data-label="Last seen"><%= u.seen %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <% if (pages > 1) { %>
+    <nav class="pager" aria-label="Pages">
+      <% const link = (p) => `/admin/players?${new URLSearchParams({ ...(q && { q }), page: String(p) })}`; %>
+      <% if (page > 1) { %><a class="btn btn--ghost btn--sm" href="<%= link(page - 1) %>" rel="prev">Previous</a><% } else { %><span></span><% } %>
+      <span class="pager__info">Page <%= page %> of <%= pages %></span>
+      <% if (page < pages) { %><a class="btn btn--ghost btn--sm" href="<%= link(page + 1) %>" rel="next">Next</a><% } else { %><span></span><% } %>
+    </nav>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

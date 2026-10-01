@@ -1,0 +1,118 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin/players"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All players</a>
+
+  <section class="card profile-hero" aria-labelledby="who">
+    <span class="stat__grade stat__grade--xl"><%= rank.grade %></span>
+    <div class="profile-hero__body">
+      <p class="eyebrow">Player #<%= t.id %></p>
+      <h1 id="who" class="profile-hero__name"><%= t.username %></h1>
+      <p class="profile-hero__rank"><%= rank.name %> · Level <%= t.level %><% if (t.is_admin) { %> · <span class="tag">Admin</span><% } %></p>
+      <ul class="profile-hero__meta">
+        <li><%= t.email %></li>
+        <li><a href="/profile/<%= encodeURIComponent(t.username) %>">Public profile</a></li>
+        <% if (t.banned_at) { %><li><span class="status status--hospital">Suspended <%= ago(t.banned_at) %>: <%= t.ban_reason %></span></li><% } %>
+      </ul>
+    </div>
+  </section>
+
+  <dl class="admin-stats">
+    <div><dt>Cash</dt><dd><%= money(t.cash) %></dd></div>
+    <div><dt>Bank</dt><dd><%= money(t.bank_balance) %></dd></div>
+    <div><dt>XP</dt><dd><%= view.xp %> / <%= view.xpNeeded %></dd></div>
+    <div><dt>Rating</dt><dd><%= rating %></dd></div>
+    <div><dt>Energy</dt><dd><%= t.energy %> / <%= t.max_energy %></dd></div>
+    <div><dt>Health</dt><dd><%= t.health %> / <%= t.max_health %><%= view.hospitalized ? ' · hospital' : '' %></dd></div>
+    <div><dt>Missions W–L</dt><dd><%= t.missions_completed %>–<%= t.missions_failed %></dd></div>
+    <div><dt>PvP W–L</dt><dd><%= t.pvp_wins %>–<%= t.pvp_losses %></dd></div>
+    <div><dt>Enlisted</dt><dd class="small"><%= fmt(t.created_at) %></dd></div>
+    <div><dt>Last sign-in</dt><dd class="small"><%= fmt(t.last_login_at) %></dd></div>
+    <div><dt>Last seen</dt><dd class="small"><%= ago(t.last_seen_at) %></dd></div>
+  </dl>
+
+  <div class="admin-grid">
+    <section class="card" aria-labelledby="cash-title">
+      <h2 id="cash-title" class="card__title">Adjust cash</h2>
+      <form method="post" action="/admin/players/<%= t.id %>/cash" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field-row">
+          <div class="field"><label for="amount">Amount (negative removes)</label><input id="amount" name="amount" inputmode="numeric" placeholder="500 or -500" required></div>
+          <div class="field"><label for="cash-reason">Reason</label><input id="cash-reason" name="reason" maxlength="200" placeholder="Compensation for bug" required></div>
+        </div>
+        <button class="btn btn--primary btn--sm" type="submit">Apply</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="level-title">
+      <h2 id="level-title" class="card__title">Set level</h2>
+      <form method="post" action="/admin/players/<%= t.id %>/level" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field-row">
+          <div class="field"><label for="level">Level (1–<%= maxLevel %>)</label><input id="level" name="level" type="number" min="1" max="<%= maxLevel %>" value="<%= t.level %>" required></div>
+          <div class="field"><label for="level-reason">Reason</label><input id="level-reason" name="reason" maxlength="200" placeholder="Testing" required></div>
+        </div>
+        <p class="field__hint">Resets XP to 0 and sets energy/health caps for that level, refilled.</p>
+        <button class="btn btn--primary btn--sm" type="submit">Set level</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="restore-title">
+      <h2 id="restore-title" class="card__title">Restore</h2>
+      <p class="muted">Refill energy and health and release from hospital.</p>
+      <form method="post" action="/admin/players/<%= t.id %>/restore" class="admin-inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn--ghost btn--sm" type="submit">Restore <%= t.username %></button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="msg-title">
+      <h2 id="msg-title" class="card__title">Send a message</h2>
+      <form method="post" action="/admin/players/<%= t.id %>/notify" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field"><label for="message">Arrives as a notification</label><textarea id="message" name="message" rows="2" maxlength="300" required></textarea></div>
+        <button class="btn btn--ghost btn--sm" type="submit">Send</button>
+      </form>
+    </section>
+
+    <section class="card admin-grid__wide admin-danger" aria-labelledby="ban-title">
+      <h2 id="ban-title" class="card__title">Suspension</h2>
+      <% if (isSelf || t.is_admin) { %>
+        <p class="muted">Admins can't be suspended from here.</p>
+      <% } else if (t.banned_at) { %>
+        <form method="post" action="/admin/players/<%= t.id %>/unban" class="admin-inline">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <p>Suspended <%= fmt(t.banned_at) %> for: <strong><%= t.ban_reason %></strong></p>
+          <button class="btn btn--ghost btn--sm" type="submit">Lift suspension</button>
+        </form>
+      <% } else { %>
+        <form method="post" action="/admin/players/<%= t.id %>/ban" class="form admin-form" data-confirm="Suspend <%= t.username %>? They'll be signed out immediately.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field"><label for="ban-reason">Reason (shown to the player)</label><input id="ban-reason" name="reason" maxlength="200" placeholder="Multiple accounts" required></div>
+          <button class="btn btn--danger btn--sm" type="submit">Suspend and sign out</button>
+        </form>
+      <% } %>
+    </section>
+
+    <section class="card admin-grid__wide" aria-labelledby="hist-title">
+      <h2 id="hist-title" class="card__title">Admin history for <%= t.username %></h2>
+      <% if (history.length) { %>
+        <ol class="audit">
+          <% history.forEach(function (a) { %>
+            <li class="audit__row">
+              <span class="audit__action audit__action--<%= a.action %>"><%= a.action %></span>
+              <span class="audit__text"><strong><%= a.admin_name %></strong>: <%= a.details %></span>
+              <span class="audit__time"><%= a.ago %></span>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted">No admin actions on this player.</p>
+      <% } %>
+    </section>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

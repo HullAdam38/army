@@ -63,6 +63,13 @@
     });
   });
 
+  /* ---------- Forms that ask before doing something drastic ---------- */
+  document.querySelectorAll('form[data-confirm]').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
+
   /* ---------- Selects that apply as soon as they change ---------- */
   document.querySelectorAll('select[data-autosubmit]').forEach((select) => {
     select.addEventListener('change', () => select.form && select.form.submit());
