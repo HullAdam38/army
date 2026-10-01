@@ -399,3 +399,42 @@ test('notifications: welcome, attack alerts, polling, read state, unlocks and th
 
   assert.equal((await client(base).request('/notifications/poll', { headers: { accept: 'application/json' } })).res.status, 401);
 });
+
+test('bank: deposit, withdraw, history, privacy, and PvP only takes cash on hand', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const alpha = client(base);
+  const bravo = client(base);
+  await register(alpha, 'Alpha');
+  await register(bravo, 'Bravo');
+  const set = (sql, ...args) => server.db.prepare(sql).run(...args);
+  const bravoRow = () => server.db.prepare("SELECT cash, bank_balance FROM users WHERE username = 'Bravo'").get();
+
+  set("UPDATE users SET cash = 1000 WHERE username = 'Bravo'");
+  const token = await bravo.csrf('/bank');
+  let { res } = await bravo.request('/bank/deposit', { method: 'POST', form: { _csrf: token, amount: '1,000' } });
+  assert.equal(res.headers.get('location'), '/bank');
+  assert.deepEqual({ ...bravoRow() }, { cash: 0, bank_balance: 980 });
+
+  let text;
+  ({ text } = await bravo.request('/bank'));
+  assert.match(text, /980 banked after the \$20 fee/);
+  assert.match(text, /\(fee \$20\)/);
+
+  await bravo.request('/bank/withdraw', { method: 'POST', form: { _csrf: token, amount: '200' } });
+  assert.deepEqual({ ...bravoRow() }, { cash: 200, bank_balance: 780 });
+  await bravo.request('/bank/withdraw', { method: 'POST', form: { _csrf: token, amount: '99999' } });
+  ({ text } = await bravo.request('/bank'));
+  assert.match(text, /Your balance is \$780/);
+
+  // Balance is private: not on the public profile.
+  ({ text } = await alpha.request('/profile/Bravo'));
+  assert.doesNotMatch(text, /780/);
+
+  // A knockout only takes 5% of the $200 on hand; the $780 in the bank is untouched.
+  set('UPDATE users SET level = 5, max_health = 140, health = 140');
+  set("UPDATE users SET health = 1 WHERE username = 'Bravo'");
+  const at = await alpha.csrf('/hq');
+  await alpha.request('/attack/Bravo', { method: 'POST', form: { _csrf: at } });
+  assert.deepEqual({ ...bravoRow() }, { cash: 190, bank_balance: 780 });
+});

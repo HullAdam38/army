@@ -1,0 +1,78 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + n.toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Paymaster</p>
+      <h1 class="page-head__title">Bank</h1>
+      <p class="page-head__sub">Money in the bank can't be taken in a fight. Only cash on hand is at risk. Deposits cost <%= feePct %>%; withdrawals are free. Your balance is private.</p>
+    </div>
+  </div>
+
+  <div class="bank-balances reveal" style="--i:1">
+    <div class="balance balance--hand">
+      <span class="balance__label">Cash on hand</span>
+      <span class="balance__value"><%= money(player.cash) %></span>
+      <span class="balance__note"><%= player.cash ? 'At risk if you lose a fight' : 'Nothing to lose' %></span>
+    </div>
+    <div class="balance balance--bank">
+      <span class="balance__label"><svg aria-hidden="true"><use href="#i-crest"/></svg>In the bank</span>
+      <span class="balance__value"><%= money(player.bankBalance) %></span>
+      <span class="balance__note">Safe from attacks</span>
+    </div>
+  </div>
+
+  <div class="bank-actions">
+    <section class="card reveal" style="--i:2" aria-labelledby="deposit-title">
+      <h2 id="deposit-title" class="card__title">Deposit</h2>
+      <form method="post" action="/bank/deposit" class="bank-form" data-bank-form data-fee="<%= feePct / 100 %>" data-max="<%= player.cash %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="visually-hidden" for="deposit-amount">Amount to deposit</label>
+        <div class="money-input">
+          <span aria-hidden="true">$</span>
+          <input id="deposit-amount" name="amount" inputmode="numeric" autocomplete="off" placeholder="0" required>
+          <button class="money-input__all" type="button" data-fill-all>All</button>
+        </div>
+        <p class="bank-form__preview" data-preview aria-live="polite">A <%= feePct %>% fee applies, minimum $1.</p>
+        <button class="btn btn--primary btn--block" type="submit" <%- player.cash < 2 ? 'disabled' : '' %>>Deposit</button>
+      </form>
+    </section>
+
+    <section class="card reveal" style="--i:3" aria-labelledby="withdraw-title">
+      <h2 id="withdraw-title" class="card__title">Withdraw</h2>
+      <form method="post" action="/bank/withdraw" class="bank-form" data-bank-form data-max="<%= player.bankBalance %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="visually-hidden" for="withdraw-amount">Amount to withdraw</label>
+        <div class="money-input">
+          <span aria-hidden="true">$</span>
+          <input id="withdraw-amount" name="amount" inputmode="numeric" autocomplete="off" placeholder="0" required>
+          <button class="money-input__all" type="button" data-fill-all>All</button>
+        </div>
+        <p class="bank-form__preview" data-preview aria-live="polite">Free. Withdrawn cash can be taken in a fight.</p>
+        <button class="btn btn--ghost btn--block" type="submit" <%- player.bankBalance < 1 ? 'disabled' : '' %>>Withdraw</button>
+      </form>
+    </section>
+  </div>
+
+  <section class="card reveal" style="--i:4" aria-labelledby="history-title">
+    <h2 id="history-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-cash"/></svg>Recent transactions</h2>
+    <% if (history.length) { %>
+      <ol class="ledger">
+        <% history.forEach(function (t) { %>
+          <li class="ledger__row ledger__row--<%= t.type %>">
+            <span class="ledger__type"><%= t.type === 'deposit' ? 'Deposit' : 'Withdrawal' %></span>
+            <span class="ledger__amount"><%= t.type === 'deposit' ? '+' : '−' %><%= money(t.amount) %><% if (t.fee) { %> <small>(fee <%= money(t.fee) %>)</small><% } %></span>
+            <span class="ledger__balance">Balance <%= money(t.balance_after) %></span>
+            <span class="ledger__time"><%= t.ago %></span>
+          </li>
+        <% }) %>
+      </ol>
+    <% } else { %>
+      <p class="muted">No transactions yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

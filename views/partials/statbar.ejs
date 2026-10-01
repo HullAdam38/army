@@ -32,7 +32,7 @@
     <div class="stat stat--cash">
       <svg class="stat__icon stat__icon--cash" aria-hidden="true"><use href="#i-cash"/></svg>
       <span class="stat__body">
-        <span class="stat__label">Funds</span>
+        <span class="stat__label">Cash<a class="stat__bank" href="/bank" title="Bank balance">Bank $<span data-stat="bankBalance"><%= player.bankBalance.toLocaleString('en-US') %></span></a></span>
         <span class="stat__big">$<span data-stat="cash"><%= player.cash.toLocaleString('en-US') %></span></span>
       </span>
     </div>

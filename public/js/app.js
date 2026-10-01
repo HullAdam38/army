@@ -38,6 +38,31 @@
     }
   }
 
+  /* ---------- Bank forms: "All" shortcut and a live fee preview ---------- */
+  document.querySelectorAll('[data-bank-form]').forEach((form) => {
+    const input = form.querySelector('input[name="amount"]');
+    const preview = form.querySelector('[data-preview]');
+    const fee = Number(form.dataset.fee || 0);
+    const max = Number(form.dataset.max || 0);
+    const initial = preview.textContent;
+    const money = (n) => `$${n.toLocaleString('en-US')}`;
+    const update = () => {
+      const n = Number(input.value.replace(/[$,\s]/g, ''));
+      if (!input.value.trim() || !Number.isInteger(n) || n <= 0) { preview.textContent = initial; return; }
+      if (n > max) { preview.textContent = `That's more than the ${money(max)} available.`; return; }
+      if (fee) {
+        const f = Math.max(1, Math.ceil(n * fee));
+        preview.textContent = n <= f ? `Deposits must be more than the ${money(f)} fee.` : `${money(n - f)} will be banked after the ${money(f)} fee.`;
+      }
+    };
+    input.addEventListener('input', update);
+    form.querySelector('[data-fill-all]').addEventListener('click', () => {
+      input.value = String(max);
+      update();
+      input.focus();
+    });
+  });
+
   /* ---------- Selects that apply as soon as they change ---------- */
   document.querySelectorAll('select[data-autosubmit]').forEach((select) => {
     select.addEventListener('change', () => select.form && select.form.submit());
@@ -102,6 +127,7 @@
     setText('health', p.health);
     setText('maxHealth', p.maxHealth);
     setText('cash', p.cash);
+    if (p.bankBalance !== undefined) setText('bankBalance', p.bankBalance);
     setMeter('xp', p.xp, p.xpNeeded);
     setMeter('energy', p.energy, p.maxEnergy);
     setMeter('health', p.health, p.maxHealth);

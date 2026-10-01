@@ -77,6 +77,17 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, id DESC);
 
+  CREATE TABLE IF NOT EXISTS bank_transactions (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type           TEXT    NOT NULL,
+    amount         INTEGER NOT NULL,
+    fee            INTEGER NOT NULL DEFAULT 0,
+    balance_after  INTEGER NOT NULL,
+    created_at     INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_bank_user ON bank_transactions(user_id, id DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -94,6 +105,7 @@ const ADDED_COLUMNS = [
   ['users', 'pvp_wins', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'pvp_losses', 'INTEGER NOT NULL DEFAULT 0'],
   ['activity', 'link', 'TEXT'],
+  ['users', 'bank_balance', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 function migrate(db) {

@@ -333,6 +333,7 @@ function playerView(raw, now = Date.now()) {
     hospitalUntil: p.hospital_until || null,
     hospitalReason: p.hospital_reason || null,
     dischargeCost: dischargeCost(p, now),
+    bankBalance: p.bank_balance || 0,
     pvpWins: p.pvp_wins || 0,
     pvpLosses: p.pvp_losses || 0,
   };

@@ -5,7 +5,7 @@ const { newPlayerDefaults } = require('./game');
 const MUTABLE_FIELDS = [
   'level', 'xp', 'cash', 'energy', 'max_energy', 'health', 'max_health',
   'energy_updated_at', 'health_updated_at', 'missions_completed', 'missions_failed',
-  'hospital_until', 'hospital_reason', 'pvp_wins', 'pvp_losses',
+  'hospital_until', 'hospital_reason', 'pvp_wins', 'pvp_losses', 'bank_balance',
 ];
 
 // Sort keys map to fixed SQL fragments; user input never reaches the query text.
@@ -81,6 +81,10 @@ function createPlayerRepo(db) {
              a.username AS attacker_name, d.username AS defender_name
       FROM battles b JOIN users a ON a.id = b.attacker_id JOIN users d ON d.id = b.defender_id
       ORDER BY b.id DESC LIMIT ?`),
+    bankLog: db.prepare(`INSERT INTO bank_transactions (user_id, type, amount, fee, balance_after, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?)`),
+    bankHistory: db.prepare(`SELECT type, amount, fee, balance_after, created_at FROM bank_transactions
+                             WHERE user_id = ? ORDER BY id DESC LIMIT ?`),
     recentTargets: db.prepare(`
       SELECT defender_id, MAX(created_at) AS at FROM battles
       WHERE attacker_id = ? AND created_at >= ? GROUP BY defender_id`),
@@ -190,6 +194,10 @@ function createPlayerRepo(db) {
     markNotificationsRead: (userId) => stmts.markRead.run(Date.now(), userId),
     /** Latest fights across the whole game, for the HQ combat feed. */
     recentBattles: (limit = 6) => stmts.recentBattles.all(limit),
+
+    logBankTransaction: (userId, { type, amount, fee, balanceAfter }) =>
+      stmts.bankLog.run(userId, type, amount, fee, balanceAfter, Date.now()),
+    bankHistory: (userId, limit = 10) => stmts.bankHistory.all(userId, limit),
 
     /** Map of defender id → time of `attackerId`'s most recent attack on them since `since`. */
     recentTargets(attackerId, since) {

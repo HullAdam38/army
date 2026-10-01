@@ -34,7 +34,8 @@ See `.env.example` for all settings.
 | **Health** | Starts at 100. +1 every minute. Failed missions deal damage, and you can't deploy below 15 HP. |
 | **XP / Level** | Level *n* needs `100 × n^1.6` XP. Each level-up adds +5 max energy and +10 max health and refills both. |
 | **Rank** | Changes every 2 levels, from Recruit (E-1) to General (O-10). |
-| **Cash** | Earned from successful missions. Spend it in the Armory or at the field hospital ($2 per HP). |
+| **Cash** | Earned from successful missions. Spend it in the Armory or at the field hospital ($2 per HP). Only cash on hand can be taken in PvP. |
+| **Bank** | Money in the bank is safe from attacks. Deposits cost 2% (minimum $1); withdrawals are free. There's deliberately **no interest**, so the bank never creates money. Balances are private. |
 | **Gear** | Four slots (weapon, body armour, helmet, tactical kit). Gear raises your combat rating, which adds up to +15% mission success, and armour reduces failure damage. |
 
 There are six missions, unlocking at levels 1, 1, 3, 5, 8 and 12. Success chance rises 1% for each level above the mission's minimum and drops 10% while you're below half health. A failed mission still grants 25% XP.
@@ -115,6 +116,8 @@ src/
   routes/pvp.js      attack + battle reports
   routes/hospital.js hospital ward, treatment, early discharge
   notify.js          promotion & unlock notifications
+  bank.js            deposit/withdraw rules (fee, parsing amounts)
+  routes/bank.js     bank page and actions
   routes/notifications.js  inbox page + polling endpoint
 views/               EJS pages + partials
 public/              CSS, JS, favicon
@@ -134,3 +137,4 @@ test/                node:test suites
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted
+- `/bank`: cash on hand vs banked, deposit and withdraw (with "All" and a live fee preview), and recent transactions
