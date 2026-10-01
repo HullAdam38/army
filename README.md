@@ -112,6 +112,7 @@ test/                node:test suites
 - `/register`, `/login`: account forms (registration requires confirming you are 18+)
 - `/hq`: dashboard with service record, next orders, readiness (live regen timers), field hospital and radio log
 - `/missions`: operations board. Deploying uses `fetch` and updates stats in place, and falls back to a normal form post without JavaScript.
+- `/players`: directory of all players. Search by callsign, filter to **Targets** (players you can attack right now) or **Online now**, and sort by level, PvP wins, newest or name, 25 per page. Each row shows rank, level, combat rating, PvP record and status, with an Attack button or the reason you can't attack.
 - `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.
 - `/profile/:username`: a player's public service record, showing rank, level, online status or last seen, enlistment date, mission stats and recent operations. Email, cash, energy, health and hospital visits stay private.
 - `/armory`: your combat profile and loadout, plus the gear catalogue. Buying an item equips it; you can stow items or swap between owned ones. Other players can see your loadout on your profile.

@@ -274,3 +274,65 @@ test('pvp: attack, battle report, hospital, discharge and cooldown', async (t) =
   assert.equal((await alpha.request('/battles/99999')).res.status, 404);
   assert.equal((await alpha.request('/attack/Nobody', { method: 'POST', form: { _csrf: token } })).res.status, 404);
 });
+
+test('players directory: search, filters, sorting, paging and attacking from the list', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const me = client(base);
+  await register(me, 'Hunter');
+  for (const name of ['Alpha', 'Bravo', 'Charlie', 'Rookie', 'Patient', 'Low_One']) {
+    await register(client(base), name);
+  }
+  const set = (sql, ...args) => server.db.prepare(sql).run(...args);
+  set('UPDATE users SET level = 8, max_health = 170, health = 170, max_energy = 85, energy = 85');
+  set("UPDATE users SET level = 1 WHERE username = 'Rookie'");
+  set("UPDATE users SET level = 4 WHERE username = 'Low_One'"); // more than 3 below Hunter
+  set("UPDATE users SET pvp_wins = 9 WHERE username = 'Charlie'");
+  set("UPDATE users SET hospital_until = ?, hospital_reason = 'x' WHERE username = 'Patient'", Date.now() + 600_000);
+
+  let { res, text } = await me.request('/players');
+  assert.equal(res.status, 200);
+  assert.match(text, /7 soldiers/);
+  assert.match(text, /aria-label="Attack Alpha"/);
+  assert.match(text, /Rookie is a Recruit/);
+  assert.match(text, /Patient is in hospital/);
+  assert.match(text, /Low_One is too far below your level/);
+
+  ({ text } = await me.request('/players?filter=targets'));
+  assert.match(text, /3 soldiers you can target/);
+  for (const hidden of ['Rookie', 'Patient', 'Low_One', '>Hunter<']) assert.ok(!text.includes(hidden), hidden);
+
+  ({ text } = await me.request('/players?q=char'));
+  assert.match(text, /1 soldier matching “char”/);
+  ({ text } = await me.request('/players?q=_'));
+  assert.match(text, /1 soldier matching/); // _ is matched literally, not as a wildcard
+  ({ text } = await me.request('/players?q=%25'));
+  assert.match(text, /0 soldiers/);
+
+  ({ text } = await me.request('/players?sort=wins'));
+  assert.ok(text.indexOf('>Charlie<') < text.indexOf('>Alpha<'), 'most PvP wins first');
+  ({ res } = await me.request('/players?sort=bogus;DROP&page=-4&filter=nope'));
+  assert.equal(res.status, 200);
+
+  // Paging: 25 per page.
+  // (Inserted directly: registering this many accounts would trip the sign-up rate limiter.)
+  const now = Date.now();
+  const insert = server.db.prepare(`INSERT INTO users (username, email, password_hash, energy_updated_at, health_updated_at, created_at)
+                                    VALUES (?, ?, 'x', ?, ?, ?)`);
+  for (let i = 0; i < 25; i += 1) insert.run(`Grunt${i}`, `grunt${i}@example.com`, now, now, now);
+  ({ text } = await me.request('/players'));
+  assert.match(text, /Page 1 of 2/);
+  ({ text } = await me.request('/players?page=2'));
+  assert.match(text, /Page 2 of 2/);
+
+  // Attack from the list: success goes to the report, a failure returns to the list.
+  const token = await me.csrf('/players');
+  ({ res } = await me.request('/attack/Alpha', { method: 'POST', form: { _csrf: token, back: '/players?filter=targets' } }));
+  assert.match(res.headers.get('location'), /^\/battles\/\d+$/);
+  ({ res } = await me.request('/attack/Alpha', { method: 'POST', form: { _csrf: token, back: '/players?filter=targets' } }));
+  assert.equal(res.headers.get('location'), '/players?filter=targets'); // cooldown
+  ({ res } = await me.request('/attack/Alpha', { method: 'POST', form: { _csrf: token, back: '//evil.example' } }));
+  assert.equal(res.headers.get('location'), '/profile/Alpha');
+  ({ text } = await me.request('/players?q=alpha'));
+  assert.match(text, /attacked Alpha recently/);
+});

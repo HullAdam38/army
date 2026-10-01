@@ -16,21 +16,32 @@ const MAX_ROUNDS = 10;
 const CASH_SHARE = 0.05; // winner takes 5% of the loser's cash…
 const CASH_CAP_PER_LEVEL = 25; // …but never more than $25 × the loser's level
 
-/** Why `attacker` can't attack `defender` right now, or null if they can. */
-function attackBlocker(attacker, defender, { now = Date.now(), lastAttackAt = null } = {}) {
-  if (attacker.id === defender.id) return 'You can’t attack yourself';
+/** Why `attacker` can't attack anyone right now, or null if they're ready. */
+function selfBlocker(attacker, now = Date.now()) {
   if (attacker.level < MIN_PVP_LEVEL) return `PvP unlocks at level ${MIN_PVP_LEVEL}`;
-  if (defender.level < MIN_PVP_LEVEL) return `${defender.username} is a Recruit and protected until level ${MIN_PVP_LEVEL}`;
   if (game.isHospitalized(attacker, now)) return 'You’re in hospital';
-  if (game.isHospitalized(defender, now)) return `${defender.username} is in hospital`;
-  if (defender.level < attacker.level - MAX_LEVELS_BELOW) return `${defender.username} is too far below your level`;
   if (attacker.energy < ATTACK_ENERGY) return `Attacking needs ${ATTACK_ENERGY} energy`;
   if (attacker.health < game.MIN_DEPLOY_HEALTH) return 'You’re too injured to fight';
+  return null;
+}
+
+/** Why `defender` can never be a target for `attacker` at the moment, ignoring the attacker's own readiness. */
+function targetBlocker(attacker, defender, { now = Date.now(), lastAttackAt = null } = {}) {
+  if (attacker.id === defender.id) return 'You can’t attack yourself';
+  if (defender.level < MIN_PVP_LEVEL) return `${defender.username} is a Recruit and protected until level ${MIN_PVP_LEVEL}`;
+  if (game.isHospitalized(defender, now)) return `${defender.username} is in hospital`;
+  if (defender.level < attacker.level - MAX_LEVELS_BELOW) return `${defender.username} is too far below your level`;
   if (lastAttackAt && now - lastAttackAt < PAIR_COOLDOWN_MS) {
     const mins = Math.ceil((PAIR_COOLDOWN_MS - (now - lastAttackAt)) / 60000);
     return `You attacked ${defender.username} recently. Try again in ${mins} min`;
   }
   return null;
+}
+
+/** Why `attacker` can't attack `defender` right now, or null if they can. */
+function attackBlocker(attacker, defender, opts = {}) {
+  if (attacker.id === defender.id) return 'You can’t attack yourself';
+  return selfBlocker(attacker, opts.now) || targetBlocker(attacker, defender, opts);
 }
 
 /**
@@ -146,6 +157,8 @@ module.exports = {
   PAIR_COOLDOWN_MS,
   attackBlocker,
   cashPrize,
+  selfBlocker,
+  targetBlocker,
   resolveAttack,
   simulateFight,
   winXp,

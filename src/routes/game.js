@@ -8,6 +8,10 @@ const armory = require('../armory');
 const { loadoutView } = armory;
 const pvp = require('../pvp');
 const { createRequireAuth } = require('../require-auth');
+const { PLAYER_SORTS } = require('../players');
+
+const PLAYER_FILTERS = ['all', 'targets', 'online'];
+const PAGE_SIZE = 25;
 
 function gameRoutes(players) {
   const router = express.Router();
@@ -106,6 +110,68 @@ function gameRoutes(players) {
       nav: 'online',
       soldiers,
       windowMinutes: presence.ONLINE_WINDOW_MS / 60000,
+    });
+  });
+
+  router.get('/players', requireAuth, (req, res) => {
+    const now = Date.now();
+    const q = String(req.query.q || '').trim().slice(0, 20);
+    const filter = PLAYER_FILTERS.includes(req.query.filter) ? req.query.filter : 'all';
+    const sort = Object.hasOwn(PLAYER_SORTS, req.query.sort) ? req.query.sort : 'level';
+    const page = Math.max(1, Math.floor(Number(req.query.page)) || 1);
+
+    const me = game.applyRegen(req.player, now);
+    const { rows, total } = players.searchPlayers({
+      q, filter, sort, me, now,
+      onlineSince: now - presence.ONLINE_WINDOW_MS,
+      targetRules: { minLevel: pvp.MIN_PVP_LEVEL, maxLevelsBelow: pvp.MAX_LEVELS_BELOW },
+      limit: PAGE_SIZE,
+      offset: (page - 1) * PAGE_SIZE,
+    });
+    const cooldowns = players.recentTargets(me.id, now - pvp.PAIR_COOLDOWN_MS);
+    const selfBlocker = pvp.selfBlocker(me, now);
+
+    const list = rows.map((u) => {
+      const rank = game.rankFor(u.level);
+      const isYou = u.id === me.id;
+      const targetBlocker = isYou ? null : pvp.targetBlocker(me, u, { now, lastAttackAt: cooldowns.get(u.id) || null });
+      return {
+        username: u.username,
+        level: u.level,
+        rank: rank.name,
+        grade: rank.grade,
+        rating: loadoutView(u.level, players.equipment(u.id)).rating,
+        wins: u.pvp_wins,
+        losses: u.pvp_losses,
+        hospitalized: game.isHospitalized(u, now),
+        hospitalUntil: u.hospital_until,
+        online: presence.isOnline(u, now),
+        lastSeen: presence.timeAgo(u.last_seen_at, now),
+        isYou,
+        canAttack: !isYou && !selfBlocker && !targetBlocker,
+        // Short reason for the row; the full sentence goes in the tooltip.
+        blocker: targetBlocker,
+      };
+    });
+
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const urlFor = (changes) => {
+      const params = new URLSearchParams({ q, filter, sort, page: String(page), ...changes });
+      for (const [k, v] of [...params]) if (!v || (k === 'filter' && v === 'all') || (k === 'sort' && v === 'level') || (k === 'page' && v === '1')) params.delete(k);
+      const qs = params.toString();
+      return qs ? `/players?${qs}` : '/players';
+    };
+
+    res.render('players', {
+      title: 'Players',
+      nav: 'players',
+      list, total, page, pages, q, filter, sort,
+      sorts: [['level', 'Level'], ['wins', 'PvP wins'], ['newest', 'Newest'], ['name', 'Name']],
+      urlFor,
+      selfBlocker,
+      myRating: loadoutView(me.level, players.equipment(me.id)).rating,
+      attackEnergy: pvp.ATTACK_ENERGY,
+      backUrl: req.originalUrl,
     });
   });
 

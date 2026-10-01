@@ -1,0 +1,109 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Personnel files</p>
+      <h1 class="page-head__title">Players</h1>
+      <p class="page-head__sub">
+        <% if (selfBlocker) { %>
+          <span class="notice notice--warn"><%= selfBlocker %>, so you can't attack anyone right now.</span>
+        <% } else { %>
+          Your combat rating is <strong><%= myRating %></strong>. Each attack costs <%= attackEnergy %> energy.
+        <% } %>
+      </p>
+    </div>
+  </div>
+
+  <div class="directory-tools reveal" style="--i:1">
+    <nav class="tabs" aria-label="Filter players">
+      <% [['all', 'All'], ['targets', 'Targets'], ['online', 'Online now']].forEach(function ([key, label]) { %>
+        <a class="tabs__tab" href="<%= urlFor({ filter: key, page: '1' }) %>" <%- filter === key ? 'aria-current="page"' : '' %>><%= label %></a>
+      <% }) %>
+    </nav>
+    <form class="directory-search" method="get" action="/players" role="search">
+      <input type="hidden" name="filter" value="<%= filter %>">
+      <label class="visually-hidden" for="q">Search by callsign</label>
+      <input id="q" name="q" type="search" placeholder="Search callsign…" value="<%= q %>" maxlength="20" autocomplete="off">
+      <label class="visually-hidden" for="sort">Sort by</label>
+      <select id="sort" name="sort" data-autosubmit>
+        <% sorts.forEach(function ([key, label]) { %>
+          <option value="<%= key %>" <%- sort === key ? 'selected' : '' %>>Sort: <%= label %></option>
+        <% }) %>
+      </select>
+      <button class="btn btn--ghost btn--sm" type="submit">Search</button>
+    </form>
+  </div>
+
+  <p class="directory-count reveal" style="--i:2">
+    <%= total %> <%= total === 1 ? 'soldier' : 'soldiers' %><%= q ? ` matching “${q}”` : '' %><%= filter === 'targets' ? ' you can target' : filter === 'online' ? ' online now' : '' %>
+  </p>
+
+  <% if (list.length) { %>
+    <table class="directory reveal" style="--i:3">
+      <thead>
+        <tr>
+          <th scope="col">Soldier</th>
+          <th scope="col" class="num">Level</th>
+          <th scope="col" class="num">Rating</th>
+          <th scope="col" class="num">PvP W–L</th>
+          <th scope="col">Status</th>
+          <th scope="col"><span class="visually-hidden">Action</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% list.forEach(function (p) { %>
+          <tr class="<%= p.isYou ? 'is-you' : '' %>">
+            <th scope="row" class="directory__who">
+              <span class="stat__grade"><%= p.grade %></span>
+              <span class="roster__who">
+                <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(p.username) %>"><%= p.username %></a><% if (p.isYou) { %> <span class="tag">You</span><% } %></span>
+                <span class="roster__rank"><%= p.rank %></span>
+              </span>
+            </th>
+            <td class="num" data-label="Level"><%= p.level %></td>
+            <td class="num" data-label="Rating"><%= p.rating %></td>
+            <td class="num" data-label="PvP"><%= p.wins %>–<%= p.losses %></td>
+            <td data-label="Status">
+              <% if (p.hospitalized) { %>
+                <span class="status status--hospital"><svg aria-hidden="true"><use href="#i-health"/></svg>Hospital <span data-until="<%= p.hospitalUntil %>"></span></span>
+              <% } else if (p.online) { %>
+                <span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online</span>
+              <% } else { %>
+                <span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span><%= p.lastSeen %></span>
+              <% } %>
+            </td>
+            <td class="directory__action">
+              <% if (p.isYou) { %>
+                <a class="btn btn--ghost btn--sm" href="/profile/<%= encodeURIComponent(p.username) %>">Profile</a>
+              <% } else if (p.blocker) { %>
+                <span class="directory__why"><%= p.blocker %></span>
+              <% } else { %>
+                <form method="post" action="/attack/<%= encodeURIComponent(p.username) %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="back" value="<%= backUrl %>">
+                  <button class="btn btn--primary btn--sm" type="submit" <%- p.canAttack ? '' : 'disabled' %> aria-label="Attack <%= p.username %>">
+                    <svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Attack
+                  </button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <p class="card muted">No soldiers match. Try a different search or filter.</p>
+  <% } %>
+
+  <% if (pages > 1) { %>
+    <nav class="pager" aria-label="Pages">
+      <% if (page > 1) { %><a class="btn btn--ghost btn--sm" href="<%= urlFor({ page: String(page - 1) }) %>" rel="prev">Previous</a><% } else { %><span></span><% } %>
+      <span class="pager__info">Page <%= page %> of <%= pages %></span>
+      <% if (page < pages) { %><a class="btn btn--ghost btn--sm" href="<%= urlFor({ page: String(page + 1) }) %>" rel="next">Next</a><% } else { %><span></span><% } %>
+    </nav>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

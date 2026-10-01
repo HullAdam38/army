@@ -10,7 +10,7 @@
         <a href="/missions" class="game-nav__link" <%- nav === 'missions' ? 'aria-current="page"' : '' %>>Missions</a>
         <a href="/armory" class="game-nav__link" <%- nav === 'armory' ? 'aria-current="page"' : '' %>>Armory</a>
         <a href="/hospital" class="game-nav__link" <%- nav === 'hospital' ? 'aria-current="page"' : '' %>>Hospital</a>
-        <a href="/online" class="game-nav__link" <%- nav === 'online' ? 'aria-current="page"' : '' %>>Online</a>
+        <a href="/players" class="game-nav__link" <%- nav === 'players' || nav === 'online' ? 'aria-current="page"' : '' %>>Players</a>
         <a href="/profile/<%= encodeURIComponent(player.username) %>" class="game-nav__link" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>Profile</a>
       </nav>
       <form method="post" action="/logout" class="site-header__logout">

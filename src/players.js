@@ -8,6 +8,14 @@ const MUTABLE_FIELDS = [
   'hospital_until', 'hospital_reason', 'pvp_wins', 'pvp_losses',
 ];
 
+// Sort keys map to fixed SQL fragments; user input never reaches the query text.
+const PLAYER_SORTS = {
+  level: 'level DESC, xp DESC, username COLLATE NOCASE',
+  wins: 'pvp_wins DESC, level DESC, username COLLATE NOCASE',
+  newest: 'created_at DESC',
+  name: 'username COLLATE NOCASE',
+};
+
 function createPlayerRepo(db) {
   const stmts = {
     byId: db.prepare('SELECT * FROM users WHERE id = ?'),
@@ -55,6 +63,9 @@ function createPlayerRepo(db) {
       FROM battles b JOIN users a ON a.id = b.attacker_id JOIN users d ON d.id = b.defender_id
       WHERE b.attacker_id = ?1 OR b.defender_id = ?1
       ORDER BY b.id DESC LIMIT ?2`),
+    recentTargets: db.prepare(`
+      SELECT defender_id, MAX(created_at) AS at FROM battles
+      WHERE attacker_id = ? AND created_at >= ? GROUP BY defender_id`),
     patients: db.prepare(`
       SELECT username, level, hospital_until, hospital_reason FROM users
       WHERE hospital_until > ? ORDER BY hospital_until DESC LIMIT ?`),
@@ -121,6 +132,40 @@ function createPlayerRepo(db) {
     },
     battlesFor: (userId, limit = 8) => stmts.battlesFor.all(userId, limit),
     hospitalPatients: (now = Date.now(), limit = 100) => stmts.patients.all(now, limit),
+
+    /**
+     * Player directory search. `filter` is 'all', 'online' or 'targets' (players
+     * `me` could attack, before per-pair cooldowns). Returns { rows, total }.
+     */
+    searchPlayers({ q = '', filter = 'all', sort = 'level', me, now = Date.now(), onlineSince, targetRules, limit = 25, offset = 0 }) {
+      const where = [];
+      const params = [];
+      if (q) {
+        where.push("username LIKE ? ESCAPE '\\'");
+        params.push(`%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
+      }
+      if (filter === 'online') {
+        where.push('last_seen_at >= ? AND (signed_out_at IS NULL OR signed_out_at < last_seen_at)');
+        params.push(onlineSince);
+      }
+      if (filter === 'targets') {
+        where.push('id != ? AND level >= ? AND level >= ? AND (hospital_until IS NULL OR hospital_until <= ?)');
+        params.push(me.id, targetRules.minLevel, me.level - targetRules.maxLevelsBelow, now);
+      }
+      const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const order = PLAYER_SORTS[sort] || PLAYER_SORTS.level;
+      const total = db.prepare(`SELECT COUNT(*) AS n FROM users ${clause}`).get(...params).n;
+      const rows = db.prepare(`
+        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, pvp_wins, pvp_losses
+        FROM users ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset);
+      return { rows, total };
+    },
+
+    /** Map of defender id → time of `attackerId`'s most recent attack on them since `since`. */
+    recentTargets(attackerId, since) {
+      const rows = stmts.recentTargets.all(attackerId, since);
+      return new Map(rows.map((r) => [r.defender_id, r.at]));
+    },
     recentActivity: (id, limit = 8) => stmts.recent.all(id, limit),
 
     /** Run `fn` inside a write transaction so concurrent requests can't double-spend. */
@@ -138,4 +183,4 @@ function createPlayerRepo(db) {
   };
 }
 
-module.exports = { createPlayerRepo };
+module.exports = { PLAYER_SORTS, createPlayerRepo };

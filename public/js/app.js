@@ -38,6 +38,11 @@
     }
   }
 
+  /* ---------- Selects that apply as soon as they change ---------- */
+  document.querySelectorAll('select[data-autosubmit]').forEach((select) => {
+    select.addEventListener('change', () => select.form && select.form.submit());
+  });
+
   /* ---------- Countdowns to a timestamp (hospital release) ---------- */
   const untils = document.querySelectorAll('[data-until]');
   if (untils.length) {

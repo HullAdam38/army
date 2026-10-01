@@ -53,7 +53,9 @@ function pvpRoutes(players) {
 
     if (outcome.error) {
       req.flash('error', outcome.error);
-      return res.redirect(profileUrl);
+      // Attacks launched from the players list go back to the same list view.
+      const back = String(req.body.back || '');
+      return res.redirect(back.startsWith('/players') && !back.startsWith('//') ? back : profileUrl);
     }
     res.redirect(`/battles/${outcome.id}`);
   });
