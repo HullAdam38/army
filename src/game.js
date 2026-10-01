@@ -13,6 +13,8 @@ const HEALTH_REGEN_MS = 60 * 1000; // +1 health every minute
 const MIN_DEPLOY_HEALTH = 15;
 const HOSPITAL_COST_PER_HP = 2;
 const MAX_GEAR_SUCCESS_BONUS = 0.15;
+const HOSPITAL_STAY_MS = 10 * 60 * 1000; // knocked-out players are admitted for 10 minutes
+const DISCHARGE_HEALTH_PCT = 0.5; // and leave with at least half health
 
 const RANKS = [
   { name: 'Recruit', grade: 'E-1' },
@@ -119,8 +121,31 @@ function regenResource(value, max, updatedAt, intervalMs, now) {
   return { value: next, updatedAt: next >= max ? now : updatedAt + ticks * intervalMs };
 }
 
-/** Returns a copy of the player with energy and health regenerated up to `now`. */
+function isHospitalized(player, now = Date.now()) {
+  return Boolean(player.hospital_until && player.hospital_until > now);
+}
+
+/**
+ * Returns a copy of the player with energy and health regenerated up to `now`,
+ * and discharged from hospital if their stay has ended.
+ */
 function applyRegen(player, now = Date.now()) {
+  if (player.hospital_until && player.hospital_until <= now) {
+    // Regenerate up to the moment of discharge, top up, then carry on to `now`.
+    const released = regenTo(player, player.hospital_until);
+    const floor = Math.ceil(released.max_health * DISCHARGE_HEALTH_PCT);
+    return regenTo({
+      ...released,
+      health: Math.max(released.health, floor),
+      health_updated_at: player.hospital_until,
+      hospital_until: null,
+      hospital_reason: null,
+    }, now);
+  }
+  return regenTo(player, now);
+}
+
+function regenTo(player, now) {
   const energy = regenResource(player.energy, player.max_energy, player.energy_updated_at, ENERGY_REGEN_MS, now);
   const health = regenResource(player.health, player.max_health, player.health_updated_at, HEALTH_REGEN_MS, now);
   return {
@@ -155,7 +180,8 @@ function successChance(mission, player, stats = statsFor(player.level)) {
 }
 
 /** Why a player can't run a mission right now, or null if they can. */
-function missionBlocker(mission, player) {
+function missionBlocker(mission, player, now = Date.now()) {
+  if (isHospitalized(player, now)) return 'You’re in hospital';
   if (player.level < mission.minLevel) return `Requires level ${mission.minLevel}`;
   if (player.energy < mission.energy) return 'Not enough energy';
   if (player.health < MIN_DEPLOY_HEALTH) return 'Too injured to deploy';
@@ -187,7 +213,7 @@ function runMission(missionId, current, { now = Date.now(), rng = Math.random, s
   if (!mission) return { error: 'Unknown mission.' };
 
   const player = applyRegen(current, now);
-  const blocker = missionBlocker(mission, player);
+  const blocker = missionBlocker(mission, player, now);
   if (blocker) return { error: `${blocker}.`, player };
 
   stats = stats || statsFor(player.level);
@@ -226,12 +252,36 @@ function hospitalCost(player) {
 /** Pays to restore health to full. */
 function visitHospital(current, { now = Date.now() } = {}) {
   const player = applyRegen(current, now);
+  if (isHospitalized(player, now)) return { error: 'You’re admitted. Pay for early discharge or wait it out.', player };
   const cost = hospitalCost(player);
   if (cost === 0) return { error: 'You are already at full health.', player };
   if (player.cash < cost) return { error: `Treatment costs $${cost}. You can't cover it yet.`, player };
   player.cash -= cost;
   player.health = player.max_health;
   player.health_updated_at = now;
+  return { player, cost };
+}
+
+/** Knocks a player out: zero health and a hospital stay. Mutates `player`. */
+function admitToHospital(player, now, reason) {
+  player.health = 0;
+  player.health_updated_at = now;
+  player.hospital_until = now + HOSPITAL_STAY_MS;
+  player.hospital_reason = reason;
+  return player;
+}
+
+/** Early discharge costs per remaining minute, scaled by level. */
+function dischargeCost(player, now = Date.now()) {
+  if (!isHospitalized(player, now)) return 0;
+  return Math.ceil((player.hospital_until - now) / 60000) * (10 + 2 * player.level);
+}
+
+function dischargeEarly(current, { now = Date.now() } = {}) {
+  if (!isHospitalized(current, now)) return { error: 'You aren’t in hospital.', player: current };
+  const cost = dischargeCost(current, now);
+  if (current.cash < cost) return { error: `Early discharge costs $${cost}. You can't cover it yet.`, player: current };
+  const player = applyRegen({ ...current, cash: current.cash - cost, hospital_until: now }, now);
   return { player, cost };
 }
 
@@ -278,7 +328,13 @@ function playerView(raw, now = Date.now()) {
     missionsFailed: p.missions_failed,
     successRate: total ? Math.round((p.missions_completed / total) * 100) : null,
     hospitalCost: hospitalCost(p),
-    canDeploy: p.health >= MIN_DEPLOY_HEALTH,
+    canDeploy: p.health >= MIN_DEPLOY_HEALTH && !isHospitalized(p, now),
+    hospitalized: isHospitalized(p, now),
+    hospitalUntil: p.hospital_until || null,
+    hospitalReason: p.hospital_reason || null,
+    dischargeCost: dischargeCost(p, now),
+    pvpWins: p.pvp_wins || 0,
+    pvpLosses: p.pvp_losses || 0,
   };
 }
 
@@ -287,7 +343,7 @@ function missionViews(raw, now = Date.now(), stats = statsFor(raw.level)) {
   return MISSIONS.map((m) => ({
     ...m,
     locked: p.level < m.minLevel,
-    blocker: missionBlocker(m, p),
+    blocker: missionBlocker(m, p, now),
     chancePct: Math.round(successChance(m, p, stats) * 100),
   }));
 }
@@ -295,10 +351,15 @@ function missionViews(raw, now = Date.now(), stats = statsFor(raw.level)) {
 module.exports = {
   ENERGY_REGEN_MS,
   HEALTH_REGEN_MS,
+  HOSPITAL_STAY_MS,
   MIN_DEPLOY_HEALTH,
   MISSIONS,
   RANKS,
+  admitToHospital,
   applyRegen,
+  dischargeCost,
+  dischargeEarly,
+  isHospitalized,
   grantXp,
   hospitalCost,
   missionViews,

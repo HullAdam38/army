@@ -20,7 +20,7 @@
           <a class="roster__row<%= s.isYou ? ' roster__row--you' : '' %>" href="/profile/<%= encodeURIComponent(s.username) %>">
             <span class="stat__grade"><%= s.grade %></span>
             <span class="roster__who">
-              <span class="roster__name"><%= s.username %><% if (s.isYou) { %> <span class="tag">You</span><% } %></span>
+              <span class="roster__name"><%= s.username %><% if (s.isYou) { %> <span class="tag">You</span><% } %><% if (s.hospitalized) { %> <span class="tag tag--hospital">Hospital</span><% } %></span>
               <span class="roster__rank"><%= s.rank %></span>
             </span>
             <span class="roster__level"><span class="roster__label">Level</span><%= s.level %></span>

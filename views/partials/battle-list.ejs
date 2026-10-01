@@ -1,0 +1,19 @@
+<%# Expects `battles` (rows from battlesFor) and `perspective` (username whose point of view to use). %>
+<% if (battles.length) { %>
+  <ol class="battle-list">
+    <% battles.forEach(function (b) {
+         const asAttacker = b.attacker_name === perspective;
+         const won = asAttacker ? b.attacker_won : !b.attacker_won;
+         const other = asAttacker ? b.defender_name : b.attacker_name; %>
+      <li>
+        <a class="battle-row battle-row--<%= won ? 'win' : 'loss' %>" href="/battles/<%= b.id %>">
+          <span class="battle-row__result"><%= won ? 'Won' : 'Lost' %></span>
+          <span class="battle-row__text"><%= asAttacker ? 'Attacked' : 'Defended against' %> <strong><%= other %></strong><%= b.knockout ? ' · KO' : '' %><%= b.cash_taken ? ` · $${b.cash_taken}` : '' %></span>
+          <span class="battle-row__time"><%= b.ago %></span>
+        </a>
+      </li>
+    <% }) %>
+  </ol>
+<% } else { %>
+  <p class="muted">No battles yet.</p>
+<% } %>

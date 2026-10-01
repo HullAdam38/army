@@ -38,6 +38,25 @@
     }
   }
 
+  /* ---------- Countdowns to a timestamp (hospital release) ---------- */
+  const untils = document.querySelectorAll('[data-until]');
+  if (untils.length) {
+    let reloading = false;
+    const tickUntil = () => {
+      const now = Date.now();
+      untils.forEach((el) => {
+        const left = Math.max(0, Math.ceil((Number(el.dataset.until) - now) / 1000));
+        el.textContent = left > 0 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : 'now';
+        if (left === 0 && el.hasAttribute('data-reload') && !reloading) {
+          reloading = true;
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      });
+    };
+    tickUntil();
+    setInterval(tickUntil, 1000);
+  }
+
   /* ---------- Stat bar: live regen countdowns ---------- */
   const statbar = document.querySelector('[data-statbar]');
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;

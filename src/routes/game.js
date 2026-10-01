@@ -4,14 +4,16 @@ const express = require('express');
 const game = require('../game');
 const { wantsJson } = require('../middleware');
 const presence = require('../presence');
-const { loadoutView } = require('../armory');
+const armory = require('../armory');
+const { loadoutView } = armory;
+const pvp = require('../pvp');
 const { createRequireAuth } = require('../require-auth');
 
 function gameRoutes(players) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
-  const statsOf = (user) => game.statsFor(user.level, Object.values(players.equipment(user.id)));
+  const statsOf = (user) => armory.statsOf(players, user);
 
   router.get('/hq', requireAuth, (req, res) => {
     const missions = game.missionViews(req.player, Date.now(), statsOf(req.player));
@@ -95,6 +97,7 @@ function gameRoutes(players) {
         rank: rank.name,
         grade: rank.grade,
         lastSeen: presence.timeAgo(u.last_seen_at, now),
+        hospitalized: Boolean(u.hospital_until && u.hospital_until > now),
         isYou: u.username === req.player.username,
       };
     });
@@ -112,6 +115,14 @@ function gameRoutes(players) {
     const now = Date.now();
     const rank = game.rankFor(user.level);
     const total = user.missions_completed + user.missions_failed;
+    const isYou = user.id === req.player.id;
+    const me = game.applyRegen(req.player, now);
+    const them = game.applyRegen(user, now);
+    const attack = isYou ? null : {
+      blocker: pvp.attackBlocker(me, them, { now, lastAttackAt: players.lastAttackAt(me.id, them.id) }),
+      energy: pvp.ATTACK_ENERGY,
+      yourRating: loadoutView(me.level, players.equipment(me.id)).rating,
+    };
     res.render('profile', {
       title: user.username,
       nav: user.id === req.player.id ? 'profile' : null,
@@ -128,23 +139,18 @@ function gameRoutes(players) {
         missionsCompleted: user.missions_completed,
         missionsFailed: user.missions_failed,
         successRate: total ? Math.round((user.missions_completed / total) * 100) : null,
-        isYou: user.id === req.player.id,
+        pvpWins: user.pvp_wins,
+        pvpLosses: user.pvp_losses,
+        hospitalized: game.isHospitalized(them, now),
+        hospitalUntil: them.hospital_until,
+        hospitalReason: them.hospital_reason,
+        isYou,
       },
+      attack,
+      battles: players.battlesFor(user.id, 6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at, now) })),
       loadout: loadoutView(user.level, players.equipment(user.id)),
       activity: players.publicActivity(user.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
     });
-  });
-
-  router.post('/hospital', requireAuth, (req, res) => {
-    const outcome = players.transaction(() => {
-      const out = game.visitHospital(players.findById(req.player.id));
-      if (out.error) return out;
-      players.save(out.player);
-      players.log(req.player.id, 'system', `Treated at the field hospital for $${out.cost}.`);
-      return out;
-    });
-    req.flash(outcome.error ? 'error' : 'success', outcome.error || `Patched up for $${outcome.cost}. Back to full strength.`);
-    res.redirect('/hq');
   });
 
   return router;

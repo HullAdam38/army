@@ -13,6 +13,8 @@ const { csrf, flash, securityHeaders, wantsJson } = require('./middleware');
 const { authRoutes } = require('./routes/auth');
 const { gameRoutes } = require('./routes/game');
 const { armoryRoutes } = require('./routes/armory');
+const { hospitalRoutes } = require('./routes/hospital');
+const { pvpRoutes } = require('./routes/pvp');
 const pkg = require('../package.json');
 
 function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, production = process.env.NODE_ENV === 'production' } = {}) {
@@ -73,6 +75,8 @@ function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, p
   app.use(authRoutes(players));
   app.use(gameRoutes(players));
   app.use(armoryRoutes(players));
+  app.use(hospitalRoutes(players));
+  app.use(pvpRoutes(players));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

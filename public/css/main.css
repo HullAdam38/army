@@ -1088,6 +1088,115 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .figure-link { color: var(--accent); text-decoration: none; }
 .figure-link:hover { text-decoration: underline; }
 
+/* PvP & hospital */
+.engage { display: grid; justify-items: end; gap: 8px; margin-left: auto; }
+.engage__btn .btn__icon { width: 20px; height: 20px; }
+.engage__btn:hover .btn__icon { transform: rotate(45deg); }
+.engage__note { max-width: 18rem; font-size: 0.88rem; text-align: right; color: var(--text-muted); }
+.engage__note strong { color: var(--text); font-family: var(--font-ui); }
+.status--hospital { color: var(--danger); }
+.status--hospital svg { width: 14px; height: 14px; }
+.tag--hospital { color: #fff; background: var(--danger); }
+.tag--crit { color: var(--accent-ink); background: var(--energy); }
+.log__link { margin-left: 4px; font-family: var(--font-ui); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.log--pvp-win { border-left-color: var(--health); }
+.log--pvp-loss { border-left-color: var(--danger); }
+
+.battle-list { display: grid; gap: 6px; padding: 0; list-style: none; }
+.battle-row {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--health);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, transform 0.2s var(--ease-out);
+}
+.battle-row:hover { color: var(--text); border-color: var(--line-strong); transform: translateX(3px); }
+.battle-row--loss { border-left-color: var(--danger); }
+.battle-row__result { font-family: var(--font-display); font-size: 1rem; text-transform: uppercase; color: var(--health); }
+.battle-row--loss .battle-row__result { color: var(--danger); }
+.battle-row__text { min-width: 0; font-size: 0.95rem; color: var(--text-muted); }
+.battle-row__text strong { color: var(--text); }
+.battle-row__time { font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-faint); white-space: nowrap; }
+
+.battle-hero { margin-bottom: 20px; text-align: center; }
+.battle-hero .eyebrow { justify-content: center; }
+.battle-hero__result { margin-top: 8px; font-family: var(--font-display); font-weight: 400; font-size: clamp(2.6rem, 9vw, 4.8rem); line-height: 1; text-transform: uppercase; }
+.battle-hero--win .battle-hero__result { color: var(--health); text-shadow: 0 0 40px rgb(95 207 122 / 0.35); }
+.battle-hero--loss .battle-hero__result { color: var(--danger); text-shadow: 0 0 40px rgb(255 90 82 / 0.3); }
+.battle-hero--neutral .battle-hero__result { color: var(--accent); }
+.battle-hero__how { margin-top: 6px; color: var(--text-muted); }
+.fighters { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 56px; margin-top: 28px; text-align: left; }
+.fighters__vs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+.fighter { padding: 18px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.fighter--winner { border-color: rgb(95 207 122 / 0.5); box-shadow: inset 0 3px 0 var(--health); }
+.fighter__role { font-family: var(--font-ui); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--olive); }
+.fighter__name { margin-top: 2px; font-family: var(--font-ui); font-weight: 700; font-size: 1.35rem; }
+.fighter__name a { color: var(--text); text-decoration: none; }
+.fighter__name a:hover { color: var(--accent); }
+.fighter__meta { margin-bottom: 14px; font-size: 0.92rem; color: var(--text-muted); }
+.fighter__ko { margin-top: 10px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--danger); }
+.spoils { justify-content: center; margin-top: 22px; }
+
+.rounds { display: grid; gap: 6px; padding: 0; list-style: none; }
+.round { display: grid; grid-template-columns: 3rem 1fr auto; align-items: start; gap: 12px; padding: 10px 14px; background: var(--bg-raised); border-radius: var(--radius); }
+.round__n { font-family: var(--font-display); font-size: 1.1rem; color: var(--olive); }
+.round__body { display: grid; gap: 2px; font-size: 0.95rem; color: var(--text-muted); }
+.round__body strong { color: var(--text); }
+.round__dmg { font-family: var(--font-ui); color: var(--accent) !important; }
+.round__soak { font-size: 0.82rem; color: var(--text-faint); }
+.round__ko { font-family: var(--font-ui); font-weight: 700; color: var(--danger); }
+.round__hp { font-family: var(--font-ui); font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--text-faint); white-space: nowrap; }
+
+.ward-banner { background: rgb(255 90 82 / 0.12); border-top: 1px solid rgb(255 90 82 / 0.4); }
+.ward-banner__inner { display: flex; align-items: center; gap: 10px; padding-block: 8px; font-size: 0.92rem; }
+.ward-banner svg { flex: none; width: 16px; height: 16px; color: var(--danger); }
+.ward-banner a { margin-left: auto; font-family: var(--font-ui); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.hospital-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; align-items: start; }
+.ward-status { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-size: 1.8rem; text-transform: uppercase; color: var(--health); }
+.ward-status svg { width: 24px; height: 24px; }
+.ward-status--admitted { color: var(--danger); }
+.ward-reason { margin-top: 4px; color: var(--text-muted); }
+.ward-timer { margin-top: 12px; font-family: var(--font-ui); font-size: 1.05rem; }
+.ward-timer strong { font-size: 1.4rem; color: var(--text); font-variant-numeric: tabular-nums; }
+.hospital-grid .progress-line { margin-top: 18px; }
+.hospital--admitted { border-color: rgb(255 90 82 / 0.5); }
+.ward { display: grid; gap: 8px; padding: 0; list-style: none; }
+.ward__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, transform 0.2s var(--ease-out);
+}
+.ward__row:hover { color: var(--text); border-color: var(--line-strong); transform: translateX(3px); }
+.ward__row--you { border-left-color: var(--accent); }
+.ward__who { display: grid; min-width: 0; }
+.ward__reason { font-size: 0.88rem; color: var(--text-muted); }
+.ward__time { font-family: var(--font-ui); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--danger); }
+.card__title .count-pill { margin-left: 4px; padding: 0 10px; font-size: 0.8rem; letter-spacing: 0; }
+
 /* Error */
 .error-page { display: grid; justify-items: start; gap: 16px; padding-block: clamp(64px, 12vw, 140px); }
 .error-page__code { font-family: var(--font-display); font-size: clamp(5rem, 18vw, 10rem); line-height: 0.9; color: var(--accent); }
@@ -1135,6 +1244,9 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .hq-card--dossier, .hq-card--orders, .hq-card--status, .hq-card--log { grid-column: span 12; }
   .profile-grid { grid-template-columns: 1fr; }
   .combat-profile { grid-template-columns: 1fr; }
+  .hospital-grid { grid-template-columns: 1fr; }
+  .engage { justify-items: stretch; margin-left: 0; flex-basis: 100%; }
+  .engage__note { max-width: none; text-align: left; }
   .combat-profile__rating { justify-items: start; }
   .statbar__grid { grid-template-columns: 1fr 1fr; }
   .stat--cash { justify-self: stretch; }
@@ -1157,9 +1269,15 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .figures { grid-template-columns: repeat(2, 1fr); }
   .combat-stats, .loadout { grid-template-columns: repeat(2, 1fr); }
   .loadout { grid-template-columns: 1fr; }
+  .fighters { grid-template-columns: 1fr; gap: 36px; }
+  .battle-row { grid-template-columns: 3.4rem 1fr; }
+  .battle-row__time { grid-column: 2; }
+  .round { grid-template-columns: 2.2rem 1fr; }
+  .round__hp { grid-column: 2; }
+  .ward-banner__inner { flex-wrap: wrap; }
   .armory-slot { scroll-margin-top: 230px; }
-  .game-nav { overflow-x: auto; scrollbar-width: none; }
-  .game-nav__link { flex: 1 0 auto; }
+  .site-header--game .game-nav { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .game-nav__link { padding-block: 10px; }
   .game-nav { gap: 0; }
   .game-nav__link { padding-inline: 4px; font-size: 0.8rem; letter-spacing: 0.08em; }
   .roster__row { grid-template-columns: auto 1fr auto; gap: 6px 14px; padding: 12px 14px; }

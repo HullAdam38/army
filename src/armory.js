@@ -4,6 +4,11 @@ const { ITEMS, ITEMS_BY_ID, SLOTS } = require('./items');
 const combat = require('./combat');
 const { statsFor, gearBonus } = require('./game');
 
+/** Combat stats for a stored player from their equipped gear. */
+function statsOf(players, user) {
+  return statsFor(user.level, Object.values(players.equipment(user.id)));
+}
+
 /** Checks a purchase. Returns { error } or { item, cost }. */
 function checkPurchase(itemId, player, owned) {
   const item = ITEMS_BY_ID.get(itemId);
@@ -53,4 +58,4 @@ function catalogueView(player, owned, equipment) {
   }));
 }
 
-module.exports = { catalogueView, checkEquip, checkPurchase, loadoutView };
+module.exports = { catalogueView, checkEquip, checkPurchase, loadoutView, statsOf };

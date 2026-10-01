@@ -12,7 +12,9 @@
       <p class="profile-hero__rank"><%= soldier.rank %> · Level <%= soldier.level %></p>
       <ul class="profile-hero__meta">
         <li>
-          <% if (soldier.online) { %>
+          <% if (soldier.hospitalized) { %>
+            <span class="status status--hospital"><svg aria-hidden="true"><use href="#i-health"/></svg>In hospital · out in <span data-until="<%= soldier.hospitalUntil %>">soon</span></span>
+          <% } else if (soldier.online) { %>
             <span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online now</span>
           <% } else { %>
             <span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Last seen <%= soldier.lastSeen %></span>
@@ -21,6 +23,19 @@
         <li>Enlisted <time datetime="<%= soldier.enlistedIso %>"><%= soldier.enlisted %></time></li>
       </ul>
     </div>
+    <% if (attack) { %>
+      <div class="engage">
+        <form method="post" action="/attack/<%= encodeURIComponent(soldier.username) %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--primary btn--lg engage__btn" type="submit" <%- attack.blocker ? 'disabled' : '' %>>
+            <svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Attack
+          </button>
+        </form>
+        <p class="engage__note">
+          <% if (attack.blocker) { %><%= attack.blocker %>.<% } else { %>Costs <%= attack.energy %> energy · your rating <strong><%= attack.yourRating %></strong> vs <strong><%= loadout.rating %></strong><% } %>
+        </p>
+      </div>
+    <% } %>
     <% if (soldier.isYou) { %>
       <p class="profile-hero__note">This is how other soldiers see you. <a href="/hq">Back to HQ</a></p>
     <% } %>
@@ -34,6 +49,8 @@
         <div><dt>Missions won</dt><dd><%= soldier.missionsCompleted %></dd></div>
         <div><dt>Missions lost</dt><dd><%= soldier.missionsFailed %></dd></div>
         <div><dt>Success rate</dt><dd><%= soldier.successRate === null ? '—' : soldier.successRate + '%' %></dd></div>
+        <div><dt>PvP wins</dt><dd><%= soldier.pvpWins %></dd></div>
+        <div><dt>PvP losses</dt><dd><%= soldier.pvpLosses %></dd></div>
       </dl>
       <p class="progress-line__note profile-next">
         <%= soldier.nextRank ? `Next promotion: ${soldier.nextRank.name} (${soldier.nextRank.grade}) at level ${soldier.nextRank.level}.` : 'Holds the highest rank in EliteForces.' %>
@@ -45,12 +62,17 @@
       <%- include('partials/loadout', { loadout, editable: false }) %>
     </section>
 
-    <section class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="ops-title">
+    <section class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="battles-title">
+      <h2 id="battles-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>Recent battles</h2>
+      <%- include('partials/battle-list', { battles, perspective: soldier.username }) %>
+    </section>
+
+    <section class="card profile-grid__wide reveal" style="--i:5" aria-labelledby="ops-title">
       <h2 id="ops-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Recent operations</h2>
       <% if (activity.length) { %>
         <ol class="dossier__log">
           <% activity.forEach(function (a) { %>
-            <li class="log log--<%= a.kind %>"><time class="log__time" datetime="<%= new Date(a.created_at).toISOString() %>"><%= a.ago %></time> <%= a.message %></li>
+            <li class="log log--<%= a.kind %>"><time class="log__time" datetime="<%= new Date(a.created_at).toISOString() %>"><%= a.ago %></time> <%= a.message %><% if (a.link) { %> <a class="log__link" href="<%= a.link %>">Report</a><% } %></li>
           <% }) %>
         </ol>
       <% } else { %>

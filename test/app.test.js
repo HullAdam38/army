@@ -217,3 +217,60 @@ test('armory: buy, auto-equip, stow, re-equip; loadout shows on profile', async 
   ({ text } = await c.request('/armory'));
   assert.match(text, /don’t own/);
 });
+
+test('pvp: attack, battle report, hospital, discharge and cooldown', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const alpha = client(base);
+  const bravo = client(base);
+  await register(alpha, 'Alpha');
+  await register(bravo, 'Bravo');
+
+  // Recruits are protected.
+  let { text } = await alpha.request('/profile/Bravo');
+  assert.match(text, /PvP unlocks at level 3/);
+
+  server.db.prepare("UPDATE users SET level = 5, max_health = 140, health = 140, cash = 1000").run();
+  server.db.prepare("UPDATE users SET health = 1 WHERE username = 'Bravo'").run(); // guarantees a knockout
+  ({ text } = await alpha.request('/profile/Bravo'));
+  assert.match(text, /Costs 10 energy/);
+
+  const token = await alpha.csrf('/hq');
+  let { res } = await alpha.request('/attack/Bravo', { method: 'POST', form: { _csrf: token } });
+  assert.equal(res.status, 302);
+  const reportUrl = res.headers.get('location');
+  assert.match(reportUrl, /^\/battles\/\d+$/);
+
+  ({ res, text } = await alpha.request(reportUrl));
+  assert.equal(res.status, 200);
+  assert.match(text, /Victory/);
+  assert.match(text, /Knockout in round 1/);
+  ({ text } = await bravo.request(reportUrl));
+  assert.match(text, /Defeat/);
+
+  // Bravo is now in hospital: listed on the ward, can't be attacked, can't run missions.
+  ({ text } = await alpha.request('/hospital'));
+  assert.match(text, /Knocked out by Alpha/);
+  ({ text } = await alpha.request('/profile/Bravo'));
+  assert.match(text, /Bravo is in hospital/);
+  ({ text } = await bravo.request('/hq'));
+  assert.match(text, /You're in hospital/);
+  assert.match(text, /Alpha attacked you and won/);
+  const bt = await bravo.csrf('/hq');
+  ({ text } = await bravo.request('/missions/perimeter-patrol', { method: 'POST', form: { _csrf: bt }, headers: { accept: 'application/json' } }));
+  assert.match(JSON.parse(text).error, /hospital/);
+
+  // Bravo pays to leave early; Alpha is still on cooldown for this target.
+  await bravo.request('/hospital/discharge', { method: 'POST', form: { _csrf: bt } });
+  ({ text } = await bravo.request('/hospital'));
+  assert.match(text, /Discharged for \$/);
+  ({ text } = await alpha.request('/profile/Bravo'));
+  assert.match(text, /attacked Bravo recently/);
+
+  // Both profiles list the battle and record the result.
+  assert.match(text, /href="\/battles\/\d+"/);
+  assert.match(text, /PvP losses<\/dt><dd>1/);
+
+  assert.equal((await alpha.request('/battles/99999')).res.status, 404);
+  assert.equal((await alpha.request('/attack/Nobody', { method: 'POST', form: { _csrf: token } })).res.status, 404);
+});

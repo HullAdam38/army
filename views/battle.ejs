@@ -1,0 +1,76 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const a = battle.attacker_name, d = battle.defender_name;
+  const winner = r.attackerWon ? a : d;
+  const lastRound = r.rounds.length;
+  let headline, tone;
+  if (youAre) {
+    const youWon = (youAre === 'attacker') === r.attackerWon;
+    headline = youWon ? 'Victory' : 'Defeat';
+    tone = youWon ? 'win' : 'loss';
+  } else {
+    headline = `${winner} wins`;
+    tone = 'neutral';
+  }
+  const how = r.knockout ? `Knockout in round ${lastRound}` : `Decided on damage after ${lastRound} rounds`;
+  const pct = (v, max) => Math.max(0, Math.round((v / max) * 100));
+  const opponent = youAre === 'defender' ? a : d;
+%>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/profile/<%= encodeURIComponent(opponent) %>"><svg aria-hidden="true"><use href="#i-arrow"/></svg><%= opponent %>’s profile</a>
+
+  <section class="card battle-hero battle-hero--<%= tone %> reveal" style="--i:1" aria-labelledby="battle-title">
+    <p class="eyebrow">Battle report · <%= ago %></p>
+    <h1 id="battle-title" class="battle-hero__result"><%= headline %></h1>
+    <p class="battle-hero__how"><%= how %></p>
+
+    <div class="fighters">
+      <% [['attacker', a], ['defender', d]].forEach(function ([side, name]) {
+           const ko = r.knockout === side; %>
+        <div class="fighter<%= (side === 'attacker') === r.attackerWon ? ' fighter--winner' : '' %>">
+          <p class="fighter__role"><%= side === 'attacker' ? 'Attacker' : 'Defender' %></p>
+          <p class="fighter__name"><a href="/profile/<%= encodeURIComponent(name) %>"><%= name %></a></p>
+          <p class="fighter__meta">Level <%= r.levels[side] %> · Rating <%= r.ratings[side] %></p>
+          <div class="progress-line">
+            <div class="progress-line__label"><span>Health</span><span><%= r.end[side] %> / <%= r.start[side] %></span></div>
+            <span class="meter meter--health meter--lg"><span class="meter__fill" style="width:<%= pct(r.end[side], r.start[side]) %>%"></span></span>
+          </div>
+          <% if (ko) { %><p class="fighter__ko">Knocked out · sent to hospital</p><% } %>
+        </div>
+      <% }) %>
+      <span class="fighters__vs" aria-hidden="true">VS</span>
+    </div>
+
+    <ul class="chips spoils">
+      <% if (r.cashTaken) { %><li class="chip"><svg aria-hidden="true"><use href="#i-cash"/></svg><%= winner %> took $<%= r.cashTaken.toLocaleString('en-US') %></li><% } %>
+      <% if (r.xp.attacker) { %><li class="chip"><svg aria-hidden="true"><use href="#i-star"/></svg><%= a %> +<%= r.xp.attacker %> XP</li><% } %>
+      <% if (r.xp.defender) { %><li class="chip"><svg aria-hidden="true"><use href="#i-star"/></svg><%= d %> +<%= r.xp.defender %> XP</li><% } %>
+    </ul>
+  </section>
+
+  <section class="card reveal" style="--i:2" aria-labelledby="rounds-title">
+    <h2 id="rounds-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Round by round</h2>
+    <ol class="rounds">
+      <% r.rounds.forEach(function (round) { %>
+        <li class="round">
+          <span class="round__n">R<%= round.n %></span>
+          <div class="round__body">
+            <p><strong><%= a %></strong> hits <%= d %> for <strong class="round__dmg"><%= round.attack.damage %></strong><% if (round.attack.crit) { %> <span class="tag tag--crit">Crit</span><% } %><% if (round.attack.mitigated) { %> <span class="round__soak">armour absorbed <%= round.attack.mitigated %></span><% } %></p>
+            <% if (round.counter) { %>
+              <p><strong><%= d %></strong> returns fire for <strong class="round__dmg"><%= round.counter.damage %></strong><% if (round.counter.crit) { %> <span class="tag tag--crit">Crit</span><% } %><% if (round.counter.mitigated) { %> <span class="round__soak">armour absorbed <%= round.counter.mitigated %></span><% } %></p>
+            <% } else { %>
+              <p class="round__ko"><%= d %> is down.</p>
+            <% } %>
+            <% if (round.counter && round.health.attacker === 0) { %><p class="round__ko"><%= a %> is down.</p><% } %>
+          </div>
+          <span class="round__hp"><%= round.health.attacker %> · <%= round.health.defender %></span>
+        </li>
+      <% }) %>
+    </ol>
+    <p class="progress-line__note">Health after each round is shown as attacker · defender.</p>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

@@ -41,6 +41,24 @@ There are six missions, unlocking at levels 1, 1, 3, 5, 8 and 12. Success chance
 
 Regeneration is calculated lazily from timestamps, so no background jobs are needed. All game rules live in `src/game.js` as pure functions.
 
+## PvP and the hospital
+
+- **Attacking** costs 10 energy and is started from another player's profile. Both sides trade hits for up to 10 rounds using real health and gear. The attacker strikes first and the defender fights back automatically.
+- **Knockouts:** a player who reaches 0 health is admitted to hospital for 10 minutes. With no knockout, whoever lost the smaller share of their health wins, and ties go to the defender.
+- **Hospital:** patients can't run missions, attack or be attacked. They leave with at least 50% health, or can pay `minutes left × (10 + 2 × level)` to leave early. `/hospital` lists everyone on the ward.
+- **Rewards:**
+  - A winning attacker takes 5% of the loser's cash, capped at $25 × the loser's level, plus XP of `(8 + 2 × loser level)` scaled ×0.5–×1.5 by the level gap.
+  - A defender who wins earns half that XP.
+  - A losing attacker loses only energy and health.
+- **Protection:**
+  - Recruits (levels 1–2) can't attack or be attacked.
+  - You can't attack anyone more than 3 levels below you.
+  - You can attack the same player at most once every 15 minutes.
+  - You need at least 15 health to attack.
+- **Battle reports** (`/battles/:id`) show each round. Results appear on both players' profiles and in their radio logs.
+
+Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
+
 ## Combat system (built for PvP)
 
 All combat maths lives in `src/combat.js` and is shared by missions now and PvP later. Every bonus is a **modifier** on a stat (`attack`, `damage`, `critChance`, `critDamage`, `armor`):
@@ -80,6 +98,9 @@ src/
   items.js           armory catalogue
   armory.js          purchase/equip rules and loadout views
   routes/armory.js   armory pages and actions
+  pvp.js             attack rules, fight simulation, rewards
+  routes/pvp.js      attack + battle reports
+  routes/hospital.js hospital ward, treatment, early discharge
 views/               EJS pages + partials
 public/              CSS, JS, favicon
 test/                node:test suites
@@ -94,3 +115,5 @@ test/                node:test suites
 - `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.
 - `/profile/:username`: a player's public service record, showing rank, level, online status or last seen, enlistment date, mission stats and recent operations. Email, cash, energy, health and hospital visits stay private.
 - `/armory`: your combat profile and loadout, plus the gear catalogue. Buying an item equips it; you can stow items or swap between owned ones. Other players can see your loadout on your profile.
+- `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
+- `/battles/:id`: round-by-round battle report

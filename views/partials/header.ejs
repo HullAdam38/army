@@ -9,6 +9,7 @@
         <a href="/hq" class="game-nav__link" <%- nav === 'hq' ? 'aria-current="page"' : '' %>>HQ</a>
         <a href="/missions" class="game-nav__link" <%- nav === 'missions' ? 'aria-current="page"' : '' %>>Missions</a>
         <a href="/armory" class="game-nav__link" <%- nav === 'armory' ? 'aria-current="page"' : '' %>>Armory</a>
+        <a href="/hospital" class="game-nav__link" <%- nav === 'hospital' ? 'aria-current="page"' : '' %>>Hospital</a>
         <a href="/online" class="game-nav__link" <%- nav === 'online' ? 'aria-current="page"' : '' %>>Online</a>
         <a href="/profile/<%= encodeURIComponent(player.username) %>" class="game-nav__link" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>Profile</a>
       </nav>
@@ -28,6 +29,15 @@
     <% } %>
   </div>
   <% if (player) { %><%- include('statbar') %><% } %>
+  <% if (player && player.hospitalized) { %>
+    <div class="ward-banner" role="status">
+      <div class="container ward-banner__inner">
+        <svg aria-hidden="true"><use href="#i-health"/></svg>
+        <span>You're in hospital. Released in <strong data-until="<%= player.hospitalUntil %>" data-reload>soon</strong>. Missions and PvP are unavailable.</span>
+        <a href="/hospital">Hospital</a>
+      </div>
+    </div>
+  <% } %>
 </header>
 <% if (flash.length) { %>
   <div class="container flash-stack" role="status">

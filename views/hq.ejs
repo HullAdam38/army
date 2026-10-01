@@ -51,6 +51,9 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="btn btn--primary btn--block" type="submit">Deploy now</button>
         </form>
+      <% } else if (player.hospitalized) { %>
+        <p class="orders__brief">You're in hospital. Orders resume when you're discharged.</p>
+        <a class="btn btn--ghost btn--block" href="/hospital">Go to the ward</a>
       <% } else if (!player.canDeploy) { %>
         <p class="orders__brief">You're too injured to deploy. Rest up or visit the field hospital.</p>
       <% } else { %>
@@ -77,14 +80,24 @@
           <% if (player.nextHealthIn === null) { %>Combat ready.<% } else { %>+1 in <span data-countdown="health"><%= player.nextHealthIn %>s</span> · 1 per <%= player.healthRegenSeconds / 60 %> min<% } %>
         </p>
       </div>
-      <form method="post" action="/hospital" class="hospital">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <div>
-          <p class="hospital__title">Field hospital</p>
-          <p class="hospital__note"><%= player.hospitalCost ? `Full treatment: $${player.hospitalCost}` : 'No treatment needed.' %></p>
+      <% if (player.hospitalized) { %>
+        <div class="hospital hospital--admitted">
+          <div>
+            <p class="hospital__title">Admitted to hospital</p>
+            <p class="hospital__note">Released in <span data-until="<%= player.hospitalUntil %>" data-reload>soon</span></p>
+          </div>
+          <a class="btn btn--primary btn--sm" href="/hospital">Ward</a>
         </div>
-        <button class="btn btn--ghost btn--sm" type="submit" <%- player.hospitalCost === 0 || player.hospitalCost > player.cash ? 'disabled' : '' %>>Treat</button>
-      </form>
+      <% } else { %>
+        <form method="post" action="/hospital" class="hospital">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div>
+            <p class="hospital__title">Field hospital</p>
+            <p class="hospital__note"><%= player.hospitalCost ? `Full treatment: $${player.hospitalCost}` : 'No treatment needed.' %></p>
+          </div>
+          <button class="btn btn--ghost btn--sm" type="submit" <%- player.hospitalCost === 0 || player.hospitalCost > player.cash ? 'disabled' : '' %>>Treat</button>
+        </form>
+      <% } %>
     </section>
 
     <section class="card hq-card hq-card--log reveal" style="--i:4" aria-labelledby="log-title">
@@ -92,7 +105,7 @@
       <% if (activity.length) { %>
         <ol class="dossier__log">
           <% activity.forEach(function (a) { %>
-            <li class="log log--<%= a.kind %>"><time class="log__time" datetime="<%= new Date(a.created_at).toISOString() %>"><%= fmtTime(a.created_at) %></time> <%= a.message %></li>
+            <li class="log log--<%= a.kind %>"><time class="log__time" datetime="<%= new Date(a.created_at).toISOString() %>"><%= fmtTime(a.created_at) %></time> <%= a.message %><% if (a.link) { %> <a class="log__link" href="<%= a.link %>">Report</a><% } %></li>
           <% }) %>
         </ol>
       <% } else { %>

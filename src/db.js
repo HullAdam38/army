@@ -51,6 +51,21 @@ const SCHEMA = `
     PRIMARY KEY (user_id, slot)
   );
 
+  CREATE TABLE IF NOT EXISTS battles (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    attacker_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    defender_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    attacker_won    INTEGER NOT NULL,
+    knockout        INTEGER NOT NULL,
+    cash_taken      INTEGER NOT NULL DEFAULT 0,
+    attacker_xp     INTEGER NOT NULL DEFAULT 0,
+    defender_xp     INTEGER NOT NULL DEFAULT 0,
+    report          TEXT    NOT NULL,
+    created_at      INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_battles_pair ON battles(attacker_id, defender_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_battles_defender ON battles(defender_id, created_at DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -59,13 +74,24 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
 `;
 
-/** Adds columns introduced after a database was first created. */
+/** Columns added after the first release, so older databases get upgraded on start. */
+const ADDED_COLUMNS = [
+  ['users', 'last_seen_at', 'INTEGER'],
+  ['users', 'signed_out_at', 'INTEGER'],
+  ['users', 'hospital_until', 'INTEGER'],
+  ['users', 'hospital_reason', 'TEXT'],
+  ['users', 'pvp_wins', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'pvp_losses', 'INTEGER NOT NULL DEFAULT 0'],
+  ['activity', 'link', 'TEXT'],
+];
+
 function migrate(db) {
-  const columns = new Set(db.prepare('PRAGMA table_info(users)').all().map((c) => c.name));
-  for (const [name, type] of [['last_seen_at', 'INTEGER'], ['signed_out_at', 'INTEGER']]) {
-    if (!columns.has(name)) db.exec(`ALTER TABLE users ADD COLUMN ${name} ${type}`);
+  for (const [table, name, type] of ADDED_COLUMNS) {
+    const columns = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    if (!columns.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
   }
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_hospital ON users(hospital_until)');
 }
 
 function openDatabase(file = process.env.DB_FILE || path.join(__dirname, '..', 'data', 'eliteforces.db')) {
