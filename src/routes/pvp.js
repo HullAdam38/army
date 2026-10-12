@@ -62,7 +62,7 @@ function pvpRoutes(players, anti) {
           players.log(p.id, 'promotion', `Promoted to level ${lvl} — ${rank.name} (${rank.grade}).`);
         }
       }
-      return { id };
+      return { id, xp: r.xp.attacker, cash: r.cashTaken };
     });
 
     if (outcome.error) {
@@ -71,6 +71,7 @@ function pvpRoutes(players, anti) {
       const back = String(req.body.back || '');
       return res.redirect(back.startsWith('/players') && !back.startsWith('//') ? back : profileUrl);
     }
+    res.locals.gains = { xp: outcome.xp, cash: outcome.cash }; // for anti-cheat
     res.redirect(`/battles/${outcome.id}`);
   });
 

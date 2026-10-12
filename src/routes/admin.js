@@ -79,6 +79,7 @@ function adminRoutes(players, adminRepo, anti) {
       signIns: anti.signInsFor(t.id).map((s) => ({ ...s, ago: presence.timeAgo(s.created_at, now) })),
       ledger: anti.ledgerFor(t.id).map((l) => ({ ...l, ago: presence.timeAgo(l.created_at, now) })),
       flags: anti.flagsForUser(t.id),
+      activity: anti.activityProfile(t.id, now),
       RULES, SEVERITY,
     });
   });

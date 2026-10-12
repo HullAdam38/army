@@ -31,6 +31,7 @@ Anti-cheat works in layers: make cheating unprofitable, record evidence, detect 
 
 **Evidence**
 - **Sign-ins** record a device ID (a random cookie), a *keyed hash* of the IP address (raw IPs are never stored) and the browser. Records older than 90 days are deleted.
+- **Action log:** every game action (mission, attack, bank, armory, hospital) is recorded with its time and the XP/cash it earned. Kept for 14 days.
 - **Money ledger:** every change to cash or bank balance is written to `ledger` with a reason (`mission`, `pvp`, `armory`, `bank-deposit`, `admin-cash`, `reversal`…). Saving a player with a money change but no reason is recorded as `unknown`.
 
 **Detection** (after each sign-in and fight, plus a full scan every 6 hours; `ANTICHEAT_SCAN_HOURS` changes the interval):
@@ -43,10 +44,15 @@ Anti-cheat works in layers: make cheating unprofitable, record evidence, detect 
 | Balance doesn't match money history | high | `cash`/`bank_balance` differ from the sum of the ledger (a direct database edit or a bug) |
 | Money changed without a known reason | high | `unknown` ledger entries |
 | Payout larger than the game allows | high | A mission or PvP payout above the game's maximum |
+| Bot-like activity | medium or high | Over the last 24 hours (25+ actions): near-identical gaps between actions (under 10% variation over 30+ gaps), active in 20+ of 24 hours, or 25+ actions under 0.4 s apart. Two or more signs together raise the severity. |
+| Unusual gains | high | Mission cash in 24 hours above the most the player's energy could pay for (full regeneration plus refills from promotions and admin restores, on the best mission they can access, all succeeding, +10%): only possible through an exploit |
+| Unusual gains | medium | XP or cash in 24 hours at least 4× the median of 5+ players within 2 levels (and at least 500 XP / $2,000) |
 
 **Review:** **Admin → Suspicious activity** lists open flags, most serious first. Each flag shows the players, their linked accounts and the evidence (battles, ledger entries, balances). The actions are: **warn** (sends a notification), **dismiss** (with a note; the same pattern isn't re-flagged for 7 days), **reverse gains** (farming only: returns the cash taken, as far as the winner can still pay, via the ledger) and **suspend**. Every decision goes into the audit log. **Run checks now** triggers a scan on demand. Each player's admin page shows their linked accounts, flags, recent sign-ins and money history.
 
-**Limits:** a device ID is a cookie, so a determined cheater can clear it or use another browser; network links and farming patterns still catch most of those. VPNs hide networks. Treat flags as leads, not proof.
+Admin player pages show a **24-hour activity chart** (actions per hour). Real players have gaps for sleep and work; a solid wall of bars is a strong warning sign. Thresholds live in `src/anticheat/rules.js`.
+
+**Limits:** a careful bot author can add random delays and take breaks; the energy ceiling still caps what any bot can earn, and the gains checks catch exploits regardless of how they're played. A device ID is a cookie, so a determined cheater can clear it or use another browser; network links and farming patterns still catch most of those. VPNs hide networks. Treat flags as leads, not proof.
 
 ## Fixed during the review
 

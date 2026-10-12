@@ -96,6 +96,20 @@
       <% } %>
     </section>
 
+    <section class="card admin-grid__wide" aria-labelledby="activity-title">
+      <h2 id="activity-title" class="card__title">Activity, last 24 hours</h2>
+      <p class="muted"><%= activity.totals.n %> actions in <%= activity.totals.active %> of 24 hours · <%= activity.totals.xp %> XP · $<%= activity.totals.cash.toLocaleString('en-US') %> earned. Real people sleep; a solid wall of bars is a warning sign.</p>
+      <ol class="hour-strip" aria-label="Actions per hour, oldest on the left">
+        <% activity.hours.forEach(function (h) { const label = new Date(h.at).toISOString().slice(11, 16) + ' UTC'; %>
+          <li title="<%= label %>: <%= h.n %> actions, <%= h.xp %> XP, $<%= h.cash %>">
+            <span class="hour-strip__bar" style="height:<%= Math.round((h.n / activity.peak) * 100) %>%"></span>
+            <span class="visually-hidden"><%= label %>: <%= h.n %> actions</span>
+          </li>
+        <% }) %>
+      </ol>
+      <div class="hour-strip__axis"><span>24h ago</span><span>12h ago</span><span>now</span></div>
+    </section>
+
     <section class="card admin-grid__wide" aria-labelledby="ac-title">
       <h2 id="ac-title" class="card__title">Anti-cheat</h2>
       <div class="ac-grid">

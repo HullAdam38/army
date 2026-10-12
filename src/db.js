@@ -124,6 +124,18 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_ledger_user ON ledger(user_id, id DESC);
   CREATE INDEX IF NOT EXISTS idx_ledger_reason ON ledger(reason, created_at);
 
+  -- Anti-cheat: one row per player action (timing for bot checks, XP/cash for gains checks).
+  CREATE TABLE IF NOT EXISTS actions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind        TEXT    NOT NULL,
+    xp          INTEGER NOT NULL DEFAULT 0,
+    cash        INTEGER NOT NULL DEFAULT 0,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_actions_user ON actions(user_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_actions_time ON actions(created_at);
+
   -- Anti-cheat: suspicious activity for an admin to review.
   CREATE TABLE IF NOT EXISTS flags (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,

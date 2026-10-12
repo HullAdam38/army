@@ -261,3 +261,141 @@ test('old sign-in records are deleted after 90 days', async (t) => {
   assert.equal(anti.runScan().purgedSignIns, 1);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM sign_ins').get().n, 1);
 });
+
+// ---- Bot detection & unusual gains ----
+
+const { MISSIONS, ENERGY_REGEN_MS } = require('../src/game');
+const MIN = 60 * 1000;
+
+/** A believable human session: clicks 3–40s apart, in a few sittings with sleep in between. */
+function humanTimes(now, seed = 1) {
+  let x = seed;
+  const rand = () => ((x = (x * 9301 + 49297) % 233280) / 233280);
+  const out = [];
+  for (const sittingStart of [20, 14, 9, 3]) { // hours ago
+    let t = now - sittingStart * rules.HOUR;
+    for (let i = 0; i < 25; i += 1) out.push((t += 3000 + rand() * 37000));
+  }
+  return out;
+}
+
+test('rules: bot verdicts', () => {
+  const now = Date.now();
+  const metronome = Array.from({ length: 60 }, (_, i) => now - i * 6000);
+  const v = rules.botVerdict(metronome);
+  assert.equal(v.severity, 3);
+  assert.match(v.reasons[0], /near-identical intervals \(every ~6s/);
+
+  assert.equal(rules.botVerdict(humanTimes(now)), null);
+
+  // A script with a little jitter, running all day.
+  const allDay = [];
+  for (let h = 0; h < 22; h += 1) for (let i = 0; i < 4; i += 1) allDay.push(now - h * rules.HOUR - i * (60000 + (i % 2) * 3000));
+  const day = rules.botVerdict(allDay);
+  assert.ok(day.reasons.some((r) => /active in 2[23] of the last 24 hours/.test(r)), day.reasons.join(' | ')); // 22 or 23 clock hours, depending on the time
+
+  const burst = Array.from({ length: 40 }, (_, i) => now - i * 250 - (i % 3) * 40);
+  assert.ok(rules.botVerdict(burst).reasons.some((r) => /less than 400ms apart/.test(r)), JSON.stringify(rules.botVerdict(burst)));
+
+  assert.equal(rules.botVerdict([now, now - 5000, now - 10000]), null); // too little to judge
+});
+
+test('rules: gains ceiling and peer outliers', () => {
+  const cap = rules.missionCashCap({ missions: MISSIONS, level: 1, maxEnergy: 50, refills: 0, energyRegenMs: ENERGY_REGEN_MS });
+  // 720 energy regenerated + 50 starting, at Convoy Escort's best $75 per 8 energy, plus 10%.
+  assert.equal(cap, Math.ceil((720 + 50) * (75 / 8) * 1.1));
+  assert.ok(rules.missionCashCap({ missions: MISSIONS, level: 1, maxEnergy: 50, refills: 2, energyRegenMs: ENERGY_REGEN_MS }) > cap);
+
+  assert.equal(rules.median([5, 1, 3]), 3);
+  assert.equal(rules.median([4, 1, 3, 2]), 2.5);
+  assert.deepEqual(rules.gainsOutlier(2000, [100, 120, 90, 110, 100], 'xp'), { median: 100, multiple: 20 });
+  assert.equal(rules.gainsOutlier(2000, [100, 120, 90, 110], 'xp'), null); // not enough peers
+  assert.equal(rules.gainsOutlier(390, [90, 95, 100, 80, 85], 'xp'), null); // 4×, but too small to matter
+  assert.equal(rules.gainsOutlier(700, [300, 250, 280, 310, 260], 'xp'), null); // keen, not suspicious
+});
+
+test('real actions are recorded with their gains; sign-in and admin requests are not', async (t) => {
+  const { server, db, base } = await startServer();
+  t.after(() => server.close());
+  const c = client(base);
+  await register(c, 'Grinder');
+  await c.post('/missions/perimeter-patrol', {}, '/missions');
+  await c.post('/bank/deposit', { amount: '10' }, '/bank');
+  await c.post('/missions/nonexistent', {}, '/missions'); // a failed attempt still counts as an action
+  await c.post('/logout');
+  const rows = db.prepare('SELECT kind, xp, cash FROM actions ORDER BY id').all();
+  assert.deepEqual(rows.map((r) => r.kind), ['mission', 'bank', 'mission']);
+  assert.ok(rows[0].xp > 0);
+  const missionLedger = db.prepare("SELECT COALESCE(SUM(delta_cash), 0) AS c FROM ledger WHERE reason = 'mission'").get().c;
+  assert.equal(rows[0].cash, missionLedger); // matches what the ledger recorded
+  assert.equal(rows[1].xp + rows[1].cash, 0);
+});
+
+test('scripted play is flagged as bot-like and shown to admins with the evidence', async (t) => {
+  const { server, db, anti, base } = await startServer();
+  t.after(() => server.close());
+  const boss = client(base);
+  await register(boss, 'Boss');
+  await register(client(base), 'Clockwork');
+  await register(client(base), 'Normal_Nora');
+  db.prepare("UPDATE users SET is_admin = 1 WHERE username = 'Boss'").run();
+  const now = Date.now();
+  for (let i = 0; i < 80; i += 1) anti.recordAction(idOf(db, 'Clockwork'), 'mission', { xp: 10 }, now - i * 8000);
+  for (const at of humanTimes(now, 7)) anti.recordAction(idOf(db, 'Normal_Nora'), 'mission', { xp: 10 }, at);
+
+  anti.runScan(now);
+  const flags = flagsFor(db, 'bot-like');
+  assert.equal(flags.length, 1);
+  assert.match(flags[0].summary, /^Clockwork: actions at near-identical intervals \(every ~8s, only 0% variation\)/);
+  assert.equal(flags[0].severity, 3);
+
+  let { text } = await boss.request(`/admin/flags/${flags[0].id}`);
+  assert.match(text, /Why this was flagged/);
+  assert.match(text, /Gap variation<\/dt><dd>0%/);
+  ({ text } = await boss.request(`/admin/players/${idOf(db, 'Clockwork')}`));
+  assert.match(text, /80 actions in 1 of 24 hours/);
+  assert.match(text, /class="hour-strip"/);
+});
+
+test('earning more than energy allows is flagged high; big outliers vs peers are flagged medium', async (t) => {
+  const { server, db, anti, base } = await startServer();
+  t.after(() => server.close());
+  const names = ['Exploiter', 'Whale', 'Peer1', 'Peer2', 'Peer3', 'Peer4', 'Peer5', 'Peer6'];
+  for (const n of names) await register(client(base), n);
+  const now = Date.now();
+  // Level 1 can earn ~$7,900/day from missions at most.
+  anti.recordAction(idOf(db, 'Exploiter'), 'mission', { xp: 50, cash: 20000 }, now - 5 * MIN);
+  // Whale: within the energy ceiling but far above five ordinary level-1 peers.
+  anti.recordAction(idOf(db, 'Whale'), 'mission', { xp: 2400, cash: 6000 }, now - 5 * MIN);
+  for (const n of ['Peer1', 'Peer2', 'Peer3', 'Peer4', 'Peer5', 'Peer6']) anti.recordAction(idOf(db, n), 'mission', { xp: 120, cash: 300 }, now - 5 * MIN);
+
+  anti.runScan(now);
+  const gains = flagsFor(db, 'unusual-gains');
+  const byName = Object.fromEntries(gains.map((f) => [JSON.parse(f.evidence).player, f]));
+  assert.deepEqual(Object.keys(byName).sort(), ['Exploiter', 'Whale']);
+  assert.equal(byName.Exploiter.severity, 3);
+  assert.match(byName.Exploiter.summary, /earned \$20,000 from missions in 24 hours; the most their energy allows is about \$7,941/);
+  assert.equal(byName.Whale.severity, 2);
+  assert.match(byName.Whale.summary, /2400 XP in 24 hours, 20× the typical 120/);
+  assert.match(byName.Whale.summary, /\$6,000 earned in 24 hours, 20× the typical \$300/);
+});
+
+test('promotions raise the energy ceiling, banned players are skipped, old actions are purged', async (t) => {
+  const { server, db, anti, base } = await startServer();
+  t.after(() => server.close());
+  await register(client(base), 'Climber');
+  await register(client(base), 'Gone');
+  const now = Date.now();
+  const climber = idOf(db, 'Climber');
+  anti.recordAction(climber, 'mission', { cash: 8500 }, now - MIN); // above one day's ceiling ($7,941)…
+  const ins = db.prepare("INSERT INTO activity (user_id, kind, message, created_at) VALUES (?, 'promotion', 'x', ?)");
+  ins.run(climber, now - rules.HOUR); // …but two promotions refilled their energy
+  ins.run(climber, now - 2 * rules.HOUR); // ceiling with two refills: ~$8,972
+  anti.recordAction(idOf(db, 'Gone'), 'mission', { cash: 50000 }, now - MIN);
+  db.prepare("UPDATE users SET banned_at = ? WHERE username = 'Gone'").run(now);
+  anti.recordAction(climber, 'mission', {}, now - 15 * rules.DAY);
+
+  anti.runScan(now);
+  assert.equal(flagsFor(db, 'unusual-gains').length, 0);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM actions WHERE created_at < ?').get(now - 14 * rules.DAY).n, 0);
+});

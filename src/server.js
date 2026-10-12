@@ -101,6 +101,7 @@ function createApp({
   app.use(flash);
   app.use(csrf);
   app.use(actionRateLimit());
+  app.use(anti.actionTracker());
 
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));

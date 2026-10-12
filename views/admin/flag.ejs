@@ -29,6 +29,16 @@
       </ul>
     </section>
 
+    <% if (ev.reasons) { %>
+      <section class="card admin-grid__wide" aria-labelledby="why-title">
+        <h2 id="why-title" class="card__title">Why this was flagged</h2>
+        <ul class="flag-reasons"><% ev.reasons.forEach(function (r) { %><li><%= r %></li><% }) %></ul>
+        <% if (ev.metrics) { %>
+          <dl class="admin-stats"><% Object.entries(ev.metrics).forEach(function ([k, v]) { %><div><dt><%= k %></dt><dd><%= v %></dd></div><% }) %></dl>
+        <% } %>
+        <% involved.forEach(function (u) { %><p class="muted">See <a href="/admin/players/<%= u.id %>#activity-title"><%= u.username %>’s hour-by-hour activity</a> to judge for yourself.</p><% }) %>
+      </section>
+    <% } %>
     <% if (battles.length) { %>
       <section class="card admin-grid__wide" aria-labelledby="ev-title">
         <h2 id="ev-title" class="card__title">Battles (<%= ev.attacks %> attacks, <%= ev.attackerWins %> wins, $<%= ev.cashTaken %> taken, <%= ev.reverseAttacks %> counter-attacks)</h2>

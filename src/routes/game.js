@@ -66,6 +66,7 @@ function gameRoutes(players) {
       return out;
     });
 
+    if (!outcome.error) res.locals.gains = { xp: outcome.result.xp, cash: outcome.result.cash }; // for anti-cheat
     const latest = players.findById(req.player.id);
     if (wantsJson(req)) {
       return res.status(outcome.error ? 409 : 200).json({

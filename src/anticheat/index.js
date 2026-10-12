@@ -2,13 +2,20 @@
 
 const crypto = require('node:crypto');
 const rules = require('./rules');
-const { MISSIONS } = require('../game');
+const { MISSIONS, ENERGY_REGEN_MS } = require('../game');
 const pvp = require('../pvp');
 const admin = require('../admin');
 
 const DEVICE_COOKIE = 'ef.dev';
 const MAX_MISSION_CASH = Math.max(...MISSIONS.map((m) => m.cash[1]));
 const MAX_PVP_CASH = pvp.CASH_CAP_PER_LEVEL * admin.MAX_LEVEL;
+
+/** Which game action a POST path is, or null for ones we don't time (sign-in, admin…). */
+function actionKind(path) {
+  const first = path.split('/')[1] || '';
+  const kinds = { missions: 'mission', attack: 'attack', bank: 'bank', armory: 'armory', hospital: 'hospital' };
+  return kinds[first] || null;
+}
 
 const isLoopback = (ip) => !ip || ip === '::1' || ip.startsWith('127.') || ip.startsWith('::ffff:127.');
 
@@ -82,6 +89,26 @@ function createAntiCheat(db, players, { secret }) {
       ORDER BY l.id`),
     ledgerFor: db.prepare('SELECT delta_cash, delta_bank, reason, ref, created_at FROM ledger WHERE user_id = ? ORDER BY id DESC LIMIT ?'),
     purgeSignIns: db.prepare('DELETE FROM sign_ins WHERE created_at < ?'),
+    recordAction: db.prepare('INSERT INTO actions (user_id, kind, xp, cash, created_at) VALUES (?, ?, ?, ?, ?)'),
+    purgeActions: db.prepare('DELETE FROM actions WHERE created_at < ?'),
+    busyPlayers: db.prepare(`
+      SELECT a.user_id, u.username FROM actions a JOIN users u ON u.id = a.user_id
+      WHERE a.created_at >= ? GROUP BY a.user_id HAVING COUNT(*) >= ?`),
+    actionTimes: db.prepare('SELECT created_at FROM actions WHERE user_id = ? AND created_at >= ? ORDER BY created_at'),
+    gains: db.prepare(`
+      SELECT a.user_id, u.username, u.level, u.max_energy,
+             SUM(a.xp) AS xp,
+             SUM(CASE WHEN a.kind IN ('mission', 'attack') THEN a.cash ELSE 0 END) AS cash,
+             SUM(CASE WHEN a.kind = 'mission' THEN a.cash ELSE 0 END) AS mission_cash
+      FROM actions a JOIN users u ON u.id = a.user_id
+      WHERE a.created_at >= ? AND u.banned_at IS NULL
+      GROUP BY a.user_id`),
+    refills: db.prepare(`
+      SELECT (SELECT COUNT(*) FROM activity WHERE user_id = ?1 AND kind = 'promotion' AND created_at >= ?2)
+           + (SELECT COUNT(*) FROM admin_actions WHERE target_id = ?1 AND action IN ('admin-restore', 'restore', 'level') AND created_at >= ?2) AS n`),
+    activityByHour: db.prepare(`
+      SELECT CAST((created_at - ?1) / 3600000 AS INTEGER) AS bucket, COUNT(*) AS n, SUM(xp) AS xp, SUM(cash) AS cash
+      FROM actions WHERE user_id = ?2 AND created_at >= ?1 GROUP BY bucket`),
 
     latestFlag: db.prepare('SELECT * FROM flags WHERE dedupe_key = ? ORDER BY id DESC LIMIT 1'),
     insertFlag: db.prepare(`
@@ -172,6 +199,41 @@ function createAntiCheat(db, players, { secret }) {
       };
     },
 
+    /**
+     * Records every game action a signed-in player takes (when the response is
+     * sent), with any XP/cash the route reported in `res.locals.gains`.
+     */
+    actionTracker() {
+      return (req, res, next) => {
+        const kind = req.method === 'POST' ? actionKind(req.path) : null;
+        if (kind) {
+          res.on('finish', () => {
+            const userId = req.session && req.session.userId;
+            if (!userId || res.statusCode >= 400) return;
+            const g = res.locals.gains || {};
+            try {
+              stmts.recordAction.run(userId, kind, g.xp || 0, g.cash || 0, Date.now());
+            } catch (err) {
+              console.error('[anticheat] failed to record action', err);
+            }
+          });
+        }
+        next();
+      };
+    },
+
+    /** Records an action directly (used by tests and scripts). */
+    recordAction: (userId, kind, { xp = 0, cash = 0 } = {}, at = Date.now()) => stmts.recordAction.run(userId, kind, xp, cash, at),
+
+    /** Hour-by-hour actions/XP/cash for the last 24 hours (oldest first), for admin pages. */
+    activityProfile(userId, now = Date.now()) {
+      const start = now - rules.ACTIVITY_WINDOW_MS;
+      const hours = Array.from({ length: 24 }, (_, i) => ({ hour: i, n: 0, xp: 0, cash: 0, at: start + i * rules.HOUR }));
+      for (const r of stmts.activityByHour.all(start, userId)) if (hours[r.bucket]) Object.assign(hours[r.bucket], { n: r.n, xp: r.xp, cash: r.cash });
+      const totals = hours.reduce((t, h) => ({ n: t.n + h.n, xp: t.xp + h.xp, cash: t.cash + h.cash, active: t.active + (h.n ? 1 : 0) }), { n: 0, xp: 0, cash: 0, active: 0 });
+      return { hours, totals, peak: Math.max(1, ...hours.map((h) => h.n)) };
+    },
+
     /** Records a sign-in or registration, then checks for newly linked accounts. */
     recordSignIn(userId, { ip, deviceId, userAgent }, now = Date.now()) {
       stmts.signIn.run(userId, hashIp(ip), deviceId || null, String(userAgent || '').slice(0, 200), now);
@@ -231,8 +293,80 @@ function createAntiCheat(db, players, { secret }) {
       }
       for (const pair of stmts.linkedPairs.all(now - rules.LINK_WINDOW_MS)) linkFlag(pair, now);
       for (const row of stmts.pairStats.all(now - rules.FARMING_WINDOW_MS, null, null)) checkFarming(row, now);
+      this.checkBots(now);
+      this.checkGains(now);
+      stmts.purgeActions.run(now - rules.ACTION_RETENTION_MS);
       const purged = Number(stmts.purgeSignIns.run(now - rules.SIGN_IN_RETENTION_MS).changes);
       return { newFlags: stmts.openCount.get().n - before, openFlags: stmts.openCount.get().n, purgedSignIns: purged };
+    },
+
+    /** Flags players whose last 24 hours of actions look automated. */
+    checkBots(now = Date.now()) {
+      const since = now - rules.ACTIVITY_WINDOW_MS;
+      for (const p of stmts.busyPlayers.all(since, 25)) {
+        const verdict = rules.botVerdict(stmts.actionTimes.all(p.user_id, since).map((r) => r.created_at));
+        if (!verdict) continue;
+        raise({
+          rule: 'bot-like', severity: verdict.severity, userIds: [p.user_id], key: `bot-like:${p.user_id}`, now,
+          summary: `${p.username}: ${verdict.reasons.join('; ')}.`,
+          evidence: {
+            player: p.username,
+            reasons: verdict.reasons,
+            metrics: {
+              'Actions (24h)': verdict.metrics.actions,
+              'Active hours (of 24)': verdict.metrics.activeHours,
+              'Average gap': `${verdict.metrics.averageGapSeconds}s`,
+              'Gap variation': `${verdict.metrics.variationPct}%`,
+              'Gaps under 0.4s': verdict.metrics.fastGaps,
+            },
+          },
+        });
+      }
+    },
+
+    /**
+     * Flags mission income above what a player's energy could possibly pay for
+     * (an exploit), and XP/cash far above similar-level players (worth a look).
+     */
+    checkGains(now = Date.now()) {
+      const since = now - rules.ACTIVITY_WINDOW_MS;
+      const rows = stmts.gains.all(since);
+      const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
+      for (const r of rows) {
+        const refills = stmts.refills.get(r.user_id, since).n;
+        const cap = rules.missionCashCap({
+          missions: MISSIONS, level: r.level, maxEnergy: r.max_energy, refills, energyRegenMs: ENERGY_REGEN_MS,
+        });
+        const reasons = [];
+        let severity = 0;
+        if (r.mission_cash > cap) {
+          severity = 3;
+          reasons.push(`earned ${money(r.mission_cash)} from missions in 24 hours; the most their energy allows is about ${money(cap)}`);
+        }
+        const peers = rows.filter((o) => o.user_id !== r.user_id && Math.abs(o.level - r.level) <= rules.PEER_LEVEL_RANGE);
+        const xpOut = rules.gainsOutlier(r.xp, peers.map((o) => o.xp), 'xp');
+        const cashOut = rules.gainsOutlier(r.cash, peers.map((o) => o.cash), 'cash');
+        if (xpOut) reasons.push(`${r.xp} XP in 24 hours, ${xpOut.multiple}× the typical ${xpOut.median} for levels ${r.level - rules.PEER_LEVEL_RANGE}–${r.level + rules.PEER_LEVEL_RANGE}`);
+        if (cashOut) reasons.push(`${money(r.cash)} earned in 24 hours, ${cashOut.multiple}× the typical ${money(cashOut.median)} for similar levels`);
+        if (xpOut || cashOut) severity = Math.max(severity, 2);
+        if (!severity) continue;
+        raise({
+          rule: 'unusual-gains', severity, userIds: [r.user_id], key: `unusual-gains:${r.user_id}`, now,
+          summary: `${r.username} ${reasons.join('; ')}.`,
+          evidence: {
+            player: r.username,
+            reasons,
+            metrics: {
+              Level: r.level,
+              'XP (24h)': r.xp,
+              'Cash earned (24h)': money(r.cash),
+              'Mission cash (24h)': money(r.mission_cash),
+              'Mission cash ceiling': money(cap),
+              'Similar-level players': peers.length,
+            },
+          },
+        });
+      }
     },
 
     /** Runs the scan every `hours` hours (first run a couple of minutes after start). */
