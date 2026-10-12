@@ -47,6 +47,15 @@ Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. F
 
 Every change is recorded in the audit log with a reason.
 
+### Anti-cheat
+
+- **Accounts used on the same device get no PvP rewards from each other.**
+- **Repeat wins on the same player pay less:** half from the 3rd win in 24 hours, nothing from the 5th.
+- **Every cash and bank change goes into a ledger with a reason**, and a scan every 6 hours checks that balances match it.
+- **Linked accounts, PvP farming, unexplained money and impossible payouts raise flags** under **Admin → Suspicious activity**, where you can warn, dismiss, reverse farmed cash or suspend.
+
+Nothing is banned automatically. See [SECURITY.md](SECURITY.md#anti-cheat) for the rules and thresholds.
+
 ## Game loop
 
 | Resource | How it works |
@@ -142,6 +151,8 @@ src/
   admin.js           admin changes (cash, level, restore) with validation
   admin-repo.js      admin queries, bans, audit log
   routes/admin.js    admin pages and actions
+  anticheat/rules.js thresholds and verdicts (pure, easy to tune)
+  anticheat/index.js sign-in tracking, linking, flags, scans, reversals
 scripts/admin.js     grant/revoke admin from the command line
   routes/notifications.js  inbox page + polling endpoint
 views/               EJS pages + partials

@@ -49,7 +49,7 @@ function gameRoutes(players) {
       const fresh = players.findById(req.player.id);
       const out = game.runMission(req.params.id, fresh, { stats: statsOf(fresh) });
       if (out.error) return out;
-      players.save(out.player);
+      players.save(out.player, { reason: 'mission', ref: req.params.id });
       const r = out.result;
       players.log(
         fresh.id,

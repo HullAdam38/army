@@ -98,6 +98,52 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_admin_actions_target ON admin_actions(target_id, id DESC);
 
+  -- Anti-cheat: who signed in from where. IPs are stored as keyed hashes, never raw.
+  CREATE TABLE IF NOT EXISTS sign_ins (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ip_hash     TEXT,
+    device_id   TEXT,
+    user_agent  TEXT,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_sign_ins_user ON sign_ins(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_sign_ins_device ON sign_ins(device_id);
+  CREATE INDEX IF NOT EXISTS idx_sign_ins_ip ON sign_ins(ip_hash);
+
+  -- Anti-cheat: every change to cash or bank balance, with why it happened.
+  CREATE TABLE IF NOT EXISTS ledger (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    delta_cash  INTEGER NOT NULL DEFAULT 0,
+    delta_bank  INTEGER NOT NULL DEFAULT 0,
+    reason      TEXT    NOT NULL,
+    ref         TEXT,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_ledger_user ON ledger(user_id, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_ledger_reason ON ledger(reason, created_at);
+
+  -- Anti-cheat: suspicious activity for an admin to review.
+  CREATE TABLE IF NOT EXISTS flags (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    rule         TEXT    NOT NULL,
+    severity     INTEGER NOT NULL,
+    dedupe_key   TEXT    NOT NULL,
+    user_ids     TEXT    NOT NULL,
+    summary      TEXT    NOT NULL,
+    evidence     TEXT    NOT NULL,
+    hits         INTEGER NOT NULL DEFAULT 1,
+    status       TEXT    NOT NULL DEFAULT 'open',
+    resolution   TEXT,
+    resolved_by  INTEGER REFERENCES users(id),
+    resolved_at  INTEGER,
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_flags_status ON flags(status, severity DESC, updated_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_flags_key ON flags(dedupe_key, id DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -119,6 +165,7 @@ const ADDED_COLUMNS = [
   ['users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'banned_at', 'INTEGER'],
   ['users', 'ban_reason', 'TEXT'],
+  ['battles', 'reversed_at', 'INTEGER'],
 ];
 
 function migrate(db) {
@@ -128,6 +175,12 @@ function migrate(db) {
   }
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_hospital ON users(hospital_until)');
+  // Players who existed before the ledger get one opening entry for their current
+  // balances, so "balance == sum of ledger" holds from here on.
+  db.prepare(`
+    INSERT INTO ledger (user_id, delta_cash, delta_bank, reason, created_at)
+    SELECT u.id, u.cash, u.bank_balance, 'opening-balance', ? FROM users u
+    WHERE NOT EXISTS (SELECT 1 FROM ledger l WHERE l.user_id = u.id)`).run(Date.now());
 }
 
 function openDatabase(file = process.env.DB_FILE || path.join(__dirname, '..', 'data', 'eliteforces.db')) {

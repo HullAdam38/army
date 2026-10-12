@@ -26,6 +26,8 @@ function createPlayerRepo(db) {
                          health, max_health, energy_updated_at, health_updated_at, created_at)
       VALUES (@username, @email, @password_hash, @level, @xp, @cash, @energy, @max_energy,
               @health, @max_health, @energy_updated_at, @health_updated_at, @created_at)`),
+    balances: db.prepare('SELECT cash, bank_balance FROM users WHERE id = ?'),
+    ledger: db.prepare('INSERT INTO ledger (user_id, delta_cash, delta_bank, reason, ref, created_at) VALUES (?, ?, ?, ?, ?, ?)'),
     save: db.prepare(`UPDATE users SET ${MUTABLE_FIELDS.map((f) => `${f} = @${f}`).join(', ')} WHERE id = @id`),
     touchLogin: db.prepare('UPDATE users SET last_login_at = ?1, last_seen_at = ?1 WHERE id = ?2'),
     touchSeen: db.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?'),
@@ -114,14 +116,25 @@ function createPlayerRepo(db) {
         created_at: now,
       });
       const id = Number(info.lastInsertRowid);
+      stmts.ledger.run(id, newPlayerDefaults(now).cash, 0, 'signup', null, now);
       stmts.log.run(id, 'system', 'Enlisted with EliteForces. Welcome to the unit, soldier.', now);
       return id;
     },
 
-    save(player) {
+    /**
+     * Writes a player back. Any change to cash or bank balance is recorded in
+     * the ledger with `reason` (and optional `ref`), so every dollar can be
+     * traced. Saves that move money without a reason are logged as 'unknown',
+     * which the anti-cheat audit flags.
+     */
+    save(player, { reason = 'unknown', ref = null } = {}) {
+      const before = stmts.balances.get(player.id);
       const values = { id: player.id };
       for (const f of MUTABLE_FIELDS) values[f] = player[f];
       stmts.save.run(values);
+      const dCash = player.cash - before.cash;
+      const dBank = player.bank_balance - before.bank_balance;
+      if (dCash || dBank) stmts.ledger.run(player.id, dCash, dBank, reason, ref, Date.now());
     },
 
     findByUsername: (username) => stmts.byUsername.get(username),

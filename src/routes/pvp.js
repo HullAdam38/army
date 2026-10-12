@@ -8,7 +8,7 @@ const { statsOf } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
 const { announceLevels } = require('../notify');
 
-function pvpRoutes(players) {
+function pvpRoutes(players, anti) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -25,14 +25,15 @@ function pvpRoutes(players) {
         aStats: statsOf(players, attacker),
         dStats: statsOf(players, defender),
         lastAttackAt: players.lastAttackAt(attacker.id, defender.id),
+        rewards: anti.pvpRewards(attacker.id, defender.id, now),
         now,
       });
       if (out.error) return out;
 
-      players.save(out.attacker);
-      players.save(out.defender);
       const r = out.report;
       const id = players.recordBattle(attacker.id, defender.id, r, now);
+      players.save(out.attacker, { reason: 'pvp', ref: `battle:${id}` });
+      players.save(out.defender, { reason: 'pvp', ref: `battle:${id}` });
       const link = `/battles/${id}`;
       const a = attacker.username;
       const d = defender.username;
@@ -52,6 +53,7 @@ function pvpRoutes(players) {
           : `${a} attacked you and you held them off. +${r.xp.defender} XP.${r.knockout ? ' You knocked them out.' : ''}`,
         link,
       );
+      anti.afterBattle(attacker.id, defender.id, now);
       announceLevels(players, attacker.id, r.levelsGained.attacker);
       announceLevels(players, defender.id, r.levelsGained.defender);
       for (const [p, side] of [[attacker, 'attacker'], [defender, 'defender']]) {

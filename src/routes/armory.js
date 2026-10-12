@@ -27,7 +27,7 @@ function armoryRoutes(players) {
       const check = checkPurchase(req.params.id, fresh, players.ownedItemIds(fresh.id));
       if (check.error) return check;
       fresh.cash -= check.cost;
-      players.save(fresh);
+      players.save(fresh, { reason: 'armory', ref: check.item.id });
       players.addItem(fresh.id, check.item.id);
       players.equip(fresh.id, check.item.slot, check.item.id);
       players.log(fresh.id, 'system', `Bought the ${check.item.name} for $${check.cost.toLocaleString('en-US')}.`);

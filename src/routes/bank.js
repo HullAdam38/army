@@ -24,7 +24,7 @@ function bankRoutes(players) {
     const outcome = players.transaction(() => {
       const out = bank.deposit(players.findById(req.player.id), req.body.amount);
       if (out.error) return out;
-      players.save(out.player);
+      players.save(out.player, { reason: 'bank-deposit' });
       players.logBankTransaction(req.player.id, { type: 'deposit', amount: out.credited, fee: out.fee, balanceAfter: out.player.bank_balance });
       return out;
     });
@@ -37,7 +37,7 @@ function bankRoutes(players) {
     const outcome = players.transaction(() => {
       const out = bank.withdraw(players.findById(req.player.id), req.body.amount);
       if (out.error) return out;
-      players.save(out.player);
+      players.save(out.player, { reason: 'bank-withdraw' });
       players.logBankTransaction(req.player.id, { type: 'withdraw', amount: out.amount, fee: 0, balanceAfter: out.player.bank_balance });
       return out;
     });

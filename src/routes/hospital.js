@@ -32,7 +32,7 @@ function hospitalRoutes(players) {
     const outcome = players.transaction(() => {
       const out = game.visitHospital(players.findById(req.player.id));
       if (out.error) return out;
-      players.save(out.player);
+      players.save(out.player, { reason: 'hospital-treatment' });
       players.log(req.player.id, 'system', `Treated at the field hospital for $${out.cost}.`);
       return out;
     });
@@ -45,7 +45,7 @@ function hospitalRoutes(players) {
     const outcome = players.transaction(() => {
       const out = game.dischargeEarly(players.findById(req.player.id));
       if (out.error) return out;
-      players.save(out.player);
+      players.save(out.player, { reason: 'hospital-discharge' });
       players.log(req.player.id, 'system', `Paid $${out.cost} for early discharge from hospital.`);
       return out;
     });

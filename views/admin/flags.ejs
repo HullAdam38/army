@@ -1,0 +1,44 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Anti-cheat</p>
+      <h1 class="page-head__title">Suspicious activity</h1>
+      <p class="page-head__sub">Automatic checks raise flags here. Nothing is acted on until you decide. Checks run every few hours and after every fight.</p>
+    </div>
+    <form method="post" action="/admin/anticheat/scan">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn btn--ghost" type="submit">Run checks now</button>
+    </form>
+  </div>
+
+  <nav class="tabs flag-tabs" aria-label="Flag status">
+    <a class="tabs__tab" href="/admin/flags" <%- status === 'open' ? 'aria-current="page"' : '' %>>Open (<%= openFlags %>)</a>
+    <a class="tabs__tab" href="/admin/flags?status=resolved" <%- status === 'resolved' ? 'aria-current="page"' : '' %>>Resolved</a>
+  </nav>
+
+  <% if (flags.length) { %>
+    <ol class="flag-list">
+      <% flags.forEach(function (f) { %>
+        <li>
+          <a class="flag-row flag-row--<%= SEVERITY[f.severity] %>" href="/admin/flags/<%= f.id %>">
+            <span class="sev sev--<%= SEVERITY[f.severity] %>"><%= SEVERITY[f.severity] %></span>
+            <span class="flag-row__body">
+              <span class="flag-row__rule"><%= RULES[f.rule] || f.rule %><% if (f.hits > 1) { %> · seen <%= f.hits %>×<% } %></span>
+              <span class="flag-row__summary"><%= f.summary %></span>
+              <% if (f.status !== 'open') { %><span class="flag-row__resolution"><%= f.status %>: <%= f.resolution %></span><% } %>
+            </span>
+            <span class="flag-row__time"><%= f.ago %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted"><%= status === 'open' ? 'All clear. No open flags.' : 'No resolved flags yet.' %></p>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

@@ -21,6 +21,33 @@ This document records the security review done before launch, and the settings a
 | Privacy | Emails, cash on hand, bank balances, purchases and hospital payments are never shown to other players. |
 | Dependencies | `npm audit`: 0 known vulnerabilities at review time. |
 
+## Anti-cheat
+
+Anti-cheat works in layers: make cheating unprofitable, record evidence, detect patterns, and let an admin decide. **Nothing is banned automatically.**
+
+**Prevention**
+- **Linked accounts get no PvP rewards from each other.** If two accounts have been used on the same device in the last 30 days, fights between them still happen but pay no cash or XP.
+- **Repeat wins pay less:** the 3rd and 4th wins against the same player within 24 hours pay half, and the 5th onwards pays nothing.
+
+**Evidence**
+- **Sign-ins** record a device ID (a random cookie), a *keyed hash* of the IP address (raw IPs are never stored) and the browser. Records older than 90 days are deleted.
+- **Money ledger:** every change to cash or bank balance is written to `ledger` with a reason (`mission`, `pvp`, `armory`, `bank-deposit`, `admin-cash`, `reversal`…). Saving a player with a money change but no reason is recorded as `unknown`.
+
+**Detection** (after each sign-in and fight, plus a full scan every 6 hours; `ANTICHEAT_SCAN_HOURS` changes the interval):
+
+| Flag | Severity | Raised when |
+|---|---|---|
+| Accounts share a device | medium | Two accounts signed in from the same device |
+| Accounts share a network | low | Two accounts signed in from the same IP (common for families and schools, so low) |
+| PvP farming | medium or high | 8+ one-sided wins over one player in 48 hours with no counter-attacks; high if they share a network (6+) or device (3+) |
+| Balance doesn't match money history | high | `cash`/`bank_balance` differ from the sum of the ledger (a direct database edit or a bug) |
+| Money changed without a known reason | high | `unknown` ledger entries |
+| Payout larger than the game allows | high | A mission or PvP payout above the game's maximum |
+
+**Review:** **Admin → Suspicious activity** lists open flags, most serious first. Each flag shows the players, their linked accounts and the evidence (battles, ledger entries, balances). The actions are: **warn** (sends a notification), **dismiss** (with a note; the same pattern isn't re-flagged for 7 days), **reverse gains** (farming only: returns the cash taken, as far as the winner can still pay, via the ledger) and **suspend**. Every decision goes into the audit log. **Run checks now** triggers a scan on demand. Each player's admin page shows their linked accounts, flags, recent sign-ins and money history.
+
+**Limits:** a device ID is a cookie, so a determined cheater can clear it or use another browser; network links and farming patterns still catch most of those. VPNs hide networks. Treat flags as leads, not proof.
+
 ## Fixed during the review
 
 1. **Sign-in didn't work in production behind a reverse proxy.** Express didn't trust the proxy, so it thought requests were plain HTTP and refused to send the `Secure` session cookie. It now trusts a proxy on the same machine by default in production (`TRUST_PROXY`).
@@ -33,6 +60,7 @@ This document records the security review done before launch, and the settings a
 ## Known limits (fine for launch, worth revisiting)
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.
+- **Privacy notice:** mention in your terms that sign-ins (device ID, hashed IP) and gameplay are monitored for cheating and kept for up to 90 days.
 - **No password reset or email verification** yet: there's no email sending. An admin can't see passwords but can suspend accounts.
 - **Battle reports are visible to any signed-in player** by design (they show the cash taken in that fight).
 - **SQLite** suits one server comfortably. Back up `data/` regularly (see below).

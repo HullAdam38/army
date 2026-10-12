@@ -96,6 +96,44 @@
       <% } %>
     </section>
 
+    <section class="card admin-grid__wide" aria-labelledby="ac-title">
+      <h2 id="ac-title" class="card__title">Anti-cheat</h2>
+      <div class="ac-grid">
+        <div>
+          <h3 class="ac-sub">Linked accounts (last 30 days)</h3>
+          <% if (links.length) { %>
+            <ul class="admin-list"><% links.forEach(function (l) { %>
+              <li><a href="/admin/players/<%= l.other_id %>"><strong><%= l.other_name %></strong></a> <span class="tag <%= l.device ? 'tag--hospital' : '' %>"><%= l.device ? 'same device' : 'same network' %></span> <span class="muted"><%= l.ago %></span></li>
+            <% }) %></ul>
+          <% } else { %><p class="muted">None.</p><% } %>
+          <h3 class="ac-sub">Flags</h3>
+          <% if (flags.length) { %>
+            <ul class="admin-list"><% flags.forEach(function (f) { %>
+              <li><span class="sev sev--<%= SEVERITY[f.severity] %>"><%= SEVERITY[f.severity] %></span> <a href="/admin/flags/<%= f.id %>"><%= RULES[f.rule] || f.rule %></a> <span class="muted"><%= f.status %></span></li>
+            <% }) %></ul>
+          <% } else { %><p class="muted">None.</p><% } %>
+          <h3 class="ac-sub">Recent sign-ins</h3>
+          <% if (signIns.length) { %>
+            <ul class="admin-list mono"><% signIns.forEach(function (s) { %>
+              <li title="<%= s.user_agent %>">device <%= (s.device_id || '—').slice(0, 8) %> · network <%= (s.ip_hash || 'local').slice(0, 8) %> · <span class="muted"><%= s.ago %></span></li>
+            <% }) %></ul>
+          <% } else { %><p class="muted">None recorded.</p><% } %>
+        </div>
+        <div>
+          <h3 class="ac-sub">Money history (latest first)</h3>
+          <% if (ledger.length) { %>
+            <ol class="ledger-mini"><% ledger.forEach(function (l) { %>
+              <li class="<%= l.reason === 'unknown' ? 'is-bad' : '' %>">
+                <span class="ledger-mini__reason"><%= l.reason %><%= l.ref ? ` · ${l.ref}` : '' %></span>
+                <span class="ledger-mini__amt"><% if (l.delta_cash) { %>cash <%= l.delta_cash > 0 ? '+' : '' %><%= l.delta_cash %><% } %><% if (l.delta_bank) { %> bank <%= l.delta_bank > 0 ? '+' : '' %><%= l.delta_bank %><% } %></span>
+                <span class="muted"><%= l.ago %></span>
+              </li>
+            <% }) %></ol>
+          <% } else { %><p class="muted">No entries.</p><% } %>
+        </div>
+      </div>
+    </section>
+
     <section class="card admin-grid__wide" aria-labelledby="hist-title">
       <h2 id="hist-title" class="card__title">Admin history for <%= t.username %></h2>
       <% if (history.length) { %>

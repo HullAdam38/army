@@ -92,7 +92,14 @@ function cashPrize(loser) {
  * Resolves an attack. Inputs are raw DB rows plus combat stats; returns
  * { error } or { attacker, defender, report } with updated copies to persist.
  */
-function resolveAttack(rawAttacker, rawDefender, { aStats, dStats, now = Date.now(), rng = Math.random, lastAttackAt = null }) {
+/**
+ * `rewards` (from anti-cheat) scales what each side earns: { attacker, defender }
+ * multipliers from 0 to 1, plus a `note` shown on the battle report.
+ */
+function resolveAttack(rawAttacker, rawDefender, {
+  aStats, dStats, now = Date.now(), rng = Math.random, lastAttackAt = null,
+  rewards = { attacker: 1, defender: 1, note: null },
+}) {
   const attacker = game.applyRegen(rawAttacker, now);
   const defender = game.applyRegen(rawDefender, now);
   const blocker = attackBlocker(attacker, defender, { now, lastAttackAt });
@@ -119,19 +126,20 @@ function resolveAttack(rawAttacker, rawDefender, { aStats, dStats, now = Date.no
     levels: { attacker: attacker.level, defender: defender.level },
     cashTaken: 0,
     xp: { attacker: 0, defender: 0 },
+    rewardNote: rewards.note || null,
     levelsGained: { attacker: [], defender: [] },
   };
 
   if (fight.attackerWon) {
-    report.cashTaken = cashPrize(defender);
+    report.cashTaken = Math.floor(cashPrize(defender) * rewards.attacker);
     defender.cash -= report.cashTaken;
     attacker.cash += report.cashTaken;
-    report.xp.attacker = winXp(attacker.level, defender.level);
+    report.xp.attacker = Math.round(winXp(attacker.level, defender.level) * rewards.attacker);
     attacker.pvp_wins = (attacker.pvp_wins || 0) + 1;
     defender.pvp_losses = (defender.pvp_losses || 0) + 1;
   } else {
     // Holding the line is worth a little XP; attackers who lose get nothing back.
-    report.xp.defender = Math.round(winXp(defender.level, attacker.level) / 2);
+    report.xp.defender = Math.round((winXp(defender.level, attacker.level) / 2) * rewards.defender);
     defender.pvp_wins = (defender.pvp_wins || 0) + 1;
     attacker.pvp_losses = (attacker.pvp_losses || 0) + 1;
   }

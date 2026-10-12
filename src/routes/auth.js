@@ -21,7 +21,7 @@ function validateRegistration({ username, email, password, confirm, adult, terms
   return errors;
 }
 
-function authRoutes(players) {
+function authRoutes(players, anti) {
   const router = express.Router();
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -43,6 +43,7 @@ function authRoutes(players) {
       if (err) return done(err);
       req.session.userId = userId;
       players.touchLogin(userId);
+      anti.recordSignIn(userId, { ip: req.ip, deviceId: req.deviceId, userAgent: req.get('user-agent') });
       done(null, returnTo);
     });
   }

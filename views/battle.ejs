@@ -43,6 +43,7 @@
       <span class="fighters__vs" aria-hidden="true">VS</span>
     </div>
 
+    <% if (r.rewardNote) { %><p class="notice notice--warn battle-note"><%= r.rewardNote %></p><% } %>
     <ul class="chips spoils">
       <% if (r.cashTaken) { %><li class="chip"><svg aria-hidden="true"><use href="#i-cash"/></svg><%= winner %> took $<%= r.cashTaken.toLocaleString('en-US') %></li><% } %>
       <% if (r.xp.attacker) { %><li class="chip"><svg aria-hidden="true"><use href="#i-star"/></svg><%= a %> +<%= r.xp.attacker %> XP</li><% } %>

@@ -20,16 +20,20 @@ async function startServer(opts = {}) {
 }
 
 function client(base) {
-  let cookie = '';
+  const jar = new Map();
+  const cookieHeader = () => [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
   return {
     async request(p, { method = 'GET', form, headers = {} } = {}) {
       const res = await fetch(base + p, {
         method, redirect: 'manual',
-        headers: { ...(cookie ? { cookie } : {}), ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}), ...headers },
+        headers: { ...(jar.size ? { cookie: cookieHeader() } : {}), ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}), ...headers },
         body: form ? new URLSearchParams(form) : undefined,
       });
-      const set = res.headers.get('set-cookie');
-      if (set) cookie = set.split(';')[0];
+      for (const c of res.headers.getSetCookie()) {
+        const [pair] = c.split(';');
+        const i = pair.indexOf('=');
+        jar.set(pair.slice(0, i), pair.slice(i + 1));
+      }
       return { res, text: await res.text() };
     },
     async csrf(p = '/login') {

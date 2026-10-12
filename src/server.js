@@ -19,6 +19,7 @@ const { notificationRoutes } = require('./routes/notifications');
 const { bankRoutes } = require('./routes/bank');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
+const { createAntiCheat } = require('./anticheat');
 const pkg = require('../package.json');
 
 /**
@@ -34,7 +35,12 @@ function trustProxySetting(value, production) {
   return value;
 }
 
-function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, production = process.env.NODE_ENV === 'production' } = {}) {
+function createApp({
+  db = openDatabase(),
+  secret = process.env.SESSION_SECRET,
+  production = process.env.NODE_ENV === 'production',
+  scanHours = Number(process.env.ANTICHEAT_SCAN_HOURS) || 6,
+} = {}) {
   if (!secret) {
     if (production) throw new Error('SESSION_SECRET must be set in production.');
     secret = crypto.randomBytes(32).toString('hex');
@@ -43,6 +49,9 @@ function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, p
 
   const app = express();
   const players = createPlayerRepo(db);
+  const anti = createAntiCheat(db, players, { secret });
+  app.anti = anti; // exposed for tests and maintenance scripts
+  anti.schedule(scanHours);
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, '..', 'views'));
@@ -88,19 +97,20 @@ function createApp({ db = openDatabase(), secret = process.env.SESSION_SECRET, p
     res.locals.signedIn = Boolean(req.session.userId);
     next();
   });
+  app.use(anti.deviceCookie({ production }));
   app.use(flash);
   app.use(csrf);
   app.use(actionRateLimit());
 
   app.get('/', (req, res) => res.render('index', { title: null }));
-  app.use(authRoutes(players));
+  app.use(authRoutes(players, anti));
   app.use(gameRoutes(players));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
-  app.use(pvpRoutes(players));
+  app.use(pvpRoutes(players, anti));
   app.use(notificationRoutes(players));
   app.use(bankRoutes(players));
-  app.use(adminRoutes(players, createAdminRepo(db)));
+  app.use(adminRoutes(players, createAdminRepo(db), anti));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

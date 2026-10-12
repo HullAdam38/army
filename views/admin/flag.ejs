@@ -1,0 +1,118 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const sev = SEVERITY[f.severity]; const ev = f.evidence; %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin/flags"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Suspicious activity</a>
+
+  <section class="card flag-hero flag-hero--<%= sev %>" aria-labelledby="flag-title">
+    <p class="eyebrow">Flag #<%= f.id %> · raised <%= ago(f.created_at) %><% if (f.hits > 1) { %> · seen <%= f.hits %> times, last <%= ago(f.updated_at) %><% } %></p>
+    <h1 id="flag-title" class="flag-hero__title"><span class="sev sev--<%= sev %>"><%= sev %></span><%= RULES[f.rule] || f.rule %></h1>
+    <p class="flag-hero__summary"><%= f.summary %></p>
+    <% if (f.status !== 'open') { %><p class="notice notice--warn">Resolved (<%= f.status %>) <%= ago(f.resolved_at) %>: <%= f.resolution %></p><% } %>
+  </section>
+
+  <div class="admin-grid">
+    <section class="card admin-grid__wide" aria-labelledby="who-title">
+      <h2 id="who-title" class="card__title">Players involved</h2>
+      <ul class="flag-people">
+        <% involved.forEach(function (u) { %>
+          <li class="flag-person">
+            <p><a href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a> · Level <%= u.level %> · $<%= u.cash.toLocaleString('en-US') %> cash · $<%= u.bank_balance.toLocaleString('en-US') %> bank · seen <%= u.seen %><% if (u.banned_at) { %> <span class="tag tag--hospital">Suspended</span><% } %></p>
+            <p class="muted">
+              <% if (u.links.length) { %>
+                Linked to: <% u.links.forEach(function (l, i) { %><%= i ? ', ' : '' %><a href="/admin/players/<%= l.other_id %>"><%= l.other_name %></a> (<%= l.device ? 'same device' : 'same network' %>)<% }) %>
+              <% } else { %>No linked accounts.<% } %>
+            </p>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <% if (battles.length) { %>
+      <section class="card admin-grid__wide" aria-labelledby="ev-title">
+        <h2 id="ev-title" class="card__title">Battles (<%= ev.attacks %> attacks, <%= ev.attackerWins %> wins, $<%= ev.cashTaken %> taken, <%= ev.reverseAttacks %> counter-attacks)</h2>
+        <ol class="audit">
+          <% battles.forEach(function (b) { %>
+            <li class="audit__row">
+              <span class="audit__action audit__action--<%= b.attacker_won ? 'ban' : 'unban' %>"><%= b.attacker_won ? 'Win' : 'Loss' %></span>
+              <span class="audit__text"><a href="/battles/<%= b.id %>"><%= b.attacker_name %> vs <%= b.defender_name %></a><%= b.knockout ? ' · KO' : '' %> · $<%= b.cash_taken %><% if (b.reversed_at) { %> · <strong>reversed</strong><% } %></span>
+              <span class="audit__time"><%= b.ago %></span>
+            </li>
+          <% }) %>
+        </ol>
+      </section>
+    <% } else if (ev.entries) { %>
+      <section class="card admin-grid__wide" aria-labelledby="ev-title">
+        <h2 id="ev-title" class="card__title">Ledger entries</h2>
+        <ol class="audit">
+          <% ev.entries.forEach(function (e) { %>
+            <li class="audit__row">
+              <span class="audit__action audit__action--ban"><%= e.reason %></span>
+              <span class="audit__text">Cash <%= e.cash >= 0 ? '+' : '' %>$<%= e.cash %> · bank <%= e.bank >= 0 ? '+' : '' %>$<%= e.bank %><%= e.ref ? ` · ${e.ref}` : '' %></span>
+              <span class="audit__time"><%= ago(e.at) %></span>
+            </li>
+          <% }) %>
+        </ol>
+      </section>
+    <% } else if (ev.expectedCash !== undefined) { %>
+      <section class="card admin-grid__wide" aria-labelledby="ev-title">
+        <h2 id="ev-title" class="card__title">Balances vs money history</h2>
+        <dl class="admin-stats">
+          <div><dt>Cash</dt><dd>$<%= ev.cash %></dd></div>
+          <div><dt>Expected cash</dt><dd>$<%= ev.expectedCash %></dd></div>
+          <div><dt>Bank</dt><dd>$<%= ev.bank %></dd></div>
+          <div><dt>Expected bank</dt><dd>$<%= ev.expectedBank %></dd></div>
+        </dl>
+        <p class="muted">Money changed without going through the game, e.g. a direct database edit or a bug. Check the player's ledger on their admin page.</p>
+      </section>
+    <% } %>
+
+    <% if (f.status === 'open') { %>
+      <section class="card" aria-labelledby="warn-title">
+        <h2 id="warn-title" class="card__title">Warn</h2>
+        <form method="post" action="/admin/flags/<%= f.id %>/warn" class="form admin-form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field"><label for="warn-user">Player</label>
+            <select id="warn-user" name="userId" class="admin-select"><% involved.forEach(function (u) { %><option value="<%= u.id %>"><%= u.username %></option><% }) %></select></div>
+          <div class="field"><label for="warn-msg">Message (sent as a notification)</label><textarea id="warn-msg" name="message" rows="3" maxlength="300"><%= defaultWarning %></textarea></div>
+          <button class="btn btn--ghost btn--sm" type="submit">Send warning</button>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="dismiss-title">
+        <h2 id="dismiss-title" class="card__title">Dismiss</h2>
+        <form method="post" action="/admin/flags/<%= f.id %>/dismiss" class="form admin-form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field"><label for="dismiss-note">Why it's fine</label><input id="dismiss-note" name="note" maxlength="200" placeholder="Brothers sharing a laptop"></div>
+          <p class="field__hint">The same pattern won't be flagged again for 7 days.</p>
+          <button class="btn btn--ghost btn--sm" type="submit">Dismiss flag</button>
+        </form>
+      </section>
+
+      <% if (f.rule === 'pvp-farming') { %>
+        <section class="card" aria-labelledby="rev-title">
+          <h2 id="rev-title" class="card__title">Reverse gains</h2>
+          <p class="muted">Return the cash taken in these battles to <%= ev.defender.name %> (as much as <%= ev.attacker.name %> still holds). XP isn't taken back.</p>
+          <form method="post" action="/admin/flags/<%= f.id %>/reverse" class="admin-inline" data-confirm="Return the cash from these battles to <%= ev.defender.name %>?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn--primary btn--sm" type="submit">Reverse $<%= ev.cashTaken %></button>
+          </form>
+        </section>
+      <% } %>
+
+      <section class="card admin-danger" aria-labelledby="sus-title">
+        <h2 id="sus-title" class="card__title">Suspend</h2>
+        <form method="post" action="/admin/flags/<%= f.id %>/suspend" class="form admin-form" data-confirm="Suspend this player? They'll be signed out immediately.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field"><label for="sus-user">Player</label>
+            <select id="sus-user" name="userId" class="admin-select"><% involved.forEach(function (u) { %><option value="<%= u.id %>"><%= u.username %></option><% }) %></select></div>
+          <div class="field"><label for="sus-reason">Reason (shown to the player)</label><input id="sus-reason" name="reason" maxlength="200" required placeholder="Multiple accounts / PvP farming"></div>
+          <button class="btn btn--danger btn--sm" type="submit">Suspend and sign out</button>
+        </form>
+      </section>
+    <% } %>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>
