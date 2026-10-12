@@ -1,0 +1,53 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const fmt = (n) => Number(n).toLocaleString('en-US');
+  const detail = (r) => key === 'level' ? `${fmt(r.detail)} XP` : key === 'weekly' ? `${fmt(r.detail)} actions` : key === 'pvp' ? `${fmt(r.detail)} losses` : `${fmt(r.detail)} failed`;
+  const medal = (pos) => (pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : null);
+%>
+
+<main id="main" class="container game-main">
+  <%- include('partials/players-subnav', { active: 'leaderboards' }) %>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Hall of honour</p>
+      <h1 class="page-head__title">Leaderboards</h1>
+      <p class="page-head__sub"><%= board.blurb %></p>
+    </div>
+    <% if (me) { %>
+      <a class="standing" href="#you">
+        <span class="standing__label">Your position</span>
+        <span class="standing__pos">#<%= me.position %></span>
+      </a>
+    <% } %>
+  </div>
+
+  <nav class="tabs board-tabs reveal" style="--i:1" aria-label="Leaderboard">
+    <% boards.forEach(function (b) { %>
+      <a class="tabs__tab" href="/leaderboards<%= b.key === 'level' ? '' : `?board=${b.key}` %>" <%- b.key === key ? 'aria-current="page"' : '' %>><%= b.label %></a>
+    <% }) %>
+  </nav>
+
+  <% if (rows.length) { %>
+    <ol class="board reveal" style="--i:2" aria-label="<%= board.label %>">
+      <% [...rows, ...(me && me.outside ? [me] : [])].forEach(function (r, i) { const m = medal(r.position); %>
+        <% if (me && me.outside && r === me) { %><li class="board__gap" aria-hidden="true">⋯</li><% } %>
+        <li class="board__row<%= m ? ` board__row--${m}` : '' %><%= r.isYou ? ' board__row--you' : '' %>" <%- r.isYou ? 'id="you"' : '' %>>
+          <span class="board__pos"><%= m ? '' : '#' %><%= r.position %></span>
+          <span class="stat__grade"><%= r.grade %></span>
+          <span class="board__who">
+            <span class="board__line"><a class="board__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a><% if (r.isYou) { %> <span class="tag">You</span><% } %></span>
+            <span class="board__rank"><%= r.rank %> · Lv <%= r.level %><% if (r.online) { %> · <span class="status--online">online</span><% } %></span>
+          </span>
+          <span class="board__value"><span class="board__value-label"><%= board.valueLabel %></span><%= fmt(r.value) %></span>
+          <span class="board__detail"><%= detail(r) %></span>
+        </li>
+      <% }) %>
+    </ol>
+    <% if (!me) { %><p class="muted board__note">You’re not on this board yet. <%= key === 'pvp' ? 'Win a fight' : key === 'missions' ? 'Complete a mission' : 'Earn some XP' %> to get ranked.</p><% } %>
+  <% } else { %>
+    <p class="card muted">Nobody has made this board yet. Be the first.</p>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

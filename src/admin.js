@@ -5,6 +5,7 @@
  * { error } or { player, summary } where `summary` goes in the audit log.
  */
 
+const crypto = require('node:crypto');
 const game = require('./game');
 const { MAX_HEALTH_PER_ENDURANCE } = require('./training');
 
@@ -71,4 +72,14 @@ function restore(player) {
   };
 }
 
-module.exports = { MAX_LEVEL, adjustCash, cleanReason, restore, setLevel };
+// No 0/O, 1/I/L: easy to read out or type from a message.
+const TEMP_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const TEMP_PASSWORD_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** A random temporary password like "K7QF-M2XP-9TRA" (about 59 bits of randomness). */
+function generateTempPassword() {
+  const chars = Array.from({ length: 12 }, () => TEMP_ALPHABET[crypto.randomInt(TEMP_ALPHABET.length)]);
+  return [chars.slice(0, 4), chars.slice(4, 8), chars.slice(8)].map((g) => g.join('')).join('-');
+}
+
+module.exports = { TEMP_PASSWORD_TTL_MS, generateTempPassword, MAX_LEVEL, adjustCash, cleanReason, restore, setLevel };

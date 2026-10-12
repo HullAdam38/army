@@ -44,6 +44,7 @@ Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. F
 - adjust cash, set level, restore energy and health, or release from hospital
 - message a single player
 - suspend or unsuspend a player (signs them out immediately)
+- **reset a password:** issues a temporary password like `K7QF-M2XP-9TRA`, shown once and valid for 24 hours. The player is signed out everywhere and must choose a new password at their next sign-in. Admin accounts can't be reset from the website.
 
 Every change is recorded in the audit log with a reason.
 
@@ -167,6 +168,8 @@ src/
   training.js        stats, session costs, caps, combat modifiers
   scouting.js        scouting cost and intel reports
   routes/training.js training page and sessions
+  leaderboards.js    ranked boards (window-function queries)
+  routes/leaderboards.js, routes/account.js
   routes/bank.js     bank page and actions
   admin.js           admin changes (cash, level, restore) with validation
   admin-repo.js      admin queries, bans, audit log
@@ -196,3 +199,5 @@ test/                node:test suites
 - `/bank`: cash on hand vs banked, deposit and withdraw (with "All" and a live fee preview), and recent transactions
 - `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat
 - `/scout/:username` (POST): buy intel on a player; the report appears on their profile for you only
+- `/leaderboards`: Top soldiers (level, XP), PvP wins, Missions won and This week (XP in the last 7 days). Shows the top 50 with your position pinned if you're further down. No cash, bank or training boards; suspended players are left out.
+- `/account/password`: change your password (needs your current one; signs out your other devices). Players with an admin-issued temporary password are sent here until they set a new one.

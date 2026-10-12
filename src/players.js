@@ -90,6 +90,8 @@ function createPlayerRepo(db) {
                              WHERE user_id = ? ORDER BY id DESC LIMIT ?`),
     insertScout: db.prepare('INSERT INTO scout_reports (scout_id, target_id, cost, report, created_at) VALUES (?, ?, ?, ?, ?)'),
     latestScout: db.prepare('SELECT * FROM scout_reports WHERE scout_id = ? AND target_id = ? ORDER BY id DESC LIMIT 1'),
+    setPassword: db.prepare('UPDATE users SET password_hash = ?, must_change_password = ?, password_reset_at = ? WHERE id = ?'),
+    endSessions: db.prepare("DELETE FROM sessions WHERE json_extract(sess, '$.userId') = ? AND sid != ?"),
     recentTargets: db.prepare(`
       SELECT defender_id, MAX(created_at) AS at FROM battles
       WHERE attacker_id = ? AND created_at >= ? GROUP BY defender_id`),
@@ -222,6 +224,16 @@ function createPlayerRepo(db) {
       const row = stmts.latestScout.get(scoutId, targetId);
       return row ? { ...row, report: JSON.parse(row.report) } : null;
     },
+
+    /**
+     * Sets a new password hash. `temporary` marks an admin-issued password the
+     * player must replace at next sign-in.
+     */
+    setPassword(id, hash, { temporary = false, now = Date.now() } = {}) {
+      stmts.setPassword.run(hash, temporary ? 1 : 0, temporary ? now : null, id);
+    },
+    /** Signs a player out everywhere except the session `keepSid` (pass '' for everywhere). */
+    endSessions: (id, keepSid = '') => stmts.endSessions.run(id, keepSid),
 
     /** Map of defender id → time of `attackerId`'s most recent attack on them since `since`. */
     recentTargets(attackerId, since) {

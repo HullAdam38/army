@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const admin = require('../admin');
 const game = require('../game');
 const presence = require('../presence');
@@ -126,6 +127,28 @@ function adminRoutes(players, adminRepo, anti) {
       req.flash('success', `${req.target.username} can sign in again.`);
     }
     back(res, req.target);
+  });
+
+  router.post('/admin/players/:id/reset-password', loadTarget, async (req, res, next) => {
+    try {
+      if (req.target.id === req.player.id) {
+        req.flash('error', 'Use Change password for your own account.');
+        return back(res, req.target);
+      }
+      if (req.target.is_admin) {
+        req.flash('error', 'Admin passwords can’t be reset from here.');
+        return back(res, req.target);
+      }
+      const temp = admin.generateTempPassword();
+      players.setPassword(req.target.id, await bcrypt.hash(temp, 12), { temporary: true });
+      players.endSessions(req.target.id);
+      // The audit log records that a reset happened, never the password itself.
+      adminRepo.log(req.player.id, req.target.id, 'password-reset', 'Issued a temporary password (expires in 24 hours).');
+      res.set('Cache-Control', 'no-store');
+      res.render('admin/temp-password', { title: 'Admin · Password reset', nav: 'admin', t: req.target, temp });
+    } catch (err) {
+      next(err);
+    }
   });
 
   router.post('/admin/players/:id/notify', loadTarget, (req, res) => {

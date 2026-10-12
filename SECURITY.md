@@ -67,7 +67,7 @@ Admin player pages show a **24-hour activity chart** (actions per hour). Real pl
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.
 - **Privacy notice:** mention in your terms that sign-ins (device ID, hashed IP) and gameplay are monitored for cheating and kept for up to 90 days.
-- **No password reset or email verification** yet: there's no email sending. An admin can't see passwords but can suspend accounts.
+- **No self-service password reset or email verification** yet, because the game doesn't send email. Admins can issue a 24-hour temporary password (shown once, never logged), which forces the player to choose a new password at their next sign-in and signs them out everywhere. Players can change their own password, which signs out their other devices; wrong current-password attempts are throttled (5 per 15 min).
 - **Battle reports are visible to any signed-in player** by design (they show the cash taken in that fight).
 - **SQLite** suits one server comfortably. Back up `data/` regularly (see below).
 

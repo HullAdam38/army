@@ -3,18 +3,26 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { createFailureTracker, rateLimit, safeRedirectPath } = require('../middleware');
+const { TEMP_PASSWORD_TTL_MS } = require('../admin');
 
 const USERNAME_RE = /^[A-Za-z0-9_-]{3,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Hash to compare against when the account doesn't exist, so timing doesn't leak usernames.
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 
+/** Password rules shared by sign-up and password changes. Returns an error message or null. */
+function passwordProblem(password) {
+  if (password.length < 8) return 'Use at least 8 characters.';
+  if (Buffer.byteLength(password) > 72) return 'Keep it under 72 characters.';
+  return null;
+}
+
 function validateRegistration({ username, email, password, confirm, adult, terms }) {
   const errors = {};
   if (!USERNAME_RE.test(username)) errors.username = '3–20 characters: letters, numbers, _ or -.';
   if (!EMAIL_RE.test(email) || email.length > 254) errors.email = 'Enter a valid email address.';
-  if (password.length < 8) errors.password = 'Use at least 8 characters.';
-  else if (Buffer.byteLength(password) > 72) errors.password = 'Keep it under 72 characters.';
+  const problem = passwordProblem(password);
+  if (problem) errors.password = problem;
   if (password !== confirm) errors.confirm = 'Passwords do not match.';
   if (!adult) errors.adult = 'You must be 18 or older to enlist.';
   if (!terms) errors.terms = 'You must accept the rules of engagement.';
@@ -125,9 +133,13 @@ function authRoutes(players, anti) {
       if (user.banned_at) {
         return fail(403, `This account has been suspended${user.ban_reason ? `: ${user.ban_reason}` : ''}.`);
       }
+      if (user.must_change_password && Date.now() - user.password_reset_at > TEMP_PASSWORD_TTL_MS) {
+        return fail(403, 'That temporary password has expired. Ask an admin for a new one.');
+      }
       startSession(req, user.id, (err, returnTo) => {
         if (err) return next(err);
-        res.redirect(safeRedirectPath(returnTo, '/hq'));
+        // A temporary password must be replaced before playing.
+        res.redirect(user.must_change_password ? '/account/password' : safeRedirectPath(returnTo, '/hq'));
       });
     } catch (err) {
       next(err);
@@ -146,4 +158,4 @@ function authRoutes(players, anti) {
   return router;
 }
 
-module.exports = { authRoutes, validateRegistration };
+module.exports = { authRoutes, passwordProblem, validateRegistration };

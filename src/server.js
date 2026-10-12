@@ -18,6 +18,8 @@ const { pvpRoutes } = require('./routes/pvp');
 const { notificationRoutes } = require('./routes/notifications');
 const { bankRoutes } = require('./routes/bank');
 const { trainingRoutes } = require('./routes/training');
+const { leaderboardRoutes } = require('./routes/leaderboards');
+const { accountRoutes } = require('./routes/account');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -113,6 +115,8 @@ function createApp({
   app.use(notificationRoutes(players));
   app.use(bankRoutes(players));
   app.use(trainingRoutes(players));
+  app.use(leaderboardRoutes(players, db));
+  app.use(accountRoutes(players));
   app.use(adminRoutes(players, createAdminRepo(db), anti));
 
   app.use((req, res) => {

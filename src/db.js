@@ -192,6 +192,8 @@ const ADDED_COLUMNS = [
   ['users', 'stat_str', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'stat_agi', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'stat_end', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'must_change_password', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'password_reset_at', 'INTEGER'],
 ];
 
 function migrate(db) {

@@ -69,6 +69,19 @@
       </form>
     </section>
 
+    <section class="card" aria-labelledby="pw-title">
+      <h2 id="pw-title" class="card__title">Password</h2>
+      <% if (isSelf || t.is_admin) { %>
+        <p class="muted"><%= isSelf ? 'Use Change password on your own profile.' : 'Admin passwords can’t be reset from here.' %></p>
+      <% } else { %>
+        <p class="muted">Issue a 24-hour temporary password. <%= t.username %> is signed out and must choose a new password at their next sign-in.<% if (t.must_change_password) { %> <strong>A temporary password is already pending.</strong><% } %></p>
+        <form method="post" action="/admin/players/<%= t.id %>/reset-password" class="admin-inline" data-confirm="Reset <%= t.username %>'s password? Their current password will stop working.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Reset password</button>
+        </form>
+      <% } %>
+    </section>
+
     <section class="card" aria-labelledby="msg-title">
       <h2 id="msg-title" class="card__title">Send a message</h2>
       <form method="post" action="/admin/players/<%= t.id %>/notify" class="form admin-form">

@@ -22,6 +22,10 @@ function createRequireAuth(players) {
         res.redirect('/login');
       });
     }
+    if (user.must_change_password && req.path !== '/account/password') {
+      if (wantsJson(req)) return res.status(403).json({ ok: false, error: 'Set a new password first.' });
+      return res.redirect('/account/password');
+    }
     const now = Date.now();
     if (!user.last_seen_at || now - user.last_seen_at > presence.SEEN_THROTTLE_MS) {
       players.touchSeen(user.id, now);
