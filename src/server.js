@@ -17,6 +17,7 @@ const { hospitalRoutes } = require('./routes/hospital');
 const { pvpRoutes } = require('./routes/pvp');
 const { notificationRoutes } = require('./routes/notifications');
 const { bankRoutes } = require('./routes/bank');
+const { trainingRoutes } = require('./routes/training');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -111,6 +112,7 @@ function createApp({
   app.use(pvpRoutes(players, anti));
   app.use(notificationRoutes(players));
   app.use(bankRoutes(players));
+  app.use(trainingRoutes(players));
   app.use(adminRoutes(players, createAdminRepo(db), anti));
 
   app.use((req, res) => {

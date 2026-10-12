@@ -1,0 +1,17 @@
+<%# Rating and stat grid. Expects `loadout` from loadoutView. %>
+<% const st = loadout.stats; %>
+<div class="combat-profile">
+  <div class="combat-profile__rating">
+    <span class="combat-profile__label"><%= loadout.includesTraining ? 'Combat rating' : 'Gear rating' %></span>
+    <span class="combat-profile__value"><%= loadout.rating %></span>
+  </div>
+  <dl class="combat-stats">
+    <div><dt>Attack</dt><dd><%= Math.round(st.attack) %></dd></div>
+    <div><dt>Damage</dt><dd>×<%= st.damage.toFixed(2) %></dd></div>
+    <div><dt>Crit chance</dt><dd><%= Math.round(st.critChance * 1000) / 10 %>%</dd></div>
+    <div><dt>Crit damage</dt><dd>×<%= st.critDamage.toFixed(2) %></dd></div>
+    <% if (st.dodge > 0) { %><div><dt>Dodge</dt><dd><%= Math.round(st.dodge * 1000) / 10 %>%</dd></div><% } %>
+    <div><dt>Armour</dt><dd><%= Math.round(st.armor) %> <small>−<%= loadout.mitigationPct %>% dmg</small></dd></div>
+    <div><dt>Mission bonus</dt><dd>+<%= loadout.gearBonusPct %>%</dd></div>
+  </dl>
+</div>

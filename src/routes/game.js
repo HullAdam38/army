@@ -10,6 +10,8 @@ const pvp = require('../pvp');
 const { createRequireAuth } = require('../require-auth');
 const { PLAYER_SORTS } = require('../players');
 const { announceLevels } = require('../notify');
+const scouting = require('../scouting');
+const training = require('../training');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online'];
 const PAGE_SIZE = 25;
@@ -29,7 +31,7 @@ function gameRoutes(players) {
       activity: players.recentActivity(req.player.id),
       nextMission,
       nextRank: game.nextRankFor(req.player.level),
-      loadout: loadoutView(req.player.level, players.equipment(req.player.id)),
+      loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
     });
   });
@@ -173,7 +175,7 @@ function gameRoutes(players) {
       sorts: [['level', 'Level'], ['wins', 'PvP wins'], ['newest', 'Newest'], ['name', 'Name']],
       urlFor,
       selfBlocker,
-      myRating: loadoutView(me.level, players.equipment(me.id)).rating,
+      myRating: loadoutView(me.level, players.equipment(me.id), me).rating,
       attackEnergy: pvp.ATTACK_ENERGY,
       backUrl: req.originalUrl,
     });
@@ -191,7 +193,7 @@ function gameRoutes(players) {
     const attack = isYou ? null : {
       blocker: pvp.attackBlocker(me, them, { now, lastAttackAt: players.lastAttackAt(me.id, them.id) }),
       energy: pvp.ATTACK_ENERGY,
-      yourRating: loadoutView(me.level, players.equipment(me.id)).rating,
+      yourRating: loadoutView(me.level, players.equipment(me.id), me).rating,
     };
     res.render('profile', {
       title: user.username,
@@ -217,6 +219,17 @@ function gameRoutes(players) {
         isYou,
       },
       attack,
+      // Hidden stats: yours on your own profile, otherwise only intel you've paid for.
+      ownTraining: isYou ? Object.keys(training.STATS).map((k) => training.statView(me, k)) : null,
+      scout: isYou ? null : {
+        cost: scouting.scoutCost(me, them),
+        energy: scouting.SCOUT_ENERGY,
+        blocker: scouting.scoutBlocker(me, them, now),
+        intel: (() => {
+          const r = players.latestScoutReport(me.id, them.id);
+          return r ? { ...r.report, ago: presence.timeAgo(r.created_at, now) } : null;
+        })(),
+      },
       battles: players.battlesFor(user.id, 6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at, now) })),
       loadout: loadoutView(user.level, players.equipment(user.id)),
       activity: players.publicActivity(user.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),

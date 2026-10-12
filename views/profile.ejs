@@ -62,6 +62,45 @@
       <%- include('partials/loadout', { loadout, editable: false }) %>
     </section>
 
+    <% if (ownTraining) { %>
+      <section class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="mytrain-title">
+        <h2 id="mytrain-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg>Your training (only you can see this)</h2>
+        <dl class="intel-grid">
+          <% ownTraining.forEach(function (s) { %><div><dt><%= s.label %></dt><dd><%= s.points %><small> / <%= s.cap %></small></dd></div><% }) %>
+        </dl>
+        <p class="progress-line__note">Others see only your gear rating unless they pay to scout you. <a href="/training">Train</a></p>
+      </section>
+    <% } %>
+
+    <% if (scout) { %>
+      <section class="card profile-grid__wide intel reveal" style="--i:4" id="intel" aria-labelledby="intel-title">
+        <h2 id="intel-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Intel</h2>
+        <% if (scout.intel) { const i = scout.intel; %>
+          <p class="intel__age">Report from <strong><%= i.ago %></strong>. Stats may have changed since.</p>
+          <dl class="intel-grid">
+            <div class="intel-grid__key"><dt>True combat rating</dt><dd><%= i.rating %></dd></div>
+            <div><dt>Strength</dt><dd><%= i.training.strength %></dd></div>
+            <div><dt>Agility</dt><dd><%= i.training.agility %></dd></div>
+            <div><dt>Endurance</dt><dd><%= i.training.endurance %></dd></div>
+            <div><dt>Attack</dt><dd><%= i.attack %></dd></div>
+            <div><dt>Crit chance</dt><dd><%= i.critChancePct %>%</dd></div>
+            <div><dt>Dodge</dt><dd><%= i.dodgePct %>%</dd></div>
+            <div><dt>Armour</dt><dd><%= i.armor %> <small>−<%= i.mitigationPct %>%</small></dd></div>
+            <div><dt>Health</dt><dd><%= i.health %><small> / <%= i.maxHealth %></small></dd></div>
+          </dl>
+        <% } else { %>
+          <p class="muted">Training is secret. The rating above is gear only. Send a recon team to learn <%= soldier.username %>’s true strength. They’ll know someone looked, but not who.</p>
+        <% } %>
+        <form method="post" action="/scout/<%= encodeURIComponent(soldier.username) %>" class="intel__form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn <%= scout.intel ? 'btn--ghost' : 'btn--primary' %> btn--sm" type="submit" <%- scout.blocker ? 'disabled' : '' %>>
+            <%= scout.intel ? 'Scout again' : 'Gather intel' %> · $<%= scout.cost.toLocaleString('en-US') %>
+          </button>
+          <span class="intel__note"><%= scout.blocker ? scout.blocker + '.' : `${scout.energy} energy. Price depends on ${soldier.username}’s level${soldier.level > player.level ? ' (+50%, they outrank you)' : ''}.` %></span>
+        </form>
+      </section>
+    <% } %>
+
     <section class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="battles-title">
       <h2 id="battles-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>Recent battles</h2>
       <%- include('partials/battle-list', { battles, perspective: soldier.username }) %>

@@ -23,7 +23,8 @@
     <div><dt>Cash</dt><dd><%= money(t.cash) %></dd></div>
     <div><dt>Bank</dt><dd><%= money(t.bank_balance) %></dd></div>
     <div><dt>XP</dt><dd><%= view.xp %> / <%= view.xpNeeded %></dd></div>
-    <div><dt>Rating</dt><dd><%= rating %></dd></div>
+    <div><dt>True rating</dt><dd><%= rating %></dd></div>
+    <div><dt>Str / Agi / End</dt><dd><%= trainingPoints.strength %> / <%= trainingPoints.agility %> / <%= trainingPoints.endurance %></dd></div>
     <div><dt>Energy</dt><dd><%= t.energy %> / <%= t.max_energy %></dd></div>
     <div><dt>Health</dt><dd><%= t.health %> / <%= t.max_health %><%= view.hospitalized ? ' · hospital' : '' %></dd></div>
     <div><dt>Missions W–L</dt><dd><%= t.missions_completed %>–<%= t.missions_failed %></dd></div>

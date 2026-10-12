@@ -37,6 +37,12 @@ const STATS = {
     base: () => 0.05,
     max: 0.5,
   },
+  dodge: {
+    // Chance to avoid a hit entirely. Only training grants it; capped so fights stay winnable.
+    label: 'Dodge',
+    base: () => 0,
+    max: 0.25,
+  },
   critDamage: {
     label: 'Critical damage',
     base: () => 1.5,
@@ -95,14 +101,16 @@ function expectedDamage(stats) {
  * incoming damage you shrug off. Shown to players and used for matchmaking.
  */
 function combatRating(stats) {
-  return Math.round(expectedDamage(stats) / (1 - mitigation(stats.armor)));
+  return Math.round(expectedDamage(stats) / ((1 - mitigation(stats.armor)) * (1 - (stats.dodge || 0))));
 }
 
 /**
  * Resolves one hit. `attacker` and `defender` are stats from buildStats.
- * Returns { damage, crit, mitigated }.
+ * Returns { damage, crit, mitigated, dodged? }.
  */
 function rollHit(attacker, defender, { rng = Math.random, context = 'pvp' } = {}) {
+  // Only roll for a dodge when the defender can dodge, so fights without it are unchanged.
+  if (defender.dodge > 0 && rng() < defender.dodge) return { damage: 0, crit: false, mitigated: 0, dodged: true };
   const variance = 1 + (rng() * 2 - 1) * DAMAGE_VARIANCE;
   const crit = rng() < attacker.critChance;
   const raw = attacker.attack * attacker.damage * variance * (crit ? attacker.critDamage : 1);
@@ -117,9 +125,10 @@ const MODIFIER_NOUNS = {
   critChance: 'crit chance',
   critDamage: 'crit damage',
   armor: 'armour',
+  dodge: 'dodge',
 };
 // Flat values for these stats are fractions (0.05 = 5%), so show them as percentages.
-const PERCENT_STATS = new Set(['critChance', 'critDamage']);
+const PERCENT_STATS = new Set(['critChance', 'critDamage', 'dodge']);
 
 /** Human-readable text for a modifier, e.g. "+12 attack", "+15% damage", "×1.10 damage". */
 function describeModifier(m) {

@@ -6,6 +6,7 @@
  */
 
 const game = require('./game');
+const { MAX_HEALTH_PER_ENDURANCE } = require('./training');
 
 const MAX_LEVEL = 60;
 const MAX_CASH_CHANGE = 10_000_000;
@@ -42,7 +43,8 @@ function setLevel(player, levelInput, reasonInput) {
   if (level === null || level < 1 || level > MAX_LEVEL) return { error: `Level must be between 1 and ${MAX_LEVEL}.` };
   if (!reason) return { error: 'Give a reason; it goes in the audit log.' };
   const maxEnergy = 50 + 5 * (level - 1);
-  const maxHealth = 100 + 10 * (level - 1);
+  // Keep the max health earned through Endurance training.
+  const maxHealth = 100 + 10 * (level - 1) + MAX_HEALTH_PER_ENDURANCE * (player.stat_end || 0);
   const now = Date.now();
   return {
     player: {

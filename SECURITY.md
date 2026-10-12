@@ -18,7 +18,7 @@ This document records the security review done before launch, and the settings a
 | Abuse | 120 actions per minute per player. Request bodies capped at 10 KB. |
 | Headers | CSP, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Cross-Origin-Opener-Policy`, `Permissions-Policy`; HSTS and `upgrade-insecure-requests` in production over HTTPS. |
 | Admin | Granted only from the server's command line (`npm run admin`), never via the website. `/admin` returns 404 to everyone else. Every admin action is written to an audit log with a reason. Admins can't ban themselves or other admins from the web. |
-| Privacy | Emails, cash on hand, bank balances, purchases and hospital payments are never shown to other players. |
+| Privacy | Emails, cash on hand, bank balances, purchases, hospital payments and training stats are never shown to other players. Public combat ratings are gear-only; true stats are revealed only through paid scouting, to the scout alone. |
 | Dependencies | `npm audit`: 0 known vulnerabilities at review time. |
 
 ## Anti-cheat

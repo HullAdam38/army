@@ -73,6 +73,22 @@ There are six missions, unlocking at levels 1, 1, 3, 5, 8 and 12. Success chance
 
 Regeneration is calculated lazily from timestamps, so no background jobs are needed. All game rules live in `src/game.js` as pure functions.
 
+## Training and scouting
+
+- **Training** (`/training`): three stats raised one point per session, at 5 energy plus cash that rises with the stat ($25, $30, $35…). Each stat can reach 10 × your level.
+
+  | Stat | Each point gives |
+  |---|---|
+  | Strength | +0.5 attack |
+  | Agility | +0.2% crit chance, +0.2% **dodge** (a chance to avoid a hit entirely, capped at 25%) |
+  | Endurance | +0.5 armour, +2 max health |
+
+  Every mission favours one stat: +0.2% success per point, up to +10%.
+- **Training is secret.** Profiles, the players list and battle reports only show the **gear rating**. Your own pages show your true rating.
+- **Scouting** (from a profile): $50 + $25 × the target's level (+50% if they outrank you) and 3 energy. You get a report of their training, true combat rating, dodge, armour and health. It's saved on their profile for you alone and shows its age. The target is told someone scouted them, but not who. The price uses only public facts, so it can't reveal anything about their training.
+
+Rules live in `src/training.js` and `src/scouting.js`.
+
 ## PvP and the hospital
 
 - **Attacking** costs 10 energy and is started from another player's profile. Both sides trade hits for up to 10 rounds using real health and gear. The attacker strikes first and the defender fights back automatically.
@@ -148,6 +164,9 @@ src/
   routes/hospital.js hospital ward, treatment, early discharge
   notify.js          promotion & unlock notifications
   bank.js            deposit/withdraw rules (fee, parsing amounts)
+  training.js        stats, session costs, caps, combat modifiers
+  scouting.js        scouting cost and intel reports
+  routes/training.js training page and sessions
   routes/bank.js     bank page and actions
   admin.js           admin changes (cash, level, restore) with validation
   admin-repo.js      admin queries, bans, audit log
@@ -175,3 +194,5 @@ test/                node:test suites
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted
 - `/bank`: cash on hand vs banked, deposit and withdraw (with "All" and a live fee preview), and recent transactions
+- `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat
+- `/scout/:username` (POST): buy intel on a player; the report appears on their profile for you only

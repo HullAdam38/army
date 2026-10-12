@@ -16,7 +16,7 @@ function armoryRoutes(players) {
     res.render('armory', {
       title: 'Armory',
       nav: 'armory',
-      loadout: loadoutView(req.player.level, equipment),
+      loadout: loadoutView(req.player.level, equipment, req.player),
       catalogue: catalogueView(req.player, owned, equipment),
     });
   });

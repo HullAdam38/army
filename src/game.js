@@ -2,6 +2,7 @@
 
 const combat = require('./combat');
 const { modifiersFor } = require('./items');
+const training = require('./training');
 
 /**
  * Pure game rules. Nothing here touches the database, so the whole loop can be
@@ -40,6 +41,7 @@ const RANKS = [
 const MISSIONS = [
   {
     id: 'perimeter-patrol',
+    favours: 'endurance',
     name: 'Perimeter Patrol',
     theatre: 'Home Base',
     brief: 'Walk the wire, check the sensors and report anything that moves.',
@@ -48,6 +50,7 @@ const MISSIONS = [
   },
   {
     id: 'convoy-escort',
+    favours: 'endurance',
     name: 'Convoy Escort',
     theatre: 'Route Iron',
     brief: 'Ride shotgun on a supply convoy through contested roads.',
@@ -56,6 +59,7 @@ const MISSIONS = [
   },
   {
     id: 'forward-recon',
+    favours: 'agility',
     name: 'Forward Recon',
     theatre: 'Ridge Line',
     brief: 'Slip past enemy pickets and map their positions before dawn.',
@@ -64,6 +68,7 @@ const MISSIONS = [
   },
   {
     id: 'secure-bridge',
+    favours: 'strength',
     name: 'Secure the Bridge',
     theatre: 'River Crossing',
     brief: 'Take and hold the crossing until armour can roll through.',
@@ -72,6 +77,7 @@ const MISSIONS = [
   },
   {
     id: 'hostage-extraction',
+    favours: 'agility',
     name: 'Hostage Extraction',
     theatre: 'Old Town',
     brief: 'Breach, clear and bring every civilian home. No second chances.',
@@ -80,6 +86,7 @@ const MISSIONS = [
   },
   {
     id: 'high-value-target',
+    favours: 'strength',
     name: 'High-Value Target',
     theatre: 'Classified',
     brief: 'Locate and neutralise a high-value target deep behind enemy lines.',
@@ -157,9 +164,13 @@ function regenTo(player, now) {
   };
 }
 
-/** Combat stats for a player at `level` wearing the given item ids. */
-function statsFor(level, itemIds = []) {
-  return combat.buildStats(level, modifiersFor(itemIds));
+/**
+ * Combat stats for a player at `level` wearing the given item ids. Pass the
+ * player row as `trained` to include their (secret) training; leave it out
+ * for the gear-only view other players see.
+ */
+function statsFor(level, itemIds = [], trained = null) {
+  return combat.buildStats(level, [...modifiersFor(itemIds), ...training.modifiersFor(trained)]);
 }
 
 /**
@@ -175,6 +186,7 @@ function gearBonus(level, stats) {
 function successChance(mission, player, stats = statsFor(player.level)) {
   let chance = mission.chance + 0.01 * Math.max(0, player.level - mission.minLevel);
   chance += gearBonus(player.level, stats);
+  chance += training.missionBonus(mission, player);
   if (player.health < player.max_health / 2) chance -= 0.1;
   return Math.max(0.05, Math.min(0.97, chance));
 }
@@ -346,6 +358,8 @@ function missionViews(raw, now = Date.now(), stats = statsFor(raw.level)) {
     locked: p.level < m.minLevel,
     blocker: missionBlocker(m, p, now),
     chancePct: Math.round(successChance(m, p, stats) * 100),
+    favoursLabel: m.favours ? training.STATS[m.favours].label : null,
+    favoursBonusPct: Math.round(training.missionBonus(m, p) * 1000) / 10,
   }));
 }
 

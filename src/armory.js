@@ -4,9 +4,9 @@ const { ITEMS, ITEMS_BY_ID, SLOTS } = require('./items');
 const combat = require('./combat');
 const { statsFor, gearBonus } = require('./game');
 
-/** Combat stats for a stored player from their equipped gear. */
+/** A player's real combat stats: equipped gear plus training. */
 function statsOf(players, user) {
-  return statsFor(user.level, Object.values(players.equipment(user.id)));
+  return statsFor(user.level, Object.values(players.equipment(user.id)), user);
 }
 
 /** Checks a purchase. Returns { error } or { item, cost }. */
@@ -27,13 +27,18 @@ function checkEquip(itemId, player, owned) {
   return { item };
 }
 
-/** Everything the armory, HQ and profiles need to show a player's combat profile. */
-function loadoutView(level, equipment) {
+/**
+ * Everything the armory, HQ and profiles need to show a combat profile. Pass
+ * the player row as `trained` for their true stats (own pages, scouting);
+ * without it you get the gear-only view everyone else sees.
+ */
+function loadoutView(level, equipment, trained = null) {
   const itemIds = Object.values(equipment);
-  const stats = statsFor(level, itemIds);
+  const stats = statsFor(level, itemIds, trained);
   return {
     stats,
     rating: combat.combatRating(stats),
+    includesTraining: Boolean(trained),
     mitigationPct: Math.round(combat.mitigation(stats.armor) * 100),
     gearBonusPct: Math.round(gearBonus(level, stats) * 100),
     slots: SLOTS.map((slot) => {

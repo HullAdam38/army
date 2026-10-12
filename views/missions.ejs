@@ -21,6 +21,7 @@
         </div>
         <h2 class="mission__name"><%= m.name %></h2>
         <p class="mission__brief"><%= m.brief %></p>
+        <% if (m.favoursLabel) { %><p class="mission__favours">Favours <span class="tag tag--stat"><%= m.favoursLabel %></span><% if (m.favoursBonusPct) { %> <span class="mission__bonus">+<%= m.favoursBonusPct %>% from your training</span><% } %></p><% } %>
         <dl class="mission__stats">
           <div><dt><svg aria-hidden="true"><use href="#i-bolt"/></svg>Energy</dt><dd><%= m.energy %></dd></div>
           <div><dt><svg aria-hidden="true"><use href="#i-target"/></svg>Success</dt><dd data-chance><%= m.locked ? '—' : m.chancePct + '%' %></dd></div>

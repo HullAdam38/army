@@ -6,6 +6,7 @@ const MUTABLE_FIELDS = [
   'level', 'xp', 'cash', 'energy', 'max_energy', 'health', 'max_health',
   'energy_updated_at', 'health_updated_at', 'missions_completed', 'missions_failed',
   'hospital_until', 'hospital_reason', 'pvp_wins', 'pvp_losses', 'bank_balance',
+  'stat_str', 'stat_agi', 'stat_end',
 ];
 
 // Sort keys map to fixed SQL fragments; user input never reaches the query text.
@@ -87,6 +88,8 @@ function createPlayerRepo(db) {
                           VALUES (?, ?, ?, ?, ?, ?)`),
     bankHistory: db.prepare(`SELECT type, amount, fee, balance_after, created_at FROM bank_transactions
                              WHERE user_id = ? ORDER BY id DESC LIMIT ?`),
+    insertScout: db.prepare('INSERT INTO scout_reports (scout_id, target_id, cost, report, created_at) VALUES (?, ?, ?, ?, ?)'),
+    latestScout: db.prepare('SELECT * FROM scout_reports WHERE scout_id = ? AND target_id = ? ORDER BY id DESC LIMIT 1'),
     recentTargets: db.prepare(`
       SELECT defender_id, MAX(created_at) AS at FROM battles
       WHERE attacker_id = ? AND created_at >= ? GROUP BY defender_id`),
@@ -211,6 +214,14 @@ function createPlayerRepo(db) {
     logBankTransaction: (userId, { type, amount, fee, balanceAfter }) =>
       stmts.bankLog.run(userId, type, amount, fee, balanceAfter, Date.now()),
     bankHistory: (userId, limit = 10) => stmts.bankHistory.all(userId, limit),
+
+    recordScoutReport: (scoutId, targetId, cost, report, now = Date.now()) =>
+      stmts.insertScout.run(scoutId, targetId, cost, JSON.stringify(report), now),
+    /** The latest intel `scoutId` holds on `targetId`, or null. */
+    latestScoutReport(scoutId, targetId) {
+      const row = stmts.latestScout.get(scoutId, targetId);
+      return row ? { ...row, report: JSON.parse(row.report) } : null;
+    },
 
     /** Map of defender id → time of `attackerId`'s most recent attack on them since `since`. */
     recentTargets(attackerId, since) {

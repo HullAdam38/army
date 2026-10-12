@@ -32,7 +32,7 @@
         <div class="fighter<%= (side === 'attacker') === r.attackerWon ? ' fighter--winner' : '' %>">
           <p class="fighter__role"><%= side === 'attacker' ? 'Attacker' : 'Defender' %></p>
           <p class="fighter__name"><a href="/profile/<%= encodeURIComponent(name) %>"><%= name %></a></p>
-          <p class="fighter__meta">Level <%= r.levels[side] %> · Rating <%= r.ratings[side] %></p>
+          <p class="fighter__meta">Level <%= r.levels[side] %></p>
           <div class="progress-line">
             <div class="progress-line__label"><span>Health</span><span><%= r.end[side] %> / <%= r.start[side] %></span></div>
             <span class="meter meter--health meter--lg"><span class="meter__fill" style="width:<%= pct(r.end[side], r.start[side]) %>%"></span></span>
@@ -58,9 +58,9 @@
         <li class="round">
           <span class="round__n">R<%= round.n %></span>
           <div class="round__body">
-            <p><strong><%= a %></strong> hits <%= d %> for <strong class="round__dmg"><%= round.attack.damage %></strong><% if (round.attack.crit) { %> <span class="tag tag--crit">Crit</span><% } %><% if (round.attack.mitigated) { %> <span class="round__soak">armour absorbed <%= round.attack.mitigated %></span><% } %></p>
+            <% if (round.attack.dodged) { %><p><strong><%= d %></strong> dodges <%= a %>’s attack <span class="tag tag--dodge">Dodge</span></p><% } else { %>            <p><strong><%= a %></strong> hits <%= d %> for <strong class="round__dmg"><%= round.attack.damage %></strong><% if (round.attack.crit) { %> <span class="tag tag--crit">Crit</span><% } %><% if (round.attack.mitigated) { %> <span class="round__soak">armour absorbed <%= round.attack.mitigated %></span><% } %></p><% } %>
             <% if (round.counter) { %>
-              <p><strong><%= d %></strong> returns fire for <strong class="round__dmg"><%= round.counter.damage %></strong><% if (round.counter.crit) { %> <span class="tag tag--crit">Crit</span><% } %><% if (round.counter.mitigated) { %> <span class="round__soak">armour absorbed <%= round.counter.mitigated %></span><% } %></p>
+              <% if (round.counter.dodged) { %><p><strong><%= a %></strong> dodges the return fire <span class="tag tag--dodge">Dodge</span></p><% } else { %>              <p><strong><%= d %></strong> returns fire for <strong class="round__dmg"><%= round.counter.damage %></strong><% if (round.counter.crit) { %> <span class="tag tag--crit">Crit</span><% } %><% if (round.counter.mitigated) { %> <span class="round__soak">armour absorbed <%= round.counter.mitigated %></span><% } %></p><% } %>
             <% } else { %>
               <p class="round__ko"><%= d %> is down.</p>
             <% } %>

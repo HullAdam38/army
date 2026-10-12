@@ -1,19 +1,6 @@
 <%# Combat profile + loadout. Expects `loadout`; `editable` shows stow buttons. %>
-<% const st = loadout.stats; const icons = { weapon: 'i-weapon', body: 'i-body', helmet: 'i-helmet', kit: 'i-kit' }; %>
-<div class="combat-profile">
-  <div class="combat-profile__rating">
-    <span class="combat-profile__label">Combat rating</span>
-    <span class="combat-profile__value"><%= loadout.rating %></span>
-  </div>
-  <dl class="combat-stats">
-    <div><dt>Attack</dt><dd><%= Math.round(st.attack) %></dd></div>
-    <div><dt>Damage</dt><dd>×<%= st.damage.toFixed(2) %></dd></div>
-    <div><dt>Crit chance</dt><dd><%= Math.round(st.critChance * 100) %>%</dd></div>
-    <div><dt>Crit damage</dt><dd>×<%= st.critDamage.toFixed(2) %></dd></div>
-    <div><dt>Armour</dt><dd><%= Math.round(st.armor) %> <small>−<%= loadout.mitigationPct %>% dmg</small></dd></div>
-    <div><dt>Mission bonus</dt><dd>+<%= loadout.gearBonusPct %>%</dd></div>
-  </dl>
-</div>
+<% const icons = { weapon: 'i-weapon', body: 'i-body', helmet: 'i-helmet', kit: 'i-kit' }; %>
+<%- include('combat-profile', { loadout }) %>
 <ul class="loadout">
   <% loadout.slots.forEach(function (s) { %>
     <li class="loadout__slot<%= s.item ? '' : ' loadout__slot--empty' %>">

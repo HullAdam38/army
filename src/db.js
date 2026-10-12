@@ -136,6 +136,17 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_actions_user ON actions(user_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_actions_time ON actions(created_at);
 
+  -- Scouting: snapshots of a target's hidden stats, visible only to the scout.
+  CREATE TABLE IF NOT EXISTS scout_reports (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    scout_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    cost        INTEGER NOT NULL,
+    report      TEXT    NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_scout_pair ON scout_reports(scout_id, target_id, id DESC);
+
   -- Anti-cheat: suspicious activity for an admin to review.
   CREATE TABLE IF NOT EXISTS flags (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,6 +189,9 @@ const ADDED_COLUMNS = [
   ['users', 'banned_at', 'INTEGER'],
   ['users', 'ban_reason', 'TEXT'],
   ['battles', 'reversed_at', 'INTEGER'],
+  ['users', 'stat_str', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'stat_agi', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'stat_end', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 function migrate(db) {

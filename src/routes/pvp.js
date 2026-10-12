@@ -5,6 +5,7 @@ const game = require('../game');
 const pvp = require('../pvp');
 const presence = require('../presence');
 const { statsOf } = require('../armory');
+const scouting = require('../scouting');
 const { createRequireAuth } = require('../require-auth');
 const { announceLevels } = require('../notify');
 
@@ -73,6 +74,24 @@ function pvpRoutes(players, anti) {
     }
     res.locals.gains = { xp: outcome.xp, cash: outcome.cash }; // for anti-cheat
     res.redirect(`/battles/${outcome.id}`);
+  });
+
+  router.post('/scout/:username', requireAuth, (req, res, next) => {
+    const target = players.findByUsername(String(req.params.username));
+    if (!target) return next();
+    const outcome = players.transaction(() => {
+      const fresh = players.findById(req.player.id);
+      const out = scouting.chargeScout(fresh, target);
+      if (out.error) return out;
+      const now = Date.now();
+      players.save(out.player, { reason: 'scout', ref: `user:${target.id}` });
+      players.recordScoutReport(fresh.id, target.id, out.cost, scouting.buildReport(target, statsOf(players, target), now), now);
+      // The target learns they were watched, not by whom.
+      players.notify(target.id, 'system', 'Enemy reconnaissance detected: someone has gathered intel on your training and combat readiness.', '/training');
+      return out;
+    });
+    req.flash(outcome.error ? 'error' : 'success', outcome.error || `Intel on ${target.username} acquired for $${outcome.cost.toLocaleString('en-US')}.`);
+    res.redirect(`/profile/${encodeURIComponent(target.username)}#intel`);
   });
 
   router.get('/battles/:id', requireAuth, (req, res, next) => {

@@ -1,0 +1,72 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const icons = { strength: 'i-weapon', agility: 'i-bolt', endurance: 'i-health' }; %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Training ground</p>
+      <h1 class="page-head__title">Training</h1>
+      <p class="page-head__sub">Each session costs <%= energyPerSession %> energy plus cash, and adds one point. Sessions get pricier as a stat grows, and each stat can reach <%= perLevel %> × your level.</p>
+    </div>
+  </div>
+
+  <p class="notice notice--secret reveal" style="--i:1"><svg aria-hidden="true"><use href="#i-lock"/></svg>Your training is secret. Other soldiers see only your gear rating, unless they pay to scout you.</p>
+
+  <div class="train-grid">
+    <% stats.forEach(function (s, i) { %>
+      <section class="card train-card reveal" style="--i:<%= i + 2 %>" id="stat-<%= s.key %>" aria-labelledby="stat-<%= s.key %>-title">
+        <div class="train-card__head">
+          <svg class="train-card__icon" aria-hidden="true"><use href="#<%= icons[s.key] %>"/></svg>
+          <div>
+            <h2 id="stat-<%= s.key %>-title" class="train-card__title"><%= s.label %></h2>
+            <p class="train-card__blurb"><%= s.blurb %></p>
+          </div>
+        </div>
+        <div class="progress-line">
+          <div class="progress-line__label"><span>Points</span><span><%= s.points %> / <%= s.cap %></span></div>
+          <span class="meter meter--xp meter--lg"><span class="meter__fill" style="width:<%= s.pct %>%"></span></span>
+        </div>
+        <dl class="train-card__effects">
+          <div><dt>Now</dt><dd><%= s.points ? s.effects.join(' · ') : 'No bonus yet' %></dd></div>
+          <div><dt>Each point</dt><dd><%= s.perPoint.join(' · ') %></dd></div>
+        </dl>
+        <% if (s.atCap) { %>
+          <p class="train-card__cap">At the limit for your level. Level up to keep training.</p>
+        <% } else { %>
+          <div class="train-card__actions">
+            <form method="post" action="/training/<%= s.key %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn--primary btn--block" type="submit" <%- player.energy < energyPerSession || player.cash < s.cost || player.hospitalized ? 'disabled' : '' %>>Train · $<%= s.cost %></button>
+            </form>
+            <% if (s.fiveSessions > 1) { %>
+              <form method="post" action="/training/<%= s.key %>">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="times" value="5">
+                <button class="btn btn--ghost btn--block" type="submit" <%- player.energy < energyPerSession || player.cash < s.cost || player.hospitalized ? 'disabled' : '' %>>×<%= s.fiveSessions %> · $<%= s.fiveCost %></button>
+              </form>
+            <% } %>
+          </div>
+          <p class="train-card__note"><%= energyPerSession %> energy per session</p>
+        <% } %>
+      </section>
+    <% }) %>
+  </div>
+
+  <div class="train-lower">
+    <section class="card reveal" style="--i:5" aria-labelledby="profile-title">
+      <h2 id="profile-title" class="card__title">Your true combat profile</h2>
+      <%- include('partials/combat-profile', { loadout }) %>
+      <p class="progress-line__note">Includes gear and training. <a href="/armory">Change gear</a></p>
+    </section>
+    <section class="card reveal" style="--i:6" aria-labelledby="fav-title">
+      <h2 id="fav-title" class="card__title">Missions that favour each stat</h2>
+      <p class="muted">Each point of the favoured stat adds 0.2% success, up to +10%.</p>
+      <ul class="fav-list">
+        <% missions.forEach(function (m) { %><li><span><%= m.name %> <span class="muted">Lv <%= m.minLevel %>+</span></span><span class="tag tag--stat"><%= m.favours %></span></li><% }) %>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<%- include('partials/foot') %>
