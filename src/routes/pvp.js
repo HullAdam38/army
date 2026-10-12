@@ -9,7 +9,7 @@ const scouting = require('../scouting');
 const { createRequireAuth } = require('../require-auth');
 const { announceLevels } = require('../notify');
 
-function pvpRoutes(players, anti) {
+function pvpRoutes(players, anti, daily) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -22,11 +22,12 @@ function pvpRoutes(players, anti) {
       const attacker = players.findById(req.player.id);
       const defender = players.findById(target.id);
       const now = Date.now();
+      const rewards = anti.pvpRewards(attacker.id, defender.id, now);
       const out = pvp.resolveAttack(attacker, defender, {
         aStats: statsOf(players, attacker),
         dStats: statsOf(players, defender),
         lastAttackAt: players.lastAttackAt(attacker.id, defender.id),
-        rewards: anti.pvpRewards(attacker.id, defender.id, now),
+        rewards,
         now,
       });
       if (out.error) return out;
@@ -55,6 +56,8 @@ function pvpRoutes(players, anti) {
         link,
       );
       anti.afterBattle(attacker.id, defender.id, now);
+      // Only a full-reward win counts: no linked accounts, no repeat wins on one target.
+      if (r.attackerWon && rewards.attacker === 1) daily.progress(attacker.id, 'pvp_wins', 1, { now });
       announceLevels(players, attacker.id, r.levelsGained.attacker);
       announceLevels(players, defender.id, r.levelsGained.defender);
       for (const [p, side] of [[attacker, 'attacker'], [defender, 'defender']]) {
@@ -87,6 +90,7 @@ function pvpRoutes(players, anti) {
       players.save(out.player, { reason: 'scout', ref: `user:${target.id}` });
       players.recordScoutReport(fresh.id, target.id, out.cost, scouting.buildReport(target, statsOf(players, target), now), now);
       // The target learns they were watched, not by whom.
+      daily.progress(fresh.id, 'scout', 1, { now });
       players.notify(target.id, 'system', 'Enemy reconnaissance detected: someone has gathered intel on your training and combat readiness.', '/training');
       return out;
     });

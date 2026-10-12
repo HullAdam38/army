@@ -20,9 +20,11 @@ const { bankRoutes } = require('./routes/bank');
 const { trainingRoutes } = require('./routes/training');
 const { leaderboardRoutes } = require('./routes/leaderboards');
 const { accountRoutes } = require('./routes/account');
+const { dailyRoutes } = require('./routes/daily');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
+const { createDailyService } = require('./daily-service');
 const pkg = require('../package.json');
 
 /**
@@ -55,6 +57,7 @@ function createApp({
   const anti = createAntiCheat(db, players, { secret });
   app.anti = anti; // exposed for tests and maintenance scripts
   anti.schedule(scanHours);
+  const daily = createDailyService(db, players);
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, '..', 'views'));
@@ -108,14 +111,15 @@ function createApp({
 
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
-  app.use(gameRoutes(players));
+  app.use(gameRoutes(players, daily));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
-  app.use(pvpRoutes(players, anti));
+  app.use(pvpRoutes(players, anti, daily));
   app.use(notificationRoutes(players));
   app.use(bankRoutes(players));
-  app.use(trainingRoutes(players));
+  app.use(trainingRoutes(players, daily));
   app.use(leaderboardRoutes(players, db));
+  app.use(dailyRoutes(players, daily));
   app.use(accountRoutes(players));
   app.use(adminRoutes(players, createAdminRepo(db), anti));
 

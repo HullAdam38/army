@@ -147,6 +147,27 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_scout_pair ON scout_reports(scout_id, target_id, id DESC);
 
+  -- Daily orders: three per player per UTC day, created on first look.
+  CREATE TABLE IF NOT EXISTS daily_orders (
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    day          TEXT    NOT NULL,
+    slot         INTEGER NOT NULL,
+    type         TEXT    NOT NULL,
+    param        TEXT,
+    target       INTEGER NOT NULL,
+    progress     INTEGER NOT NULL DEFAULT 0,
+    reward_xp    INTEGER NOT NULL,
+    reward_cash  INTEGER NOT NULL,
+    claimed_at   INTEGER,
+    PRIMARY KEY (user_id, day, slot)
+  );
+  CREATE TABLE IF NOT EXISTS daily_bonus (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    day         TEXT    NOT NULL,
+    claimed_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, day)
+  );
+
   -- Anti-cheat: suspicious activity for an admin to review.
   CREATE TABLE IF NOT EXISTS flags (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -194,6 +215,9 @@ const ADDED_COLUMNS = [
   ['users', 'stat_end', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'must_change_password', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'password_reset_at', 'INTEGER'],
+  ['users', 'streak_count', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'streak_day', 'TEXT'],
+  ['users', 'streak_best', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 function migrate(db) {

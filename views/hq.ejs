@@ -38,7 +38,7 @@
     </section>
 
     <section class="card hq-card hq-card--orders reveal" style="--i:2" aria-labelledby="orders-title">
-      <h2 id="orders-title" class="card__title">Next orders</h2>
+      <h2 id="orders-title" class="card__title">Next mission</h2>
       <% if (nextMission) { %>
         <p class="orders__theatre"><%= nextMission.theatre %></p>
         <p class="orders__name"><%= nextMission.name %></p>
@@ -64,7 +64,68 @@
       <% } %>
     </section>
 
-    <section class="card hq-card hq-card--status reveal" style="--i:3" aria-labelledby="status-title">
+    <section class="card hq-card hq-card--daily reveal" style="--i:3" aria-labelledby="daily-title">
+      <h2 id="daily-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-star"/></svg>Daily orders <span class="card__title-meta">New orders in <span data-until="<%= Date.now() + daily.resetInMs %>" data-reload>soon</span></span></h2>
+      <ol class="daily">
+        <% daily.orders.forEach(function (o) { %>
+          <li class="daily__order<%= o.claimed ? ' is-claimed' : o.done ? ' is-done' : '' %>">
+            <div class="daily__body">
+              <div class="progress-line__label"><span class="daily__text"><%= o.text %></span><span><%= o.type === 'mission_cash' ? `$${o.progress.toLocaleString('en-US')} / $${o.target.toLocaleString('en-US')}` : `${o.progress} / ${o.target}` %></span></div>
+              <span class="meter meter--xp" role="progressbar" aria-label="<%= o.text %>" aria-valuemin="0" aria-valuemax="<%= o.target %>" aria-valuenow="<%= o.progress %>"><span class="meter__fill" style="width:<%= o.pct %>%"></span></span>
+              <p class="daily__reward">+<%= o.reward_xp %> XP · +$<%= o.reward_cash.toLocaleString('en-US') %></p>
+            </div>
+            <% if (o.claimed) { %>
+              <span class="daily__status">Claimed</span>
+            <% } else { %>
+              <form method="post" action="/daily/orders/<%= o.slot %>/claim">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn--sm <%= o.done ? 'btn--primary' : 'btn--ghost' %>" type="submit" <%- o.done ? '' : 'disabled' %>>Claim</button>
+              </form>
+            <% } %>
+          </li>
+        <% }) %>
+      </ol>
+      <div class="daily__bonus<%= daily.bonusClaimed ? ' is-claimed' : daily.allClaimed ? ' is-ready' : '' %>">
+        <div>
+          <p class="daily__bonus-title">Commendation</p>
+          <p class="daily__reward">Claim all three orders for +<%= daily.bonus.xp %> XP · +$<%= daily.bonus.cash.toLocaleString('en-US') %>. Unclaimed rewards expire at reset (00:00 UTC).</p>
+        </div>
+        <% if (daily.bonusClaimed) { %>
+          <span class="daily__status">Awarded</span>
+        <% } else { %>
+          <form method="post" action="/daily/bonus/claim">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn--sm <%= daily.allClaimed ? 'btn--primary' : 'btn--ghost' %>" type="submit" <%- daily.allClaimed ? '' : 'disabled' %>>Claim</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card hq-card hq-card--supply reveal" style="--i:4" aria-labelledby="supply-title">
+      <h2 id="supply-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-kit"/></svg>Supply drop</h2>
+      <p class="supply__streak"><span class="supply__count"><%= daily.streak.current %></span> day streak<span class="muted"> · best <%= daily.streak.best %></span></p>
+      <ol class="supply" aria-label="7-day supply cycle">
+        <% daily.streak.days.forEach(function (d) { %>
+          <li class="supply__day<%= d.done ? ' is-done' : '' %><%= d.today ? ' is-today' : '' %><%= d.energy ? ' is-big' : '' %>">
+            <span class="supply__label">Day <%= d.day %></span>
+            <span class="supply__cash">$<%= d.cash.toLocaleString('en-US') %></span>
+            <% if (d.energy) { %><span class="supply__extra"><svg aria-hidden="true"><use href="#i-bolt"/></svg>Full energy</span><% } %>
+            <% if (d.done) { %><span class="visually-hidden">(received)</span><% } %>
+          </li>
+        <% }) %>
+      </ol>
+      <% if (daily.streak.claimedToday) { %>
+        <p class="progress-line__note">Today’s drop is in. Next one in <span data-until="<%= Date.now() + daily.resetInMs %>">soon</span>; miss a day and the streak restarts.</p>
+      <% } else { %>
+        <form method="post" action="/daily/supply/claim">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--primary btn--block" type="submit">Collect day <%= daily.streak.cycleDay %> drop</button>
+        </form>
+        <p class="progress-line__note"><%= daily.streak.current ? 'Collect before 00:00 UTC to keep your streak.' : 'Collect every day to build a streak. Day 7 also refills your energy.' %></p>
+      <% } %>
+    </section>
+
+    <section class="card hq-card hq-card--status reveal" style="--i:5" aria-labelledby="status-title">
       <h2 id="status-title" class="card__title">Readiness</h2>
       <div class="progress-line">
         <div class="progress-line__label"><span><svg class="inline-icon inline-icon--energy" aria-hidden="true"><use href="#i-bolt"/></svg>Energy</span><span><%= player.energy %> / <%= player.maxEnergy %></span></div>
@@ -100,7 +161,7 @@
       <% } %>
     </section>
 
-    <section class="card hq-card hq-card--log reveal" style="--i:4" aria-labelledby="log-title">
+    <section class="card hq-card hq-card--log reveal" style="--i:6" aria-labelledby="log-title">
       <h2 id="log-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Radio log</h2>
       <% if (activity.length) { %>
         <ol class="dossier__log">
@@ -112,7 +173,7 @@
         <p class="muted">Radio silence. Run a mission to get chatter going.</p>
       <% } %>
     </section>
-    <section class="card hq-card hq-card--feed reveal" style="--i:5" aria-labelledby="feed-title">
+    <section class="card hq-card hq-card--feed reveal" style="--i:7" aria-labelledby="feed-title">
       <h2 id="feed-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>Combat feed <a class="card__title-link" href="/leaderboards?board=pvp">Leaderboards</a></h2>
       <% if (feed.length) { %>
         <ol class="feed">

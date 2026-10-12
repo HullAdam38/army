@@ -16,7 +16,7 @@ const training = require('../training');
 const PLAYER_FILTERS = ['all', 'targets', 'online'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players) {
+function gameRoutes(players, daily) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -30,6 +30,7 @@ function gameRoutes(players) {
       nav: 'hq',
       activity: players.recentActivity(req.player.id),
       nextMission,
+      daily: daily.view(req.player),
       nextRank: game.nextRankFor(req.player.level),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
@@ -65,6 +66,11 @@ function gameRoutes(players) {
         players.log(fresh.id, 'promotion', `Promoted to level ${lvl} — ${rank.name} (${rank.grade}).`);
       }
       announceLevels(players, fresh.id, r.levelsGained);
+      if (r.success) {
+        daily.progress(fresh.id, 'missions_won', 1);
+        daily.progress(fresh.id, 'mission_specific', 1, { param: req.params.id });
+        daily.progress(fresh.id, 'mission_cash', r.cash);
+      }
       return out;
     });
 

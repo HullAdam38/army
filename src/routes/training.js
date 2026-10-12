@@ -6,7 +6,7 @@ const game = require('../game');
 const { loadoutView } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
 
-function trainingRoutes(players) {
+function trainingRoutes(players, daily) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -30,6 +30,7 @@ function trainingRoutes(players) {
       const out = training.train(fresh, req.params.stat, times);
       if (out.error) return out;
       players.save(out.player, { reason: 'training', ref: req.params.stat });
+      daily.progress(fresh.id, 'training', out.sessions);
       return out;
     });
     if (outcome.error) {

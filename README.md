@@ -90,6 +90,18 @@ Regeneration is calculated lazily from timestamps, so no background jobs are nee
 
 Rules live in `src/training.js` and `src/scouting.js`.
 
+## Daily orders and supply drops
+
+- **Daily orders:** three orders each UTC day, picked to fit your level. They might be "Complete 4 missions", "Complete Convoy Escort twice", "Earn $580 from missions", "Win a PvP fight", "Train 3 sessions" or "Scout another player". PvP and scouting orders only appear from level 3.
+  - Progress tracks automatically. You get a notification when an order is complete, then claim it at HQ.
+  - Each order pays `15 + 8 × level` XP and `$40 + $35 × level`. Claiming all three earns a **Commendation** worth one more order.
+  - Unclaimed rewards expire at 00:00 UTC.
+  - A PvP win only counts at full rewards, so wins against linked accounts and repeat wins on one player don't count.
+- **Supply drop:** claim once a day from HQ for `($25 + $15 × level) ×` the multiplier for that day of the streak: 1, 1, 1.5, 1.5, 2, 2, 3. Day 7 also refills your energy, then the cycle repeats. Miss a UTC day and the streak goes back to 1; your best streak is kept.
+- Every payout goes through the ledger (`daily-order`, `daily-bonus`, `supply-drop`).
+
+Rules live in `src/daily.js` and `src/daily-service.js`.
+
 ## PvP and the hospital
 
 - **Attacking** costs 10 energy and is started from another player's profile. Both sides trade hits for up to 10 rounds using real health and gear. The attacker strikes first and the defender fights back automatically.
@@ -115,6 +127,7 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
   - promotions
   - unlocks on level-up (new missions, new Armory gear, PvP at level 3)
   - a welcome message for new players
+  - a daily order being completed
 - **The bell** in the header shows the unread count. `/notifications` lists the latest 50 (each inbox keeps up to 200) and marks them read when you view it.
 - **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
 - **The combat feed** on HQ shows the latest fights across the whole game.
@@ -167,6 +180,9 @@ src/
   bank.js            deposit/withdraw rules (fee, parsing amounts)
   training.js        stats, session costs, caps, combat modifiers
   scouting.js        scouting cost and intel reports
+  daily.js           daily order + supply drop rules (pure)
+  daily-service.js   daily orders storage, progress and claims
+  routes/daily.js    claim orders, commendation and supply drop
   routes/training.js training page and sessions
   leaderboards.js    ranked boards (window-function queries)
   routes/leaderboards.js, routes/account.js
@@ -187,7 +203,7 @@ test/                node:test suites
 
 - `/`: landing page
 - `/register`, `/login`: account forms (registration requires confirming you are 18+)
-- `/hq`: dashboard with service record, next orders, readiness (live regen timers), field hospital and radio log
+- `/hq`: dashboard with service record, next mission, daily orders, supply drop streak, readiness (live regen timers), field hospital and radio log
 - `/missions`: operations board. Deploying uses `fetch` and updates stats in place, and falls back to a normal form post without JavaScript.
 - `/players`: directory of all players. Search by callsign, filter to **Targets** (players you can attack right now) or **Online now**, and sort by level, PvP wins, newest or name, 25 per page. Each row shows rank, level, combat rating, PvP record and status, with an Attack button or the reason you can't attack.
 - `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.

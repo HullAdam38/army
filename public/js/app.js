@@ -83,7 +83,10 @@
       const now = Date.now();
       untils.forEach((el) => {
         const left = Math.max(0, Math.ceil((Number(el.dataset.until) - now) / 1000));
-        el.textContent = left > 0 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : 'now';
+        const pad = (n) => String(n).padStart(2, '0');
+        el.textContent = left <= 0 ? 'now'
+          : left >= 3600 ? `${Math.floor(left / 3600)}:${pad(Math.floor(left / 60) % 60)}:${pad(left % 60)}`
+          : `${Math.floor(left / 60)}:${pad(left % 60)}`;
         if (left === 0 && el.hasAttribute('data-reload') && !reloading) {
           reloading = true;
           setTimeout(() => window.location.reload(), 1500);
