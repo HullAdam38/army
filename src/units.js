@@ -81,12 +81,48 @@ function cooldownBlocker(player, now = Date.now()) {
   return null;
 }
 
+/** Requirement fields a Commander can set, with their upper limits. */
+const REQUIREMENTS = {
+  min_level: { label: 'Level', max: 100, short: (n) => `Lv ${n}+` },
+  min_pvp_wins: { label: 'PvP wins', max: 10000, short: (n) => `${n}+ PvP wins` },
+  min_missions: { label: 'Missions won', max: 100000, short: (n) => `${n}+ missions` },
+};
+const PLAYER_FIELD = { min_level: 'level', min_pvp_wins: 'pvp_wins', min_missions: 'missions_completed' };
+
+/** Parses the requirements form. Blank means no requirement. Returns { error } or { min_level, … }. */
+function parseRequirements(body) {
+  const out = {};
+  for (const [key, def] of Object.entries(REQUIREMENTS)) {
+    const raw = String(body[key] ?? '').trim();
+    const n = raw === '' ? 0 : Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > def.max) return { error: `${def.label} requirement must be a whole number from 0 to ${def.max.toLocaleString('en-US')}.` };
+    out[key] = n;
+  }
+  return out;
+}
+
+/** The requirements `unit` has set, as short labels ("Lv 10+"). */
+function requirementList(unit) {
+  return Object.entries(REQUIREMENTS).filter(([key]) => unit[key] > 0).map(([key, def]) => ({ key, text: def.short(unit[key]) }));
+}
+
+/** The first requirement `player` doesn't meet, as a sentence, or null. */
+function unmetRequirement(player, unit) {
+  for (const [key, def] of Object.entries(REQUIREMENTS)) {
+    const have = player[PLAYER_FIELD[key]] || 0;
+    if (unit[key] > 0 && have < unit[key]) return `${unit.name} requires ${def.short(unit[key])}. You have ${have.toLocaleString('en-US')}.`;
+  }
+  return null;
+}
+
 /** Why `player` can't apply to `unit`, or null. */
 function applyBlocker(player, unit, { members, pending, alreadyApplied }, now = Date.now()) {
   if (player.unit_id === unit.id) return 'You’re already in this unit.';
   if (player.unit_id) return 'You’re already in a unit. Leave it first.';
-  if (!unit.recruiting) return `${unit.name} isn’t recruiting right now.`;
+  if (!unit.recruiting) return `${unit.name} isn’t taking applications right now.`;
   if (members >= capacity(unit)) return `${unit.name} is full.`;
+  const unmet = unmetRequirement(player, unit);
+  if (unmet) return unmet;
   if (alreadyApplied) return 'Your application is already with their officers.';
   if (pending >= MAX_PENDING_APPLICATIONS) return `You can have ${MAX_PENDING_APPLICATIONS} applications open at once. Withdraw one first.`;
   return cooldownBlocker(player, now);
@@ -121,6 +157,7 @@ module.exports = {
   MAX_POST,
   MIN_DONATION,
   POST_COOLDOWN_MS,
+  REQUIREMENTS,
   ROLES,
   UPGRADES,
   applyBlocker,
@@ -130,8 +167,11 @@ module.exports = {
   foundBlocker,
   nextUpgrade,
   parseDonation,
+  parseRequirements,
   rankOf,
+  requirementList,
   roleLabel,
+  unmetRequirement,
   validateUnit,
   xpBonus,
 };

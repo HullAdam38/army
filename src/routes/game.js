@@ -14,10 +14,10 @@ const scouting = require('../scouting');
 const training = require('../training');
 const units = require('../units');
 
-const PLAYER_FILTERS = ['all', 'targets', 'online'];
+const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo) {
+function gameRoutes(players, daily, unitRepo, warService) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -130,13 +130,16 @@ function gameRoutes(players, daily, unitRepo) {
   router.get('/players', requireAuth, (req, res) => {
     const now = Date.now();
     const q = String(req.query.q || '').trim().slice(0, 20);
-    const filter = PLAYER_FILTERS.includes(req.query.filter) ? req.query.filter : 'all';
+    const war = warService.activeFor(req.player.unit_id);
+    const enemyUnitId = war ? (war.attacker_unit_id === req.player.unit_id ? war.defender_unit_id : war.attacker_unit_id) : null;
+    let filter = PLAYER_FILTERS.includes(req.query.filter) ? req.query.filter : 'all';
+    if (filter === 'war' && !enemyUnitId) filter = 'all';
     const sort = Object.hasOwn(PLAYER_SORTS, req.query.sort) ? req.query.sort : 'level';
     const page = Math.max(1, Math.floor(Number(req.query.page)) || 1);
 
     const me = game.applyRegen(req.player, now);
     const { rows, total } = players.searchPlayers({
-      q, filter, sort, me, now,
+      q, filter, sort, me, now, enemyUnitId,
       onlineSince: now - presence.ONLINE_WINDOW_MS,
       targetRules: { minLevel: pvp.MIN_PVP_LEVEL, maxLevelsBelow: pvp.MAX_LEVELS_BELOW },
       limit: PAGE_SIZE,
@@ -180,6 +183,7 @@ function gameRoutes(players, daily, unitRepo) {
       title: 'Players',
       nav: 'players',
       list, total, page, pages, q, filter, sort,
+      war: war ? { id: war.id, enemyTag: war.attacker_unit_id === req.player.unit_id ? war.defender_tag : war.attacker_tag } : null,
       sorts: [['level', 'Level'], ['wins', 'PvP wins'], ['newest', 'Newest'], ['name', 'Name']],
       urlFor,
       selfBlocker,

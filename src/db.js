@@ -229,6 +229,38 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_unit_log ON unit_log(unit_id, id DESC);
 
+  CREATE TABLE IF NOT EXISTS unit_wars (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    attacker_unit_id  INTEGER REFERENCES units(id) ON DELETE SET NULL,
+    defender_unit_id  INTEGER REFERENCES units(id) ON DELETE SET NULL,
+    attacker_name     TEXT    NOT NULL,
+    attacker_tag      TEXT    NOT NULL,
+    defender_name     TEXT    NOT NULL,
+    defender_tag      TEXT    NOT NULL,
+    stake             INTEGER NOT NULL,
+    attacker_score    INTEGER NOT NULL DEFAULT 0,
+    defender_score    INTEGER NOT NULL DEFAULT 0,
+    status            TEXT    NOT NULL DEFAULT 'active',
+    winner            TEXT,
+    result_note       TEXT,
+    started_at        INTEGER NOT NULL,
+    ends_at           INTEGER NOT NULL,
+    ended_at          INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_wars_status ON unit_wars(status, ends_at);
+  CREATE INDEX IF NOT EXISTS idx_wars_attacker ON unit_wars(attacker_unit_id, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_wars_defender ON unit_wars(defender_unit_id, id DESC);
+
+  CREATE TABLE IF NOT EXISTS unit_war_battles (
+    war_id     INTEGER NOT NULL REFERENCES unit_wars(id) ON DELETE CASCADE,
+    battle_id  INTEGER NOT NULL REFERENCES battles(id) ON DELETE CASCADE,
+    side       TEXT    NOT NULL,
+    user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    points     INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (war_id, battle_id)
+  );
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -264,6 +296,13 @@ const ADDED_COLUMNS = [
   ['users', 'unit_joined_at', 'INTEGER'],
   ['users', 'unit_donated', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'unit_left_at', 'INTEGER'],
+  ['units', 'min_level', 'INTEGER NOT NULL DEFAULT 0'],
+  ['units', 'min_pvp_wins', 'INTEGER NOT NULL DEFAULT 0'],
+  ['units', 'min_missions', 'INTEGER NOT NULL DEFAULT 0'],
+  ['units', 'war_wins', 'INTEGER NOT NULL DEFAULT 0'],
+  ['units', 'war_losses', 'INTEGER NOT NULL DEFAULT 0'],
+  ['units', 'war_draws', 'INTEGER NOT NULL DEFAULT 0'],
+  ['units', 'war_protected_until', 'INTEGER'],
 ];
 
 function migrate(db) {

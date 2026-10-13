@@ -25,7 +25,7 @@ test('unit names, tags and permissions', () => {
   const unit = { id: 1, name: 'Iron Wolves', recruiting: 1, barracks: 0 };
   const ok = { members: 3, pending: 0, alreadyApplied: false };
   assert.equal(units.applyBlocker(p, unit, ok, now), null);
-  assert.match(units.applyBlocker(p, { ...unit, recruiting: 0 }, ok, now), /isn’t recruiting/);
+  assert.match(units.applyBlocker(p, { ...unit, recruiting: 0 }, ok, now), /isn’t taking applications/);
   assert.match(units.applyBlocker(p, unit, { ...ok, members: 10 }, now), /full/);
   assert.equal(units.applyBlocker(p, { ...unit, barracks: 1 }, { ...ok, members: 10 }, now), null);
   assert.match(units.applyBlocker(p, unit, { ...ok, pending: 3 }, now), /3 applications/);
@@ -219,6 +219,123 @@ test('admins can rename or disband a unit; others get a 404', async () => {
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM admin_actions WHERE action = 'unit-rename'").get().n, 1);
     assert.match((await boss.flash(`/units/${unitId}/admin/disband`, { reason: 'Offensive name' })).message, /disbanded/);
     assert.match(db.prepare("SELECT message FROM notifications WHERE kind = 'unit' ORDER BY id DESC").get().message, /Offensive name/);
+  } finally {
+    server.close();
+  }
+});
+
+test('application requirements', () => {
+  assert.deepEqual(units.parseRequirements({ min_level: '10', min_pvp_wins: '', min_missions: '0' }), { min_level: 10, min_pvp_wins: 0, min_missions: 0 });
+  assert.match(units.parseRequirements({ min_level: '-1' }).error, /Level requirement/);
+  assert.match(units.parseRequirements({ min_level: '2.5' }).error, /whole number/);
+  const unit = { id: 1, name: 'Iron Wolves', recruiting: 1, barracks: 0, min_level: 10, min_pvp_wins: 5, min_missions: 0 };
+  assert.deepEqual(units.requirementList(unit).map((r) => r.text), ['Lv 10+', '5+ PvP wins']);
+  const ctx = { members: 1, pending: 0, alreadyApplied: false };
+  assert.match(units.applyBlocker({ level: 9, pvp_wins: 9 }, unit, ctx), /requires Lv 10\+\. You have 9/);
+  assert.match(units.applyBlocker({ level: 12, pvp_wins: 2 }, unit, ctx), /5\+ PvP wins/);
+  assert.equal(units.applyBlocker({ level: 12, pvp_wins: 5 }, unit, ctx), null);
+});
+
+test('war rules: declaring, scoring and settling', () => {
+  const wars = require('../src/wars');
+  const now = Date.now();
+  const a = { id: 1, name: 'Iron Wolves', treasury: 3000 };
+  const t = { id: 2, name: 'Steel Rain', treasury: 0 };
+  const ctx = { attackerAtWar: false, targetAtWar: false, attackerMembers: 3, targetMembers: 4, lastPairWarAt: null };
+  assert.equal(wars.declareBlocker(a, t, ctx, now), null);
+  assert.match(wars.declareBlocker(a, a, ctx, now), /itself/);
+  assert.match(wars.declareBlocker(a, t, { ...ctx, targetAtWar: true }, now), /Steel Rain is already at war/);
+  assert.match(wars.declareBlocker(a, t, { ...ctx, attackerMembers: 2 }, now), /at least 3 members/);
+  assert.match(wars.declareBlocker({ ...a, treasury: 100 }, t, ctx, now), /costs \$2,500/);
+  assert.match(wars.declareBlocker(a, { ...t, war_protected_until: now + 3600_000 }, ctx, now), /protected for 1h/);
+  assert.match(wars.declareBlocker(a, t, { ...ctx, lastPairWarAt: now - 3600_000 }, now), /rematch is possible in 71h/);
+
+  const war = { attacker_unit_id: 1, defender_unit_id: 2, started_at: now - 1000 };
+  const p = (id, unit, joined = now - 5000) => ({ id, unit_id: unit, unit_joined_at: joined });
+  assert.deepEqual(wars.scoreFight(war, { a: p(1, 1), d: p(2, 2), attackerWon: true, knockout: false, fullRewards: true }), { side: 'attacker', points: 1 });
+  assert.deepEqual(wars.scoreFight(war, { a: p(1, 1), d: p(2, 2), attackerWon: false, knockout: true, fullRewards: true }), { side: 'defender', points: 2 });
+  assert.equal(wars.scoreFight(war, { a: p(1, 1), d: p(2, 2), attackerWon: true, knockout: false, fullRewards: false }), null);
+  assert.equal(wars.scoreFight(war, { a: p(1, 1, now), d: p(2, 2), attackerWon: true, knockout: false, fullRewards: true }), null); // joined mid-war
+  assert.equal(wars.scoreFight(war, { a: p(1, 1), d: p(2, 3), attackerWon: true, knockout: false, fullRewards: true }), null);
+
+  assert.deepEqual(wars.settle({ stake: 2500, attacker_score: 5, defender_score: 3 }), { winner: 'attacker', attackerPrize: 5000, defenderPrize: 0 });
+  assert.deepEqual(wars.settle({ stake: 2500, attacker_score: 1, defender_score: 3 }), { winner: 'defender', attackerPrize: 0, defenderPrize: 5000 });
+  assert.deepEqual(wars.settle({ stake: 2500, attacker_score: 2, defender_score: 2 }), { winner: null, attackerPrize: 2500, defenderPrize: 0 });
+});
+
+test('war end to end: declare, score PvP fights, settle, forfeit', async () => {
+  const { server, db, base } = await startServer();
+  const { createWarService } = require('../src/war-service');
+  const { createPlayerRepo } = require('../src/players');
+  const { createUnitRepo } = require('../src/units-repo');
+  try {
+    const names = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'];
+    const c = {};
+    for (const n of names) c[n] = await enlist(base, n);
+    const id = (n) => db.prepare('SELECT id FROM users WHERE username = ?').get(n).id;
+    db.prepare('UPDATE users SET level = 6, cash = 20000').run();
+    db.prepare("INSERT INTO ledger (user_id, delta_cash, reason, created_at) SELECT id, 20000 - 100, 'test', 0 FROM users").run();
+    const found = async (lead, name, tag) => Number((await c[lead].flash('/units', { name, tag })).location.split('/').pop());
+    const wolves = await found('Alpha', 'Iron Wolves', 'IW');
+    const rain = await found('Delta', 'Steel Rain', 'SR');
+    const join = (n, unit) => db.prepare("UPDATE users SET unit_id = ?, unit_role = 'member', unit_joined_at = ? WHERE username = ?").run(unit, Date.now() - 60_000, n);
+    join('Bravo', wolves); join('Charlie', wolves); join('Echo', rain); join('Foxtrot', rain);
+
+    // Requirements block applicants who fall short.
+    assert.match((await c.Delta.flash(`/units/${rain}/settings`, { description: '', recruiting: 'on', min_level: '30' })).message, /saved/);
+    const outsider = await enlist(base, 'Golf');
+    assert.match((await outsider.flash(`/units/${rain}/apply`)).message, /requires Lv 30\+/);
+    assert.match((await outsider.request(`/units/${rain}`)).text, /Lv 30\+/);
+    assert.match((await c.Delta.flash(`/units/${rain}/settings`, { description: '' })).message, /saved/); // closes applications
+    assert.match((await outsider.flash(`/units/${rain}/apply`)).message, /isn’t taking applications/);
+
+    // Declaring needs the stake in the treasury, and only a Commander can declare.
+    assert.match((await c.Bravo.flash(`/units/${rain}/war`)).message, /Only a unit Commander/);
+    assert.match((await c.Alpha.flash(`/units/${rain}/war`)).message, /costs \$2,500 from the treasury/);
+    await c.Alpha.flash(`/units/${wolves}/donate`, { amount: '3000' });
+    let f = await c.Alpha.flash(`/units/${rain}/war`);
+    assert.match(f.message, /War declared on Steel Rain/);
+    const warId = Number(f.location.split('/').pop());
+    assert.equal(db.prepare('SELECT treasury FROM units WHERE id = ?').get(wolves).treasury, 500);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM notifications WHERE kind = 'war'").get().n, 6);
+    assert.match((await c.Echo.request(`/units/${rain}`)).text, /At war with/);
+    assert.match((await c.Echo.request('/players?filter=war')).text, /href="\/profile\/Alpha"/);
+    assert.doesNotMatch((await c.Echo.request('/players?filter=war')).text, /href="\/profile\/Foxtrot"/);
+
+    // A PvP win scores; force the outcome by making the defender fragile.
+    db.prepare("UPDATE users SET health = 1, max_health = 100 WHERE username = 'Echo'").run();
+    db.prepare("UPDATE users SET energy = 50 WHERE username = 'Bravo'").run();
+    const fight = await c.Bravo.post('/attack/Echo');
+    assert.match(fight.location, /^\/battles\/\d+$/);
+    const war = () => db.prepare('SELECT * FROM unit_wars WHERE id = ?').get(warId);
+    assert.ok(war().attacker_score >= 1, 'the win scored');
+    assert.match((await c.Bravo.request(fight.location)).text, /War fight: \+\d point/);
+    assert.match((await c.Alpha.request(`/wars/${warId}`)).text, /Bravo/);
+
+    // Time's up: the declaring unit is ahead, so it gets double the stake.
+    db.prepare('UPDATE unit_wars SET ends_at = ? WHERE id = ?').run(Date.now() - 1, warId);
+    const players = createPlayerRepo(db);
+    const service = createWarService(db, players, createUnitRepo(db));
+    assert.equal(service.finishDue(), 1);
+    assert.equal(war().status, 'ended');
+    assert.equal(war().winner, 'attacker');
+    assert.equal(db.prepare('SELECT treasury FROM units WHERE id = ?').get(wolves).treasury, 500 + 5000);
+    const rec = (u) => ({ ...db.prepare('SELECT war_wins, war_losses FROM units WHERE id = ?').get(u) });
+    assert.deepEqual(rec(wolves), { war_wins: 1, war_losses: 0 });
+    assert.deepEqual(rec(rain), { war_wins: 0, war_losses: 1 });
+    assert.match((await c.Alpha.request(`/units/${wolves}`)).text, /Won<\/span>/);
+    assert.match((await c.Alpha.flash(`/units/${rain}/war`)).message, /protected/);
+
+    // A unit that disbands mid-war forfeits.
+    db.prepare('UPDATE units SET war_protected_until = NULL, treasury = 10000').run();
+    db.prepare('DELETE FROM unit_wars').run();
+    f = await c.Delta.flash(`/units/${wolves}/war`);
+    assert.match(f.message, /War declared on Iron Wolves/);
+    assert.match((await c.Alpha.flash(`/units/${wolves}/disband`, { confirm: 'IW' })).message, /disbanded/);
+    const ended = db.prepare('SELECT * FROM unit_wars').get();
+    assert.deepEqual([ended.status, ended.winner], ['ended', 'attacker']);
+    assert.equal(db.prepare('SELECT treasury FROM units WHERE id = ?').get(rain).treasury, 10000); // stake back, no profit
+    assert.match((await c.Delta.request('/wars')).text, /forfeit/);
   } finally {
     server.close();
   }

@@ -25,6 +25,9 @@
     <p class="eyebrow">Battle report · <%= ago %></p>
     <h1 id="battle-title" class="battle-hero__result"><%= headline %></h1>
     <p class="battle-hero__how"><%= how %></p>
+    <% if (warFight) { %>
+      <p class="battle-hero__war"><svg aria-hidden="true"><use href="#i-flag"/></svg>War fight: +<%= warFight.points %> point<%= warFight.points === 1 ? '' : 's' %> for [<%= warFight.tag %>] in <a href="/wars/<%= warFight.id %>"><%= warFight.title %></a></p>
+    <% } %>
 
     <div class="fighters">
       <% [['attacker', a], ['defender', d]].forEach(function ([side, name]) {

@@ -5,10 +5,11 @@ const units = require('../units');
 const game = require('../game');
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
+const wars = require('../wars');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
-function unitRoutes(players, unitRepo, adminRepo) {
+function unitRoutes(players, unitRepo, adminRepo, warService) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const urlOf = (unit, hash = '') => `/units/${unit.id}${hash}`;
@@ -39,6 +40,25 @@ function unitRoutes(players, unitRepo, adminRepo) {
   };
   /** Only lets a route run when :param is one of `allowed` (Express 5 has no regex params). */
   const oneOf = (param, allowed) => (req, res, next) => (allowed.includes(req.params[param]) ? next() : next('route'));
+  /** Disbanding ends any war the unit is in as a forfeit. */
+  const disband = (unitId) => {
+    warService.forfeit(unitId);
+    unitRepo.disband(unitId);
+  };
+  /** Shapes a war row for templates, from the point of view of `unitId` (if given). */
+  const warView = (w, unitId = null, now = Date.now()) => {
+    const us = unitId === w.attacker_unit_id ? 'attacker' : unitId === w.defender_unit_id ? 'defender' : null;
+    return {
+      ...w,
+      us,
+      them: us ? (us === 'attacker' ? { id: w.defender_unit_id, name: w.defender_name, tag: w.defender_tag } : { id: w.attacker_unit_id, name: w.attacker_name, tag: w.attacker_tag }) : null,
+      ourScore: us === 'defender' ? w.defender_score : w.attacker_score,
+      theirScore: us === 'defender' ? w.attacker_score : w.defender_score,
+      outcome: w.status !== 'ended' ? 'active' : w.winner === null ? 'draw' : !us ? w.winner : w.winner === us ? 'won' : 'lost',
+      endsIn: Math.max(0, w.ends_at - now),
+      ago: presence.timeAgo(w.ended_at || w.started_at, now),
+    };
+  };
   const targetMember = (unit, userId) => {
     const t = players.findById(Number(userId));
     return t && t.unit_id === unit.id ? t : null;
@@ -47,14 +67,17 @@ function unitRoutes(players, unitRepo, adminRepo) {
   router.get('/unit', requireAuth, (req, res) => res.redirect(req.player.unit_id ? `/units/${req.player.unit_id}` : '/units'));
 
   router.get('/units', requireAuth, (req, res) => {
+    warService.finishDue();
     const now = Date.now();
+    const atWar = new Set(warService.active().flatMap((w) => [w.attacker_unit_id, w.defender_unit_id]));
     const q = String(req.query.q || '').trim().slice(0, 24);
     const mine = req.player.unit_id ? unitRepo.findById(req.player.unit_id) : null;
     res.render('units', {
       title: 'Units',
       nav: 'unit',
       q,
-      list: unitRepo.list(q).map((u, i) => ({ ...u, position: q ? null : i + 1, capacity: units.capacity(u), isYours: mine && mine.id === u.id })),
+      list: unitRepo.list(q).map((u, i) => ({ ...u, position: q ? null : i + 1, capacity: units.capacity(u), isYours: mine && mine.id === u.id, atWar: atWar.has(u.id), requirements: units.requirementList(u) })),
+      warCount: atWar.size / 2,
       total: unitRepo.count(),
       mine,
       applications: unitRepo.pendingForUser(req.player.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
@@ -93,9 +116,12 @@ function unitRoutes(players, unitRepo, adminRepo) {
     res.redirect(`/units/${out.id}`);
   });
 
-  router.get('/units/:id', requireAuth, loadUnit, (req, res) => {
+  router.get('/units/:id', requireAuth, (req, res, next) => { warService.finishDue(); next(); }, loadUnit, (req, res) => {
     const now = Date.now();
     const { unit, role } = req;
+    const activeWar = warService.activeFor(unit.id);
+    // A Commander visiting another unit can declare war on it.
+    const myUnit = !role && req.player.unit_role === 'leader' ? unitRepo.findById(req.player.unit_id) : null;
     const member = Boolean(role);
     const roster = unitRepo.members(unit.id).map((m) => {
       const rank = game.rankFor(m.level);
@@ -111,7 +137,24 @@ function unitRoutes(players, unitRepo, adminRepo) {
       };
     });
     const members = roster.filter((m) => !m.banned_at).length;
+    const active = roster.filter((m) => !m.banned_at);
     res.render('unit', {
+      stats: {
+        pvpWins: active.reduce((n, m) => n + m.pvp_wins, 0),
+        missions: active.reduce((n, m) => n + m.missions_completed, 0),
+        founded: new Date(unit.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+        foundedIso: new Date(unit.created_at).toISOString(),
+        record: { wins: unit.war_wins, losses: unit.war_losses, draws: unit.war_draws },
+      },
+      requirements: units.requirementList(unit),
+      requirementFields: Object.entries(units.REQUIREMENTS).map(([key, def]) => ({ key, label: def.label, max: def.max, value: unit[key] || '' })),
+      war: activeWar ? warView(activeWar, unit.id, now) : null,
+      warHistory: warService.history(unit.id, 10).filter((w) => w.status === 'ended').map((w) => warView(w, unit.id, now)),
+      declare: myUnit && myUnit.id !== unit.id ? {
+        from: myUnit,
+        stake: wars.WAR_STAKE,
+        blocker: wars.declareBlocker(myUnit, unit, warService.context(myUnit, unit), now),
+      } : null,
       title: unit.name,
       nav: member ? 'unit' : null,
       unit: { ...unit, capacity: units.capacity(unit), xpBonusPct: Math.round(units.xpBonus(unit) * 100), position: unitRepo.position(unit.id) },
@@ -182,7 +225,7 @@ function unitRoutes(players, unitRepo, adminRepo) {
     if (!role) return { error: 'You’re not in this unit.' };
     if (role === 'leader') {
       if (unitRepo.memberCount(unit.id) > 1) return { error: 'Hand command to another member before you leave, or disband the unit.' };
-      unitRepo.disband(unit.id);
+      disband(unit.id);
       players.log(me.id, 'unit', `Disbanded ${unit.name} [${unit.tag}].`);
       return { ok: `${unit.name} has been disbanded.`, redirect: '/units' };
     }
@@ -268,7 +311,9 @@ function unitRoutes(players, unitRepo, adminRepo) {
     if (!units.can.manage(role)) return { error: 'Only the Commander can change unit settings.' };
     const description = String(req.body.description || '').trim().replace(/\r\n/g, '\n');
     if (description.length > units.MAX_DESCRIPTION) return { error: `Keep the description under ${units.MAX_DESCRIPTION} characters.` };
-    unitRepo.settings(unit.id, description, req.body.recruiting === 'on');
+    const reqs = units.parseRequirements(req.body);
+    if (reqs.error) return reqs;
+    unitRepo.settings(unit.id, { description, recruiting: req.body.recruiting === 'on', ...reqs });
     return { ok: 'Unit settings saved.' };
   }, `${urlOf(req.unit)}#command`));
 
@@ -276,7 +321,7 @@ function unitRoutes(players, unitRepo, adminRepo) {
     if (!units.can.manage(role)) return { error: 'Only the Commander can disband the unit.' };
     if (String(req.body.confirm || '').trim().toUpperCase() !== unit.tag.toUpperCase()) return { error: `Type the tag ${unit.tag} to confirm.` };
     const ids = unitRepo.memberIds(unit.id);
-    unitRepo.disband(unit.id);
+    disband(unit.id);
     notifyAll(ids, `${unit.name} has been disbanded by its Commander.`, '/units', me.id);
     players.log(me.id, 'unit', `Disbanded ${unit.name} [${unit.tag}].`);
     return { ok: `${unit.name} has been disbanded.`, redirect: '/units' };
@@ -301,6 +346,43 @@ function unitRoutes(players, unitRepo, adminRepo) {
     return { ok: 'Post deleted.' };
   }, `${urlOf(req.unit)}#board`));
 
+  router.post('/units/:id/war', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit: target }) => {
+    if (me.unit_role !== 'leader') return { error: 'Only a unit Commander can declare war.' };
+    const mine = unitRepo.findById(me.unit_id);
+    const out = warService.declare({ me, attacker: mine, target });
+    if (out.error) return out;
+    return { ok: `War declared on ${target.name}! It lasts 24 hours. Every PvP win against them scores.`, redirect: `/wars/${out.warId}` };
+  }));
+
+  router.get('/wars', requireAuth, (req, res) => {
+    warService.finishDue();
+    const now = Date.now();
+    res.render('wars', {
+      title: 'Unit wars',
+      nav: 'unit',
+      active: warService.active().map((w) => warView(w, req.player.unit_id, now)),
+      recent: warService.recent(15).map((w) => warView(w, req.player.unit_id, now)),
+      rules: { stake: wars.WAR_STAKE, minMembers: wars.MIN_WAR_MEMBERS, hours: wars.WAR_DURATION_MS / 3_600_000, rematchHours: wars.REMATCH_COOLDOWN_MS / 3_600_000 },
+    });
+  });
+
+  router.get('/wars/:warId', requireAuth, (req, res, next) => {
+    warService.finishDue();
+    const id = Number(req.params.warId);
+    const war = Number.isInteger(id) ? warService.findById(id) : null;
+    if (!war) return next();
+    const now = Date.now();
+    const top = warService.top(war.id);
+    res.render('war', {
+      title: `${war.attacker_tag} vs ${war.defender_tag}`,
+      nav: 'unit',
+      war: warView(war, req.player.unit_id, now),
+      top: { attacker: top.filter((t) => t.side === 'attacker'), defender: top.filter((t) => t.side === 'defender') },
+      fights: warService.fights(war.id).map((f) => ({ ...f, ago: presence.timeAgo(f.created_at, now) })),
+      yourSide: req.player.unit_id === war.attacker_unit_id ? 'attacker' : req.player.unit_id === war.defender_unit_id ? 'defender' : null,
+    });
+  });
+
   // Admin moderation: rename an offensive unit or disband it outright.
   const adminOnly = (req, res, next) => (req.player.is_admin ? next() : next('route'));
 
@@ -320,7 +402,7 @@ function unitRoutes(players, unitRepo, adminRepo) {
   router.post('/units/:id/admin/disband', requireAuth, adminOnly, loadUnit, (req, res) => act(req, res, ({ me, unit }) => {
     const reason = String(req.body.reason || '').trim().slice(0, 200);
     const ids = unitRepo.memberIds(unit.id);
-    unitRepo.disband(unit.id);
+    disband(unit.id);
     adminRepo.log(me.id, null, 'unit-disband', `${unit.name} [${unit.tag}] (unit ${unit.id})${reason ? `: ${reason}` : ''}`);
     notifyAll(ids, `HQ disbanded ${unit.name}${reason ? `: ${reason}` : '.'}`, '/units');
     return { ok: `${unit.name} disbanded.`, redirect: '/units' };

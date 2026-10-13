@@ -1,0 +1,42 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/units"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All units</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Theatre of operations</p>
+      <h1 class="page-head__title">Unit wars</h1>
+      <p class="page-head__sub">A Commander declares war on another unit by staking <%= money(rules.stake) %> from the treasury. For the next <%= rules.hours %> hours every PvP win between the two sides scores: 1 point, or 2 for a knockout. Defending counts too. The winner’s treasury gets double the stake; a draw refunds it. Both units need at least <%= rules.minMembers %> members, and the same pair can fight again after <%= rules.rematchHours %> hours.</p>
+    </div>
+  </div>
+
+  <section class="reveal" style="--i:1" aria-labelledby="active-title">
+    <h2 id="active-title" class="section-title">Active wars</h2>
+    <% if (active.length) { %>
+      <ol class="war-list">
+        <% active.forEach(function (w) { %>
+          <li><%- include('partials/war-card', { w }) %></li>
+        <% }) %>
+      </ol>
+    <% } else { %>
+      <p class="card muted">No wars are being fought right now. Visit another unit’s page to declare one.</p>
+    <% } %>
+  </section>
+
+  <section class="reveal" style="--i:2" aria-labelledby="recent-title">
+    <h2 id="recent-title" class="section-title">Recent results</h2>
+    <% if (recent.length) { %>
+      <ol class="war-list">
+        <% recent.forEach(function (w) { %>
+          <li><%- include('partials/war-card', { w }) %></li>
+        <% }) %>
+      </ol>
+    <% } else { %>
+      <p class="card muted">No wars have finished yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

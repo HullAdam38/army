@@ -105,7 +105,13 @@ Rules live in `src/daily.js` and `src/daily-service.js`.
 ## Units
 
 - **Founding** costs $2,500 and needs level 5. Names are 3–24 characters and tags 2–4 (shown as `[TAG]`); both are unique.
-- **Joining:** players apply from a unit's page with an optional message (up to 3 open applications). The Commander and officers accept or reject them. A unit can stop taking applications.
+- **Joining:** players apply from a unit's page with an optional message (up to 3 open applications). The Commander and officers accept or reject them.
+- **Application settings (Commander):** turn applications on or off, and set minimum **level**, **PvP wins** and **missions won** to apply. Requirements show on the unit profile and in the unit list, and players who fall short are told exactly what's missing.
+- **Unit profile** (`/units/:id`) is public:
+  - founding date and Commander
+  - strength, members, war record (W–L–D), combined PvP wins and missions, mission XP bonus
+  - application status and requirements
+  - roster, upgrades and war history
 - **Roles:** the **Commander** promotes and demotes officers, removes anyone, edits settings, spends the treasury, hands over command (type the callsign to confirm) and can disband the unit (type the tag). **Officers** review applications and remove members. Everyone can post on the **unit board**, which only members can read and which allows one post per 10 seconds.
 - **No friendly fire:** members can't attack each other, and the Targets filter hides them.
 - **Treasury:** members donate cash, which goes through the ledger as `unit-donation`. Only upgrades can spend it; it **never pays out to players**, so it can't be used to move money between accounts.
@@ -116,6 +122,23 @@ Rules live in `src/daily.js` and `src/daily-service.js`.
 - **Moderation:** admins see an Admin box on every unit page to rename or disband it. Both actions are written to the admin audit log and members are notified.
 
 Rules live in `src/units.js`; data access is in `src/units-repo.js`.
+
+### Unit wars
+
+- **Declaring:** a Commander declares war from another unit's profile, staking **$2,500 from the treasury**. Both units need at least 3 members, and neither can already be at war. Every member of both units is notified.
+- **Duration and scoring:** a war lasts **24 hours**. Every PvP win between the two sides scores 1 point, or 2 for a knockout, and defending wins count too.
+- **Anti-cheat:** only full-reward wins count, so fights between linked accounts and repeat wins on the same player don't score. Only soldiers who were already in their unit when the war began can score, so mercenaries recruited mid-war earn nothing.
+- **Settling:** happens automatically within a minute of the end. The winner's treasury gets **double the stake**, a draw refunds the declarer, and records update.
+  - Both units are protected for 6 hours afterwards, and the same pair can't fight again for 72 hours.
+  - A unit that disbands mid-war forfeits. If the other side was the declarer, it only gets its stake back.
+- **Where to see it:**
+  - `/wars`: active wars and recent results
+  - `/wars/:id`: war room with the scoreboard, top fighters and every scoring fight
+  - the unit profile shows a war banner with a live countdown
+  - **Players → War** lists enemy soldiers
+  - battle reports note the points a fight scored
+
+Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-service.js`.
 
 ## PvP and the hospital
 
@@ -144,6 +167,7 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
   - a welcome message for new players
   - a daily order being completed
   - unit events (applications, acceptance, promotions, removal, upgrades, disbanding)
+  - unit wars (declared, won, lost, drawn)
 - **The bell** in the header shows the unread count. `/notifications` lists the latest 50 (each inbox keeps up to 200) and marks them read when you view it.
 - **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
 - **The combat feed** on HQ shows the latest fights across the whole game.
@@ -199,7 +223,9 @@ src/
   daily.js           daily order + supply drop rules (pure)
   daily-service.js   daily orders storage, progress and claims
   routes/daily.js    claim orders, commendation and supply drop
-  units.js           unit rules: names, roles, upgrades (pure)
+  units.js           unit rules: names, roles, upgrades, requirements (pure)
+  wars.js            unit war rules: declaring, scoring, settling (pure)
+  war-service.js     unit wars storage, fight scoring and settling
   units-repo.js      units, applications, board and unit log storage
   routes/units.js    unit list, unit page and all unit actions
   routes/training.js training page and sessions
@@ -234,6 +260,7 @@ test/                node:test suites
 - `/bank`: cash on hand vs banked, deposit and withdraw (with "All" and a live fee preview), and recent transactions
 - `/units`: every unit ranked by strength, with search, your applications and the form to found a unit
 - `/units/:id`: a unit's page showing its roster and upgrades, plus (for members) the treasury, board and unit log, and (for the Commander) settings and command
+- `/wars`, `/wars/:id`: unit wars list and war room
 - `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat
 - `/scout/:username` (POST): buy intel on a player; the report appears on their profile for you only
 - `/leaderboards`: Top soldiers (level, XP), PvP wins, Missions won and This week (XP in the last 7 days). Shows the top 50 with your position pinned if you're further down. No cash, bank or training boards; suspended players are left out.

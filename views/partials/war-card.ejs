@@ -1,0 +1,14 @@
+<a class="war-card<%= w.us ? ' war-card--yours' : '' %><%= w.status === 'active' ? ' war-card--active' : '' %>" href="/wars/<%= w.id %>">
+  <span class="war-card__side<%= w.winner === 'attacker' ? ' is-winner' : '' %>">
+    <span class="unit-crest" aria-hidden="true"><%= w.attacker_tag %></span>
+    <span class="war-card__name"><%= w.attacker_name %></span>
+  </span>
+  <span class="war-card__score">
+    <strong><%= w.attacker_score %>–<%= w.defender_score %></strong>
+    <small><% if (w.status === 'active') { %>ends in <span data-until="<%= w.ends_at %>">soon</span><% } else if (w.winner === null) { %>draw · <%= w.ago %><% } else { %><%= w.result_note ? 'forfeit' : 'final' %> · <%= w.ago %><% } %></small>
+  </span>
+  <span class="war-card__side war-card__side--right<%= w.winner === 'defender' ? ' is-winner' : '' %>">
+    <span class="war-card__name"><%= w.defender_name %></span>
+    <span class="unit-crest" aria-hidden="true"><%= w.defender_tag %></span>
+  </span>
+</a>

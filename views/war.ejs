@@ -1,0 +1,89 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const money = (n) => '$' + Number(n).toLocaleString('en-US');
+  const sides = [
+    ['attacker', war.attacker_unit_id, war.attacker_name, war.attacker_tag, war.attacker_score, 'Declared war'],
+    ['defender', war.defender_unit_id, war.defender_name, war.defender_tag, war.defender_score, 'Defending'],
+  ];
+%>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/wars"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All wars</a>
+
+  <section class="card war-hero war-hero--<%= war.status %> reveal" style="--i:1" aria-labelledby="war-title">
+    <p class="eyebrow">
+      <% if (war.status === 'active') { %>War in progress · ends in <span data-until="<%= war.ends_at %>" data-reload>soon</span>
+      <% } else { %>War over · <%= war.ago %><% } %>
+    </p>
+    <h1 id="war-title" class="visually-hidden"><%= war.attacker_name %> vs <%= war.defender_name %></h1>
+    <div class="war-hero__board">
+      <% sides.forEach(function ([side, unitId, name, tag, score, label], i) { %>
+        <% if (i === 1) { %><span class="war-hero__vs" aria-hidden="true">VS</span><% } %>
+        <div class="war-hero__side<%= war.winner === side ? ' is-winner' : '' %><%= yourSide === side ? ' is-yours' : '' %>">
+          <span class="unit-crest unit-crest--xl" aria-hidden="true"><%= tag %></span>
+          <p class="war-hero__label"><%= label %><%= yourSide === side ? ' · your unit' : '' %></p>
+          <p class="war-hero__name"><% if (unitId) { %><a href="/units/<%= unitId %>"><%= name %></a><% } else { %><%= name %> <span class="muted">(disbanded)</span><% } %></p>
+          <p class="war-hero__score"><%= score %></p>
+        </div>
+      <% }) %>
+    </div>
+    <p class="war-hero__result">
+      <% if (war.status === 'active') { %>
+        <%= war.attacker_score === war.defender_score ? 'All square.' : `${war.attacker_score > war.defender_score ? war.attacker_name : war.defender_name} leads.` %>
+        Stake: <%= money(war.stake) %>. The winner’s treasury gets <%= money(war.stake * 2) %>.
+      <% } else if (war.winner === null) { %>
+        Draw. The stake was returned to <%= war.attacker_name %>.
+      <% } else { %>
+        <strong><%= war.winner === 'attacker' ? war.attacker_name : war.defender_name %> won<%= war.result_note ? ' by forfeit' : '' %>.</strong> <%= war.result_note || '' %>
+      <% } %>
+    </p>
+    <% if (war.status === 'active' && yourSide) { %>
+      <div class="war-hero__actions">
+        <a class="btn btn--primary" href="/players?filter=war"><svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Find enemy targets</a>
+      </div>
+      <p class="progress-line__note">Only full-reward wins count, and only for soldiers who were in their unit when the war began.</p>
+    <% } %>
+  </section>
+
+  <div class="war-grid">
+    <% sides.forEach(function ([side, , name, tag], i) { %>
+      <section class="card reveal" style="--i:<%= 2 + i %>" aria-labelledby="top-<%= side %>">
+        <h2 id="top-<%= side %>" class="card__title">Top fighters · [<%= tag %>]</h2>
+        <% if (top[side].length) { %>
+          <ol class="war-top">
+            <% top[side].forEach(function (t, n) { %>
+              <li><span class="war-top__pos"><%= n + 1 %></span><a class="directory__name" href="/profile/<%= encodeURIComponent(t.username) %>"><%= t.username %></a><span class="war-top__pts"><%= t.points %> pts</span><span class="muted"><%= t.wins %> win<%= t.wins === 1 ? '' : 's' %></span></li>
+            <% }) %>
+          </ol>
+        <% } else { %>
+          <p class="muted">No points scored yet.</p>
+        <% } %>
+      </section>
+    <% }) %>
+  </div>
+
+  <section class="card reveal" style="--i:4" aria-labelledby="fights-title">
+    <h2 id="fights-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>War fights</h2>
+    <% if (fights.length) { %>
+      <ol class="feed">
+        <% fights.forEach(function (f) { %>
+          <li>
+            <a class="feed__row" href="/battles/<%= f.battle_id %>">
+              <span class="feed__text">
+                <% if (f.attacker_won) { %><strong><%= f.attacker_name %></strong> <%= f.knockout ? 'knocked out' : 'beat' %> <strong><%= f.defender_name %></strong>
+                <% } else { %><strong><%= f.defender_name %></strong> <%= f.knockout ? 'knocked out' : 'held off' %> <strong><%= f.attacker_name %></strong><% } %>
+                <span class="war-pts">+<%= f.points %> [<%= f.side === 'attacker' ? war.attacker_tag : war.defender_tag %>]</span>
+              </span>
+              <span class="feed__time"><%= f.ago %></span>
+            </a>
+          </li>
+        <% }) %>
+      </ol>
+    <% } else { %>
+      <p class="muted">No scoring fights yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

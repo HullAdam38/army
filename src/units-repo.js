@@ -24,7 +24,7 @@ function createUnitRepo(db) {
       WHERE s.strength > me.strength OR (s.strength = me.strength AND (s.members > me.members OR (s.members = me.members AND s.id < me.id)))`),
     count: db.prepare('SELECT COUNT(*) AS n FROM units'),
     members: db.prepare(`
-      SELECT id, username, level, unit_role, unit_joined_at, unit_donated, last_seen_at, signed_out_at, banned_at, hospital_until
+      SELECT id, username, level, unit_role, unit_joined_at, unit_donated, last_seen_at, signed_out_at, banned_at, hospital_until, pvp_wins, missions_completed
       FROM users WHERE unit_id = ?
       ORDER BY CASE unit_role WHEN 'leader' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END, level DESC, username COLLATE NOCASE`),
     memberCount: db.prepare('SELECT COUNT(*) AS n FROM users WHERE unit_id = ?'),
@@ -42,7 +42,7 @@ function createUnitRepo(db) {
       barracks: db.prepare('UPDATE units SET barracks = barracks + 1 WHERE id = ? AND barracks = ?'),
       drill: db.prepare('UPDATE units SET drill = drill + 1 WHERE id = ? AND drill = ?'),
     },
-    settings: db.prepare('UPDATE units SET description = ?, recruiting = ? WHERE id = ?'),
+    settings: db.prepare('UPDATE units SET description = @description, recruiting = @recruiting, min_level = @min_level, min_pvp_wins = @min_pvp_wins, min_missions = @min_missions WHERE id = @id'),
     rename: db.prepare('UPDATE units SET name = ?, tag = ? WHERE id = ?'),
     remove: db.prepare('DELETE FROM units WHERE id = ?'),
 
@@ -118,7 +118,9 @@ function createUnitRepo(db) {
       if (!stmts.upgrade[key].run(unitId, fromLevel).changes) throw new Error('Upgrade level changed mid-purchase.');
       return true;
     },
-    settings: (unitId, description, recruiting) => stmts.settings.run(description, recruiting ? 1 : 0, unitId),
+    settings: (unitId, { description, recruiting, min_level = 0, min_pvp_wins = 0, min_missions = 0 }) => stmts.settings.run({
+      id: unitId, description, recruiting: recruiting ? 1 : 0, min_level, min_pvp_wins, min_missions,
+    }),
     rename: (unitId, name, tag) => stmts.rename.run(name, tag, unitId),
     disband(unitId) {
       stmts.disbandMembers.run(unitId);

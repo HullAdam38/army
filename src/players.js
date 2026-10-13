@@ -178,7 +178,7 @@ function createPlayerRepo(db) {
      * Player directory search. `filter` is 'all', 'online' or 'targets' (players
      * `me` could attack, before per-pair cooldowns). Returns { rows, total }.
      */
-    searchPlayers({ q = '', filter = 'all', sort = 'level', me, now = Date.now(), onlineSince, targetRules, limit = 25, offset = 0 }) {
+    searchPlayers({ q = '', filter = 'all', sort = 'level', me, now = Date.now(), onlineSince, targetRules, enemyUnitId = null, limit = 25, offset = 0 }) {
       const where = ['banned_at IS NULL'];
       const params = [];
       if (q) {
@@ -188,6 +188,10 @@ function createPlayerRepo(db) {
       if (filter === 'online') {
         where.push('last_seen_at >= ? AND (signed_out_at IS NULL OR signed_out_at < last_seen_at)');
         params.push(onlineSince);
+      }
+      if (filter === 'war') {
+        where.push('unit_id = ?');
+        params.push(enemyUnitId);
       }
       if (filter === 'targets') {
         where.push('id != ? AND level >= ? AND level >= ? AND (hospital_until IS NULL OR hospital_until <= ?) AND (unit_id IS NULL OR unit_id IS NOT ?)');

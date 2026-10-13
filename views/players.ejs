@@ -19,7 +19,7 @@
 
   <div class="directory-tools reveal" style="--i:1">
     <nav class="tabs" aria-label="Filter players">
-      <% [['all', 'All'], ['targets', 'Targets'], ['online', 'Online now']].forEach(function ([key, label]) { %>
+      <% [['all', 'All'], ['targets', 'Targets'], ['online', 'Online now']].concat(war ? [['war', `War: [${war.enemyTag}]`]] : []).forEach(function ([key, label]) { %>
         <a class="tabs__tab" href="<%= urlFor({ filter: key, page: '1' }) %>" <%- filter === key ? 'aria-current="page"' : '' %>><%= label %></a>
       <% }) %>
     </nav>
@@ -38,7 +38,7 @@
   </div>
 
   <p class="directory-count reveal" style="--i:2">
-    <%= total %> <%= total === 1 ? 'soldier' : 'soldiers' %><%= q ? ` matching “${q}”` : '' %><%= filter === 'targets' ? ' you can target' : filter === 'online' ? ' online now' : '' %>
+    <%= total %> <%= total === 1 ? 'soldier' : 'soldiers' %><%= q ? ` matching “${q}”` : '' %><%= filter === 'targets' ? ' you can target' : filter === 'online' ? ' online now' : filter === 'war' ? ` in [${war.enemyTag}], the unit you’re at war with` : '' %>
   </p>
 
   <% if (list.length) { %>

@@ -13,15 +13,28 @@
   <section class="card unit-hero reveal" style="--i:1" aria-labelledby="unit-name">
     <span class="unit-crest unit-crest--xl" aria-hidden="true"><%= unit.tag %></span>
     <div class="unit-hero__body">
-      <p class="eyebrow">Unit · ranked #<%= unit.position %></p>
+      <p class="eyebrow">Unit profile · ranked #<%= unit.position %> · founded <time datetime="<%= stats.foundedIso %>"><%= stats.founded %></time></p>
       <h1 id="unit-name" class="profile-hero__name"><%= unit.name %> <span class="unit-tag">[<%= unit.tag %>]</span></h1>
       <% if (unit.description) { %><p class="unit-hero__desc"><%= unit.description %></p><% } %>
+      <p class="unit-hero__leader">Commander <% const lead = roster.find((m) => m.unit_role === 'leader'); %><% if (lead) { %><a href="/profile/<%= encodeURIComponent(lead.username) %>"><%= lead.username %></a><% } else { %>—<% } %></p>
       <dl class="figures unit-hero__figures">
         <div><dt>Strength</dt><dd><%= unit.strength %></dd></div>
         <div><dt>Members</dt><dd><%= members %> / <%= unit.capacity %></dd></div>
+        <div><dt>War record</dt><dd title="Wins–losses–draws"><%= stats.record.wins %>–<%= stats.record.losses %>–<%= stats.record.draws %></dd></div>
+        <div><dt>PvP wins</dt><dd><%= stats.pvpWins.toLocaleString('en-US') %></dd></div>
+        <div><dt>Missions won</dt><dd><%= stats.missions.toLocaleString('en-US') %></dd></div>
         <div><dt>Mission XP</dt><dd><%= unit.xpBonusPct ? `+${unit.xpBonusPct}%` : '—' %></dd></div>
-        <div><dt>Recruiting</dt><dd><%= unit.recruiting ? (members >= unit.capacity ? 'Full' : 'Open') : 'Closed' %></dd></div>
       </dl>
+      <div class="unit-recruit">
+        <span class="unit-recruit__label">Applications</span>
+        <% if (!unit.recruiting) { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Closed</span>
+        <% } else if (members >= unit.capacity) { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Full</span>
+        <% } else { %><span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Open</span><% } %>
+        <% if (requirements.length) { %>
+          <span class="unit-recruit__label">Requires</span>
+          <% requirements.forEach(function (r) { %><span class="req-chip"><%= r.text %></span><% }) %>
+        <% } else if (unit.recruiting) { %><span class="muted">No requirements</span><% } %>
+      </div>
     </div>
     <div class="unit-hero__action">
       <% if (member) { %>
@@ -36,6 +49,7 @@
       <% } else if (apply.blocker) { %>
         <p class="unit-hero__role muted"><%= apply.blocker %></p>
       <% } else { %>
+        <p class="unit-hero__role">You meet their requirements.</p>
         <form method="post" action="/units/<%= unit.id %>/apply" class="unit-apply">
           <%- csrf %>
           <label class="visually-hidden" for="apply-msg">Message to the officers</label>
@@ -43,8 +57,36 @@
           <button class="btn btn--primary btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-flag"/></svg>Apply to join</button>
         </form>
       <% } %>
+      <% if (declare && !war) { %>
+        <div class="unit-declare">
+          <% if (declare.blocker) { %>
+            <p class="unit-hero__role muted">War: <%= declare.blocker %></p>
+          <% } else { %>
+            <form method="post" action="/units/<%= unit.id %>/war" data-confirm="Declare war on <%= unit.name %>? <%= money(declare.stake) %> comes out of the <%= declare.from.name %> treasury. The war lasts 24 hours.">
+              <%- csrf %>
+              <button class="btn btn--danger btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Declare war · <%= money(declare.stake) %></button>
+            </form>
+            <p class="progress-line__note">Paid from the [<%= declare.from.tag %>] treasury. Win the war to get double back.</p>
+          <% } %>
+        </div>
+      <% } %>
     </div>
   </section>
+
+  <% if (war) { %>
+    <section class="war-banner reveal" style="--i:2" aria-label="Active war">
+      <svg class="war-banner__icon" aria-hidden="true"><use href="#i-target"/></svg>
+      <div class="war-banner__text">
+        <p class="war-banner__title">At war with <a href="/units/<%= war.them.id %>">[<%= war.them.tag %>] <%= war.them.name %></a></p>
+        <p class="war-banner__meta">Ends in <span data-until="<%= war.ends_at %>" data-reload>soon</span><%= war.us === 'attacker' ? ' · we declared' : ' · they declared' %></p>
+      </div>
+      <p class="war-banner__score" aria-label="Score <%= war.ourScore %> to <%= war.theirScore %>"><span class="<%= war.ourScore >= war.theirScore ? 'is-ahead' : '' %>"><%= war.ourScore %></span><small>–</small><span class="<%= war.theirScore > war.ourScore ? 'is-ahead' : '' %>"><%= war.theirScore %></span></p>
+      <div class="war-banner__actions">
+        <a class="btn btn--ghost btn--sm" href="/wars/<%= war.id %>">War room</a>
+        <% if (member) { %><a class="btn btn--primary btn--sm" href="/players?filter=war">Find targets</a><% } %>
+      </div>
+    </section>
+  <% } %>
 
   <div class="unit-grid">
     <section id="roster" class="card unit-card unit-card--roster reveal" style="--i:2" aria-labelledby="roster-title">
@@ -152,6 +194,23 @@
           </ul>
         </section>
       <% } %>
+      <section class="card unit-card reveal" style="--i:5" aria-labelledby="wars-title">
+        <h2 id="wars-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>War history <a class="card__title-link" href="/wars">All wars</a></h2>
+        <% if (warHistory.length) { %>
+          <ol class="war-history">
+            <% warHistory.forEach(function (w) { %>
+              <li class="war-history__row war-history__row--<%= w.outcome %>">
+                <span class="war-history__result"><%= w.outcome === 'won' ? 'Won' : w.outcome === 'lost' ? 'Lost' : 'Draw' %></span>
+                <a class="war-history__vs" href="/wars/<%= w.id %>">vs [<%= w.them.tag %>] <%= w.them.name %></a>
+                <span class="war-history__score"><%= w.ourScore %>–<%= w.theirScore %></span>
+                <span class="feed__time"><%= w.ago %></span>
+              </li>
+            <% }) %>
+          </ol>
+        <% } else { %>
+          <p class="muted">No wars fought yet.</p>
+        <% } %>
+      </section>
     </div>
   </div>
 
@@ -208,8 +267,17 @@
           </div>
           <div class="check">
             <input id="settings-recruiting" type="checkbox" name="recruiting" <%- unit.recruiting ? 'checked' : '' %>>
-            <label for="settings-recruiting">Accept applications</label>
+            <label for="settings-recruiting">Accept applications <span class="muted">(untick to close applications)</span></label>
           </div>
+          <fieldset class="req-fields">
+            <legend>Requirements to apply <span class="muted">(leave blank for none)</span></legend>
+            <% requirementFields.forEach(function (f) { %>
+              <div class="field">
+                <label for="req-<%= f.key %>">Min. <%= f.label.toLowerCase() %></label>
+                <input id="req-<%= f.key %>" name="<%= f.key %>" type="number" min="0" max="<%= f.max %>" inputmode="numeric" value="<%= f.value %>" placeholder="Any">
+              </div>
+            <% }) %>
+          </fieldset>
           <button class="btn btn--ghost" type="submit">Save settings</button>
         </form>
 

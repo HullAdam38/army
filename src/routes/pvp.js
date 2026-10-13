@@ -9,7 +9,7 @@ const scouting = require('../scouting');
 const { createRequireAuth } = require('../require-auth');
 const { announceLevels } = require('../notify');
 
-function pvpRoutes(players, anti, daily) {
+function pvpRoutes(players, anti, daily, warService) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -56,6 +56,14 @@ function pvpRoutes(players, anti, daily) {
         link,
       );
       anti.afterBattle(attacker.id, defender.id, now);
+      const war = warService.recordFight({
+        battleId: id, a: attacker, d: defender, attackerWon: r.attackerWon, knockout: r.knockout,
+        fullRewards: r.attackerWon ? rewards.attacker === 1 : rewards.defender === 1, now,
+      });
+      if (war) {
+        const scorer = r.attackerWon ? attacker : defender;
+        players.log(scorer.id, 'war', `War fight won: +${war.points} point${war.points === 1 ? '' : 's'} for [${war.unitTag}].`, `/wars/${war.warId}`);
+      }
       // Only a full-reward win counts: no linked accounts, no repeat wins on one target.
       if (r.attackerWon && rewards.attacker === 1) daily.progress(attacker.id, 'pvp_wins', 1, { now });
       announceLevels(players, attacker.id, r.levelsGained.attacker);
@@ -103,12 +111,14 @@ function pvpRoutes(players, anti, daily) {
     const battle = Number.isInteger(id) ? players.findBattle(id) : null;
     if (!battle) return next();
     const youAre = battle.attacker_id === req.player.id ? 'attacker' : battle.defender_id === req.player.id ? 'defender' : null;
+    const warFight = warService.forBattle(battle.id);
     res.render('battle', {
       title: `${battle.attacker_name} vs ${battle.defender_name}`,
       nav: null,
       battle,
       r: battle.report,
       youAre,
+      warFight: warFight ? { id: warFight.id, side: warFight.side, points: warFight.points, tag: warFight.side === 'attacker' ? warFight.attacker_tag : warFight.defender_tag, title: `${warFight.attacker_tag} vs ${warFight.defender_tag}` } : null,
       ago: presence.timeAgo(battle.created_at),
     });
   });

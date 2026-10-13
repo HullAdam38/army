@@ -9,9 +9,12 @@
       <h1 class="page-head__title">Units</h1>
       <p class="page-head__sub">Band together. Unit members can't attack each other, share a message board, and pool cash into upgrades that boost everyone. Units are ranked by strength: the total level of their members.</p>
     </div>
+    <div class="page-head__actions">
+    <a class="btn btn--ghost" href="/wars"><svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Wars<%= warCount ? ` · ${warCount} active` : '' %></a>
     <% if (mine) { %>
       <a class="btn btn--primary" href="/units/<%= mine.id %>">Your unit: [<%= mine.tag %>] <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
     <% } %>
+    </div>
   </div>
 
   <% if (applications.length) { %>
@@ -49,7 +52,7 @@
           <th scope="col">Unit</th>
           <th scope="col" class="num">Strength</th>
           <th scope="col" class="num">Members</th>
-          <th scope="col">Recruiting</th>
+          <th scope="col">Applications</th>
           <th scope="col"><span class="visually-hidden">Open</span></th>
         </tr>
       </thead>
@@ -60,16 +63,17 @@
             <th scope="row" class="directory__who">
               <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
               <span class="roster__who">
-                <span><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><% if (u.isYours) { %> <span class="tag">Yours</span><% } %></span>
+                <span><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><% if (u.isYours) { %> <span class="tag">Yours</span><% } %><% if (u.atWar) { %> <span class="tag tag--war">At war</span><% } %></span>
                 <span class="roster__rank">Commander <%= u.leader_name || '—' %></span>
               </span>
             </th>
             <td class="num" data-label="Strength"><%= u.strength %></td>
             <td class="num" data-label="Members"><%= u.members %> / <%= u.capacity %></td>
-            <td data-label="Recruiting">
+            <td data-label="Applications">
               <% if (!u.recruiting) { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Closed</span>
               <% } else if (u.members >= u.capacity) { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Full</span>
               <% } else { %><span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Open</span><% } %>
+              <% if (u.recruiting && u.requirements.length) { %><span class="req-line"><%= u.requirements.map((r) => r.text).join(' · ') %></span><% } %>
             </td>
             <td class="directory__action"><a class="btn btn--ghost btn--sm" href="/units/<%= u.id %>">View</a></td>
           </tr>
