@@ -102,6 +102,21 @@ Rules live in `src/training.js` and `src/scouting.js`.
 
 Rules live in `src/daily.js` and `src/daily-service.js`.
 
+## Units
+
+- **Founding** costs $2,500 and needs level 5. Names are 3–24 characters and tags 2–4 (shown as `[TAG]`); both are unique.
+- **Joining:** players apply from a unit's page with an optional message (up to 3 open applications). The Commander and officers accept or reject them. A unit can stop taking applications.
+- **Roles:** the **Commander** promotes and demotes officers, removes anyone, edits settings, spends the treasury, hands over command (type the callsign to confirm) and can disband the unit (type the tag). **Officers** review applications and remove members. Everyone can post on the **unit board**, which only members can read and which allows one post per 10 seconds.
+- **No friendly fire:** members can't attack each other, and the Targets filter hides them.
+- **Treasury:** members donate cash, which goes through the ledger as `unit-donation`. Only upgrades can spend it; it **never pays out to players**, so it can't be used to move money between accounts.
+  - **Barracks:** 10 members, +5 per level, up to 3 levels ($5k, $15k, $40k).
+  - **Drill ground:** +2% mission XP for every member per level, up to 5 levels ($3k to $90k).
+- **Leaving** starts a 12-hour wait before you can join or found another unit. A Commander has to hand over command first; if they're the last member, leaving disbands the unit.
+- **Rankings:** units are ranked by strength, the total level of their non-suspended members. `/units` lists them with search.
+- **Moderation:** admins see an Admin box on every unit page to rename or disband it. Both actions are written to the admin audit log and members are notified.
+
+Rules live in `src/units.js`; data access is in `src/units-repo.js`.
+
 ## PvP and the hospital
 
 - **Attacking** costs 10 energy and is started from another player's profile. Both sides trade hits for up to 10 rounds using real health and gear. The attacker strikes first and the defender fights back automatically.
@@ -128,6 +143,7 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
   - unlocks on level-up (new missions, new Armory gear, PvP at level 3)
   - a welcome message for new players
   - a daily order being completed
+  - unit events (applications, acceptance, promotions, removal, upgrades, disbanding)
 - **The bell** in the header shows the unread count. `/notifications` lists the latest 50 (each inbox keeps up to 200) and marks them read when you view it.
 - **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
 - **The combat feed** on HQ shows the latest fights across the whole game.
@@ -183,6 +199,9 @@ src/
   daily.js           daily order + supply drop rules (pure)
   daily-service.js   daily orders storage, progress and claims
   routes/daily.js    claim orders, commendation and supply drop
+  units.js           unit rules: names, roles, upgrades (pure)
+  units-repo.js      units, applications, board and unit log storage
+  routes/units.js    unit list, unit page and all unit actions
   routes/training.js training page and sessions
   leaderboards.js    ranked boards (window-function queries)
   routes/leaderboards.js, routes/account.js
@@ -213,6 +232,8 @@ test/                node:test suites
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted
 - `/bank`: cash on hand vs banked, deposit and withdraw (with "All" and a live fee preview), and recent transactions
+- `/units`: every unit ranked by strength, with search, your applications and the form to found a unit
+- `/units/:id`: a unit's page showing its roster and upgrades, plus (for members) the treasury, board and unit log, and (for the Commander) settings and command
 - `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat
 - `/scout/:username` (POST): buy intel on a player; the report appears on their profile for you only
 - `/leaderboards`: Top soldiers (level, XP), PvP wins, Missions won and This week (XP in the last 7 days). Shows the top 50 with your position pinned if you're further down. No cash, bank or training boards; suspended players are left out.

@@ -188,6 +188,47 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_flags_status ON flags(status, severity DESC, updated_at DESC);
   CREATE INDEX IF NOT EXISTS idx_flags_key ON flags(dedupe_key, id DESC);
 
+  CREATE TABLE IF NOT EXISTS units (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    tag          TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+    description  TEXT    NOT NULL DEFAULT '',
+    recruiting   INTEGER NOT NULL DEFAULT 1,
+    treasury     INTEGER NOT NULL DEFAULT 0,
+    barracks     INTEGER NOT NULL DEFAULT 0,
+    drill        INTEGER NOT NULL DEFAULT 0,
+    founded_by   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at   INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS unit_applications (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id     INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message     TEXT    NOT NULL DEFAULT '',
+    created_at  INTEGER NOT NULL,
+    UNIQUE (unit_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_unit_apps_user ON unit_applications(user_id);
+
+  CREATE TABLE IF NOT EXISTS unit_posts (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id     INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT    NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_unit_posts ON unit_posts(unit_id, id DESC);
+
+  CREATE TABLE IF NOT EXISTS unit_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id     INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    kind        TEXT    NOT NULL,
+    message     TEXT    NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_unit_log ON unit_log(unit_id, id DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -218,6 +259,11 @@ const ADDED_COLUMNS = [
   ['users', 'streak_count', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'streak_day', 'TEXT'],
   ['users', 'streak_best', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'unit_id', 'INTEGER REFERENCES units(id) ON DELETE SET NULL'],
+  ['users', 'unit_role', 'TEXT'],
+  ['users', 'unit_joined_at', 'INTEGER'],
+  ['users', 'unit_donated', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'unit_left_at', 'INTEGER'],
 ];
 
 function migrate(db) {
@@ -227,6 +273,7 @@ function migrate(db) {
   }
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_hospital ON users(hospital_until)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_unit ON users(unit_id)');
   // Players who existed before the ledger get one opening entry for their current
   // balances, so "balance == sum of ledger" holds from here on.
   db.prepare(`

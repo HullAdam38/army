@@ -220,7 +220,7 @@ function grantXp(player, amount) {
  * Resolves a mission. Returns { player, result } where `player` is the updated
  * copy to persist, or { error } when the mission can't be attempted.
  */
-function runMission(missionId, current, { now = Date.now(), rng = Math.random, stats } = {}) {
+function runMission(missionId, current, { now = Date.now(), rng = Math.random, stats, xpBonus = 0 } = {}) {
   const mission = MISSIONS_BY_ID.get(missionId);
   if (!mission) return { error: 'Unknown mission.' };
 
@@ -253,6 +253,7 @@ function runMission(missionId, current, { now = Date.now(), rng = Math.random, s
     player.missions_failed += 1;
   }
 
+  if (xpBonus > 0) result.xp = Math.round(result.xp * (1 + xpBonus)); // unit Drill ground
   result.levelsGained = grantXp(player, result.xp);
   return { player, result };
 }

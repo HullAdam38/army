@@ -21,6 +21,8 @@ const { trainingRoutes } = require('./routes/training');
 const { leaderboardRoutes } = require('./routes/leaderboards');
 const { accountRoutes } = require('./routes/account');
 const { dailyRoutes } = require('./routes/daily');
+const { unitRoutes } = require('./routes/units');
+const { createUnitRepo } = require('./units-repo');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -58,6 +60,8 @@ function createApp({
   app.anti = anti; // exposed for tests and maintenance scripts
   anti.schedule(scanHours);
   const daily = createDailyService(db, players);
+  const unitRepo = createUnitRepo(db);
+  const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, '..', 'views'));
@@ -111,7 +115,7 @@ function createApp({
 
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
-  app.use(gameRoutes(players, daily));
+  app.use(gameRoutes(players, daily, unitRepo));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily));
@@ -120,8 +124,9 @@ function createApp({
   app.use(trainingRoutes(players, daily));
   app.use(leaderboardRoutes(players, db));
   app.use(dailyRoutes(players, daily));
+  app.use(unitRoutes(players, unitRepo, adminRepo));
   app.use(accountRoutes(players));
-  app.use(adminRoutes(players, createAdminRepo(db), anti));
+  app.use(adminRoutes(players, adminRepo, anti));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

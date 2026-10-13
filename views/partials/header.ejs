@@ -12,6 +12,7 @@
         <a href="/training" class="game-nav__link" <%- nav === 'training' ? 'aria-current="page"' : '' %>>Training</a>
         <a href="/bank" class="game-nav__link" <%- nav === 'bank' ? 'aria-current="page"' : '' %>>Bank</a>
         <a href="/hospital" class="game-nav__link" <%- nav === 'hospital' ? 'aria-current="page"' : '' %>>Hospital</a>
+        <a href="/unit" class="game-nav__link" <%- nav === 'unit' ? 'aria-current="page"' : '' %>>Unit</a>
         <a href="/players" class="game-nav__link" <%- nav === 'players' || nav === 'online' ? 'aria-current="page"' : '' %>>Players</a>
         <a href="/profile/<%= encodeURIComponent(player.username) %>" class="game-nav__link" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>Profile</a>
         <% if (isAdmin) { %><a href="/admin" class="game-nav__link game-nav__link--admin" <%- nav === 'admin' ? 'aria-current="page"' : '' %>>Admin</a><% } %>

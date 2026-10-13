@@ -1,0 +1,115 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Order of battle</p>
+      <h1 class="page-head__title">Units</h1>
+      <p class="page-head__sub">Band together. Unit members can't attack each other, share a message board, and pool cash into upgrades that boost everyone. Units are ranked by strength: the total level of their members.</p>
+    </div>
+    <% if (mine) { %>
+      <a class="btn btn--primary" href="/units/<%= mine.id %>">Your unit: [<%= mine.tag %>] <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    <% } %>
+  </div>
+
+  <% if (applications.length) { %>
+    <section class="card reveal unit-apps" style="--i:1" aria-labelledby="apps-title">
+      <h2 id="apps-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Your applications</h2>
+      <ul class="unit-apps__list">
+        <% applications.forEach(function (a) { %>
+          <li>
+            <a href="/units/<%= a.unit_id %>"><span class="unit-tag">[<%= a.tag %>]</span> <%= a.name %></a>
+            <span class="muted">sent <%= a.ago %></span>
+            <form method="post" action="/units/<%= a.unit_id %>/withdraw">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn--ghost btn--sm" type="submit">Withdraw</button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
+
+  <div class="directory-tools reveal" style="--i:2">
+    <p class="directory-count"><%= total %> <%= total === 1 ? 'unit' : 'units' %><%= q ? ` · matching “${q}”` : '' %></p>
+    <form class="directory-search" method="get" action="/units" role="search">
+      <label class="visually-hidden" for="q">Search units</label>
+      <input id="q" name="q" type="search" placeholder="Search name or tag…" value="<%= q %>" maxlength="24" autocomplete="off">
+      <button class="btn btn--ghost btn--sm" type="submit">Search</button>
+    </form>
+  </div>
+
+  <% if (list.length) { %>
+    <table class="directory units-table reveal" style="--i:3">
+      <thead>
+        <tr>
+          <th scope="col" class="num">#</th>
+          <th scope="col">Unit</th>
+          <th scope="col" class="num">Strength</th>
+          <th scope="col" class="num">Members</th>
+          <th scope="col">Recruiting</th>
+          <th scope="col"><span class="visually-hidden">Open</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% list.forEach(function (u) { %>
+          <tr class="<%= u.isYours ? 'is-you' : '' %>">
+            <td class="num units-table__pos" data-label="Rank"><%= u.position || '—' %></td>
+            <th scope="row" class="directory__who">
+              <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
+              <span class="roster__who">
+                <span><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><% if (u.isYours) { %> <span class="tag">Yours</span><% } %></span>
+                <span class="roster__rank">Commander <%= u.leader_name || '—' %></span>
+              </span>
+            </th>
+            <td class="num" data-label="Strength"><%= u.strength %></td>
+            <td class="num" data-label="Members"><%= u.members %> / <%= u.capacity %></td>
+            <td data-label="Recruiting">
+              <% if (!u.recruiting) { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Closed</span>
+              <% } else if (u.members >= u.capacity) { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span>Full</span>
+              <% } else { %><span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Open</span><% } %>
+            </td>
+            <td class="directory__action"><a class="btn btn--ghost btn--sm" href="/units/<%= u.id %>">View</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <p class="card muted reveal" style="--i:3"><%= q ? 'No units match that search.' : 'No units have been formed yet. Be the first.' %></p>
+  <% } %>
+
+  <% if (!mine) { %>
+    <section id="found" class="card unit-found reveal" style="--i:4" aria-labelledby="found-title">
+      <h2 id="found-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Found a unit</h2>
+      <p class="muted">Costs <strong><%= money(createCost) %></strong> cash and needs level <%= createLevel %>. You become its Commander: you approve recruits (with your officers), spend the treasury and set the unit’s orders.</p>
+      <% if (foundBlocker) { %>
+        <p class="notice notice--warn unit-found__blocker"><%= foundBlocker %></p>
+      <% } else { %>
+        <form method="post" action="/units" class="form unit-found__form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field-row unit-found__row">
+            <div class="field">
+              <label for="unit-name">Unit name</label>
+              <input id="unit-name" name="name" required minlength="3" maxlength="24" value="<%= form.name || '' %>" autocomplete="off">
+              <span class="field__hint">3–24 letters, numbers, spaces, hyphens or apostrophes.</span>
+            </div>
+            <div class="field">
+              <label for="unit-tag">Tag</label>
+              <input id="unit-tag" name="tag" required minlength="2" maxlength="4" pattern="[A-Za-z0-9]{2,4}" value="<%= form.tag || '' %>" autocomplete="off" class="unit-found__tag">
+              <span class="field__hint">2–4 characters, shown as [TAG].</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="unit-desc">Description <span class="muted">(optional)</span></label>
+            <textarea id="unit-desc" name="description" rows="3" maxlength="300"><%= form.description || '' %></textarea>
+          </div>
+          <button class="btn btn--primary" type="submit">Found unit for <%= money(createCost) %></button>
+        </form>
+      <% } %>
+    </section>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

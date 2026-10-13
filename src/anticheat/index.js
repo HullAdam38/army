@@ -13,7 +13,7 @@ const MAX_PVP_CASH = pvp.CASH_CAP_PER_LEVEL * admin.MAX_LEVEL;
 /** Which game action a POST path is, or null for ones we don't time (sign-in, admin…). */
 function actionKind(path) {
   const first = path.split('/')[1] || '';
-  const kinds = { missions: 'mission', attack: 'attack', bank: 'bank', armory: 'armory', hospital: 'hospital', training: 'training', scout: 'scout', daily: 'daily' };
+  const kinds = { missions: 'mission', attack: 'attack', bank: 'bank', armory: 'armory', hospital: 'hospital', training: 'training', scout: 'scout', daily: 'daily', units: 'unit' };
   return kinds[first] || null;
 }
 

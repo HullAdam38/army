@@ -1,0 +1,270 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const money = (n) => '$' + Number(n).toLocaleString('en-US');
+  const member = Boolean(role);
+  const csrf = `<input type="hidden" name="_csrf" value="${csrfToken}">`;
+  const others = roster.filter((m) => !m.isYou && !m.banned_at);
+%>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/units"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All units</a>
+
+  <section class="card unit-hero reveal" style="--i:1" aria-labelledby="unit-name">
+    <span class="unit-crest unit-crest--xl" aria-hidden="true"><%= unit.tag %></span>
+    <div class="unit-hero__body">
+      <p class="eyebrow">Unit · ranked #<%= unit.position %></p>
+      <h1 id="unit-name" class="profile-hero__name"><%= unit.name %> <span class="unit-tag">[<%= unit.tag %>]</span></h1>
+      <% if (unit.description) { %><p class="unit-hero__desc"><%= unit.description %></p><% } %>
+      <dl class="figures unit-hero__figures">
+        <div><dt>Strength</dt><dd><%= unit.strength %></dd></div>
+        <div><dt>Members</dt><dd><%= members %> / <%= unit.capacity %></dd></div>
+        <div><dt>Mission XP</dt><dd><%= unit.xpBonusPct ? `+${unit.xpBonusPct}%` : '—' %></dd></div>
+        <div><dt>Recruiting</dt><dd><%= unit.recruiting ? (members >= unit.capacity ? 'Full' : 'Open') : 'Closed' %></dd></div>
+      </dl>
+    </div>
+    <div class="unit-hero__action">
+      <% if (member) { %>
+        <p class="unit-hero__role">You are <strong><%= roleLabel %></strong></p>
+        <form method="post" action="/units/<%= unit.id %>/leave" data-confirm="<%= role === 'leader' ? (members > 1 ? 'Hand command to someone first.' : 'You are the last member, so leaving disbands the unit and its treasury is lost. Continue?') : `Leave ${unit.name}?` %>">
+          <%- csrf %>
+          <button class="btn btn--ghost btn--sm" type="submit"><%= role === 'leader' && members <= 1 ? 'Disband & leave' : 'Leave unit' %></button>
+        </form>
+      <% } else if (apply.applied) { %>
+        <p class="unit-hero__role">Application sent. Officers will review it.</p>
+        <form method="post" action="/units/<%= unit.id %>/withdraw"><%- csrf %><button class="btn btn--ghost btn--sm" type="submit">Withdraw</button></form>
+      <% } else if (apply.blocker) { %>
+        <p class="unit-hero__role muted"><%= apply.blocker %></p>
+      <% } else { %>
+        <form method="post" action="/units/<%= unit.id %>/apply" class="unit-apply">
+          <%- csrf %>
+          <label class="visually-hidden" for="apply-msg">Message to the officers</label>
+          <textarea id="apply-msg" name="message" rows="2" maxlength="<%= limits.message %>" placeholder="Why should they take you? (optional)"></textarea>
+          <button class="btn btn--primary btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-flag"/></svg>Apply to join</button>
+        </form>
+      <% } %>
+    </div>
+  </section>
+
+  <div class="unit-grid">
+    <section id="roster" class="card unit-card unit-card--roster reveal" style="--i:2" aria-labelledby="roster-title">
+      <h2 id="roster-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-crest"/></svg>Roster</h2>
+      <ol class="unit-roster">
+        <% roster.forEach(function (m) { %>
+          <li class="unit-roster__row unit-roster__row--<%= m.unit_role %><%= m.isYou ? ' is-you' : '' %>">
+            <span class="stat__grade"><%= m.grade %></span>
+            <span class="roster__who">
+              <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(m.username) %>"><%= m.username %></a><% if (m.isYou) { %> <span class="tag">You</span><% } %></span>
+              <span class="roster__rank"><span class="unit-role unit-role--<%= m.unit_role %>"><%= m.roleLabel %></span> · Lv <%= m.level %><% if (member) { %> · donated <%= money(m.unit_donated) %><% } %></span>
+            </span>
+            <span class="unit-roster__seen">
+              <% if (m.banned_at) { %><span class="status">Suspended</span>
+              <% } else if (m.online) { %><span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online</span>
+              <% } else { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span><%= m.lastSeen %></span><% } %>
+            </span>
+            <% if (!m.isYou && (can.manage || m.canKick)) { %>
+              <span class="unit-roster__actions">
+                <% if (can.manage && m.unit_role === 'member') { %>
+                  <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/promote"><%- csrf %><button class="btn btn--ghost btn--xs" type="submit">Promote</button></form>
+                <% } else if (can.manage && m.unit_role === 'officer') { %>
+                  <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/demote"><%- csrf %><button class="btn btn--ghost btn--xs" type="submit">Demote</button></form>
+                <% } %>
+                <% if (m.canKick) { %>
+                  <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/kick" data-confirm="Remove <%= m.username %> from the unit?"><%- csrf %><button class="btn btn--ghost btn--xs btn--danger" type="submit">Remove</button></form>
+                <% } %>
+              </span>
+            <% } %>
+          </li>
+        <% }) %>
+      </ol>
+    </section>
+
+    <div class="unit-side">
+      <% if (can.review) { %>
+        <section id="applications" class="card unit-card reveal" style="--i:3" aria-labelledby="applications-title">
+          <h2 id="applications-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Applications<% if (applications.length) { %> <span class="tag"><%= applications.length %></span><% } %></h2>
+          <% if (applications.length) { %>
+            <ol class="unit-apps-review">
+              <% applications.forEach(function (a) { %>
+                <li>
+                  <p><a class="directory__name" href="/profile/<%= encodeURIComponent(a.username) %>"><strong><%= a.username %></strong></a> <span class="muted">· Lv <%= a.level %> · <%= a.missions_completed %> missions · <%= a.pvp_wins %> PvP wins · <%= a.ago %></span></p>
+                  <% if (a.message) { %><blockquote class="unit-quote"><%= a.message %></blockquote><% } %>
+                  <div class="unit-apps-review__actions">
+                    <form method="post" action="/units/<%= unit.id %>/applications/<%= a.id %>/accept"><%- csrf %><button class="btn btn--primary btn--sm" type="submit" <%- members >= unit.capacity ? 'disabled' : '' %>>Accept</button></form>
+                    <form method="post" action="/units/<%= unit.id %>/applications/<%= a.id %>/reject"><%- csrf %><button class="btn btn--ghost btn--sm" type="submit">Reject</button></form>
+                  </div>
+                </li>
+              <% }) %>
+            </ol>
+            <% if (members >= unit.capacity) { %><p class="progress-line__note">The unit is full. Upgrade the Barracks to accept more.</p><% } %>
+          <% } else { %>
+            <p class="muted">No applications waiting.</p>
+          <% } %>
+        </section>
+      <% } %>
+
+      <% if (member) { %>
+        <section id="treasury" class="card unit-card reveal" style="--i:4" aria-labelledby="treasury-title">
+          <h2 id="treasury-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-cash"/></svg>Treasury</h2>
+          <p class="unit-treasury"><%= money(unit.treasury) %></p>
+          <p class="progress-line__note">Donations can only be spent on upgrades by the Commander. They can’t be withdrawn.</p>
+          <form method="post" action="/units/<%= unit.id %>/donate" class="unit-donate" data-bank-form data-max="<%= player.cash %>">
+            <%- csrf %>
+            <label class="visually-hidden" for="donate-amount">Amount to donate</label>
+            <div class="money-input">
+              <span aria-hidden="true">$</span>
+              <input id="donate-amount" name="amount" inputmode="numeric" autocomplete="off" placeholder="<%= limits.minDonation %>" required>
+              <button class="money-input__all" type="button" data-fill-all>All</button>
+            </div>
+            <p class="bank-form__preview" data-preview aria-live="polite">Minimum <%= money(limits.minDonation) %>. You have <%= money(player.cash) %> on hand.</p>
+            <button class="btn btn--ghost btn--block" type="submit" <%- player.cash < limits.minDonation ? 'disabled' : '' %>>Donate</button>
+          </form>
+          <ul class="unit-upgrades">
+            <% upgrades.forEach(function (u) { %>
+              <li class="unit-upgrade">
+                <div class="unit-upgrade__head">
+                  <span class="unit-upgrade__name"><%= u.label %></span>
+                  <span class="unit-upgrade__level">Lv <%= u.level %> / <%= u.max %></span>
+                </div>
+                <span class="meter meter--xp" aria-hidden="true"><span class="meter__fill" style="width:<%= Math.round(u.level / u.max * 100) %>%"></span></span>
+                <p class="daily__reward"><%= u.blurb %> Now: <%= u.now %>.</p>
+                <% if (!u.next) { %>
+                  <p class="daily__status">Fully upgraded</p>
+                <% } else if (can.manage) { %>
+                  <form method="post" action="/units/<%= unit.id %>/upgrades/<%= u.key %>" data-confirm="Spend <%= money(u.next.cost) %> of the treasury on <%= u.label %> level <%= u.next.level %>?">
+                    <%- csrf %>
+                    <button class="btn btn--sm <%= unit.treasury >= u.next.cost ? 'btn--primary' : 'btn--ghost' %>" type="submit" <%- unit.treasury >= u.next.cost ? '' : 'disabled' %>>Upgrade · <%= money(u.next.cost) %></button>
+                  </form>
+                <% } else { %>
+                  <p class="daily__reward">Next level: <%= money(u.next.cost) %></p>
+                <% } %>
+              </li>
+            <% }) %>
+          </ul>
+        </section>
+      <% } else { %>
+        <section class="card unit-card reveal" style="--i:4" aria-labelledby="upgrades-title">
+          <h2 id="upgrades-title" class="card__title">Upgrades</h2>
+          <ul class="unit-upgrades unit-upgrades--public">
+            <% upgrades.forEach(function (u) { %>
+              <li><span class="unit-upgrade__name"><%= u.label %></span> <span class="unit-upgrade__level">Lv <%= u.level %> / <%= u.max %></span> <span class="muted">· <%= u.now %></span></li>
+            <% }) %>
+          </ul>
+        </section>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (member) { %>
+    <div class="unit-grid unit-grid--lower">
+      <section id="board" class="card unit-card unit-card--board reveal" style="--i:5" aria-labelledby="board-title">
+        <h2 id="board-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Unit board</h2>
+        <form method="post" action="/units/<%= unit.id %>/posts" class="unit-post-form">
+          <%- csrf %>
+          <label class="visually-hidden" for="post-body">Message to your unit</label>
+          <textarea id="post-body" name="body" rows="2" maxlength="<%= limits.post %>" placeholder="Message your unit…" required></textarea>
+          <button class="btn btn--primary btn--sm" type="submit">Post</button>
+        </form>
+        <% if (posts.length) { %>
+          <ol class="unit-posts">
+            <% posts.forEach(function (p) { %>
+              <li class="unit-post<%= p.user_id === player.id ? ' is-you' : '' %>">
+                <div class="unit-post__head">
+                  <a class="directory__name" href="/profile/<%= encodeURIComponent(p.username) %>"><strong><%= p.username %></strong></a><% if (!p.still_member) { %> <span class="muted">(left)</span><% } %>
+                  <span class="feed__time"><%= p.ago %></span>
+                  <% if (p.canDelete) { %>
+                    <form method="post" action="/units/<%= unit.id %>/posts/<%= p.id %>/delete" data-confirm="Delete this post?"><%- csrf %><button class="unit-post__delete" type="submit" aria-label="Delete post">Delete</button></form>
+                  <% } %>
+                </div>
+                <p class="unit-post__body"><%= p.body %></p>
+              </li>
+            <% }) %>
+          </ol>
+        <% } else { %>
+          <p class="muted">Nothing posted yet. Say hello to your unit.</p>
+        <% } %>
+      </section>
+
+      <section class="card unit-card unit-card--log reveal" style="--i:6" aria-labelledby="ulog-title">
+        <h2 id="ulog-title" class="card__title">Unit log</h2>
+        <ol class="dossier__log">
+          <% log.forEach(function (l) { %>
+            <li class="log log--unit"><span class="log__time"><%= l.ago %></span> <%= l.message %></li>
+          <% }) %>
+        </ol>
+      </section>
+    </div>
+  <% } %>
+
+  <% if (can.manage) { %>
+    <section id="command" class="card unit-card unit-command reveal" style="--i:7" aria-labelledby="command-title">
+      <h2 id="command-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-chevrons"/></svg>Command</h2>
+      <div class="unit-command__grid">
+        <form method="post" action="/units/<%= unit.id %>/settings" class="form unit-command__form">
+          <%- csrf %>
+          <div class="field">
+            <label for="settings-desc">Description</label>
+            <textarea id="settings-desc" name="description" rows="3" maxlength="<%= limits.description %>"><%= unit.description %></textarea>
+          </div>
+          <div class="check">
+            <input id="settings-recruiting" type="checkbox" name="recruiting" <%- unit.recruiting ? 'checked' : '' %>>
+            <label for="settings-recruiting">Accept applications</label>
+          </div>
+          <button class="btn btn--ghost" type="submit">Save settings</button>
+        </form>
+
+        <div class="unit-command__danger">
+          <% if (others.length) { %>
+            <form method="post" class="form unit-command__form" action="/units/<%= unit.id %>/transfer">
+              <%- csrf %>
+              <div class="field">
+                <label for="transfer-to">Hand over command</label>
+                <select id="transfer-to" name="to" class="unit-select">
+                  <% others.forEach(function (m) { %><option value="<%= m.id %>"><%= m.username %> (<%= m.roleLabel %>)</option><% }) %>
+                </select>
+              </div>
+              <div class="field">
+                <label for="transfer-confirm">Type their callsign to confirm</label>
+                <input id="transfer-confirm" name="confirm" autocomplete="off" required>
+                <span class="field__hint">You’ll become an officer.</span>
+              </div>
+              <button class="btn btn--ghost" type="submit">Hand over command</button>
+            </form>
+          <% } %>
+          <form method="post" action="/units/<%= unit.id %>/disband" class="form unit-command__form">
+            <%- csrf %>
+            <div class="field">
+              <label for="disband-confirm">Disband the unit</label>
+              <input id="disband-confirm" name="confirm" autocomplete="off" required placeholder="Type <%= unit.tag %> to confirm">
+              <span class="field__hint">Everyone is released and the treasury (<%= money(unit.treasury) %>) is lost. This can’t be undone.</span>
+            </div>
+            <button class="btn btn--ghost btn--danger" type="submit">Disband</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (isAdmin) { %>
+    <section class="card unit-card admin-box reveal" style="--i:8" aria-labelledby="admin-unit-title">
+      <h2 id="admin-unit-title" class="card__title">Admin</h2>
+      <div class="unit-command__grid">
+        <form method="post" action="/units/<%= unit.id %>/admin/rename" class="form unit-command__form">
+          <%- csrf %>
+          <div class="field-row">
+            <div class="field"><label for="admin-name">Name</label><input id="admin-name" name="name" value="<%= unit.name %>" required maxlength="24"></div>
+            <div class="field"><label for="admin-tag">Tag</label><input id="admin-tag" name="tag" value="<%= unit.tag %>" required maxlength="4"></div>
+          </div>
+          <button class="btn btn--ghost" type="submit">Rename</button>
+        </form>
+        <form method="post" action="/units/<%= unit.id %>/admin/disband" class="form unit-command__form" data-confirm="Disband <%= unit.name %> for every member?">
+          <%- csrf %>
+          <div class="field"><label for="admin-reason">Reason (sent to members)</label><input id="admin-reason" name="reason" maxlength="200"></div>
+          <button class="btn btn--ghost btn--danger" type="submit">Disband unit</button>
+        </form>
+      </div>
+    </section>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

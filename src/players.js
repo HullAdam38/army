@@ -190,8 +190,8 @@ function createPlayerRepo(db) {
         params.push(onlineSince);
       }
       if (filter === 'targets') {
-        where.push('id != ? AND level >= ? AND level >= ? AND (hospital_until IS NULL OR hospital_until <= ?)');
-        params.push(me.id, targetRules.minLevel, me.level - targetRules.maxLevelsBelow, now);
+        where.push('id != ? AND level >= ? AND level >= ? AND (hospital_until IS NULL OR hospital_until <= ?) AND (unit_id IS NULL OR unit_id IS NOT ?)');
+        params.push(me.id, targetRules.minLevel, me.level - targetRules.maxLevelsBelow, now, me.unit_id ?? null);
       }
       const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
       const order = PLAYER_SORTS[sort] || PLAYER_SORTS.level;

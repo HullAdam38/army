@@ -12,11 +12,12 @@ const { PLAYER_SORTS } = require('../players');
 const { announceLevels } = require('../notify');
 const scouting = require('../scouting');
 const training = require('../training');
+const units = require('../units');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily) {
+function gameRoutes(players, daily, unitRepo) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -50,7 +51,8 @@ function gameRoutes(players, daily) {
     const outcome = players.transaction(() => {
       // Re-read inside the transaction so we act on the freshest state.
       const fresh = players.findById(req.player.id);
-      const out = game.runMission(req.params.id, fresh, { stats: statsOf(fresh) });
+      const unit = fresh.unit_id ? unitRepo.findById(fresh.unit_id) : null;
+      const out = game.runMission(req.params.id, fresh, { stats: statsOf(fresh), xpBonus: units.xpBonus(unit) });
       if (out.error) return out;
       players.save(out.player, { reason: 'mission', ref: req.params.id });
       const r = out.result;
@@ -223,6 +225,10 @@ function gameRoutes(players, daily) {
         hospitalUntil: them.hospital_until,
         hospitalReason: them.hospital_reason,
         isYou,
+        unit: (() => {
+          const u = user.unit_id ? unitRepo.findById(user.unit_id) : null;
+          return u ? { id: u.id, name: u.name, tag: u.tag, role: units.roleLabel(user.unit_role) } : null;
+        })(),
       },
       attack,
       // Hidden stats: yours on your own profile, otherwise only intel you've paid for.
