@@ -37,8 +37,15 @@
         </p>
       </div>
     <% } %>
+    <% if (medals.length) { %>
+      <ul class="medal-pins" aria-label="Featured medals">
+        <% medals.slice(0, 3).forEach(function (m) { %>
+          <li><%- include('partials/medal', { m, size: 'sm' }) %><span class="medal-pins__name"><%= m.tierLabel %> <%= m.name %></span></li>
+        <% }) %>
+      </ul>
+    <% } %>
     <% if (soldier.isYou) { %>
-      <p class="profile-hero__note">This is how other soldiers see you. <a href="/hq">Back to HQ</a> · <a href="/account/password">Change password</a></p>
+      <p class="profile-hero__note">This is how other soldiers see you. <a href="/hq">Back to HQ</a> · <a href="/medals">Medals</a> · <a href="/account/password">Change password</a></p>
     <% } %>
   </section>
 
@@ -101,6 +108,23 @@
         </form>
       </section>
     <% } %>
+
+    <section class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="medals-title">
+      <h2 id="medals-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-star"/></svg>Medals<% if (soldier.isYou) { %> <a class="card__title-link" href="/medals">Medal case</a><% } %></h2>
+      <% if (medals.length) { %>
+        <ul class="medal-rack">
+          <% medals.forEach(function (m) { %>
+            <li class="medal-rack__item">
+              <%- include('partials/medal', { m }) %>
+              <span class="medal-rack__name"><%= m.name %></span>
+              <span class="medal-rack__tier medal-rack__tier--<%= m.tierKey %>"><%= m.tierLabel %></span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="muted"><%= soldier.isYou ? 'No medals yet. Your first ones come from missions, daily orders and training.' : 'No medals yet.' %><% if (soldier.isYou) { %> <a href="/medals">See what you can earn</a>.<% } %></p>
+      <% } %>
+    </section>
 
     <section class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="battles-title">
       <h2 id="battles-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>Recent battles</h2>

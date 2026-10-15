@@ -261,6 +261,14 @@ const SCHEMA = `
     PRIMARY KEY (war_id, battle_id)
   );
 
+  CREATE TABLE IF NOT EXISTS user_medals (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    medal_id    TEXT    NOT NULL,
+    tier        INTEGER NOT NULL,
+    awarded_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, medal_id, tier)
+  );
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -303,6 +311,9 @@ const ADDED_COLUMNS = [
   ['units', 'war_losses', 'INTEGER NOT NULL DEFAULT 0'],
   ['units', 'war_draws', 'INTEGER NOT NULL DEFAULT 0'],
   ['units', 'war_protected_until', 'INTEGER'],
+  ['users', 'orders_completed', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'wars_won', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'pinned_medals', "TEXT NOT NULL DEFAULT ''"],
 ];
 
 function migrate(db) {

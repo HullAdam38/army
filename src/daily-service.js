@@ -20,6 +20,7 @@ function createDailyService(db, players) {
     claimBonus: db.prepare('INSERT OR IGNORE INTO daily_bonus (user_id, day, claimed_at) VALUES (?, ?, ?)'),
     prune: db.prepare('DELETE FROM daily_orders WHERE user_id = ? AND day < ?'),
     pruneBonus: db.prepare('DELETE FROM daily_bonus WHERE user_id = ? AND day < ?'),
+    countOrder: db.prepare('UPDATE users SET orders_completed = orders_completed + 1 WHERE id = ?'),
   };
 
   /** Today's orders, creating them on first look (orders are fixed for the day once made). */
@@ -103,6 +104,7 @@ function createDailyService(db, players) {
       if (order.claimed_at) return { error: 'Already claimed.' };
       if (order.progress < order.target) return { error: 'That order isn’t complete yet.' };
       if (!stmts.claim.run(now, user.id, day, slot).changes) return { error: 'Already claimed.' };
+      stmts.countOrder.run(user.id); // career total, for the Order of Merit medal
       const player = pay(user, { xp: order.reward_xp, cash: order.reward_cash }, 'daily-order', `${day}:${slot}`);
       return { order: { ...order, text: daily.orderText(order) }, player };
     },

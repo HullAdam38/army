@@ -153,6 +153,29 @@ Rules live in `src/units.js`; data access is in `src/units-repo.js`.
 
 Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-service.js`.
 
+## Medals
+
+Ten medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+
+| Medal | Earned by | Bronze / Silver / Gold |
+|---|---|---|
+| Field Operator | missions won | 25 / 100 / 500 |
+| Combat Medal | PvP wins as attacker | 10 / 50 / 200 |
+| Knockout Artist | knockouts (attacking or defending) | 5 / 25 / 100 |
+| Iron Wall | attacks held off | 5 / 25 / 100 |
+| Drill Instructor | training points | 30 / 150 / 500 |
+| Long Service | best supply-drop streak (days) | 7 / 30 / 90 |
+| Order of Merit | daily orders claimed | 15 / 60 / 250 |
+| Commission | level | 10 / 20 / 35 |
+| War Hero | war points scored | 10 / 50 / 200 |
+| Victory Medal | unit wars won (as a member from the start of the war) | 1 / 5 / 20 |
+
+- **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
+- **Farming protection:** PvP medals only count fights that paid XP and weren't reversed by an admin, so wins against linked alt accounts earn nothing.
+- **Where they show:** `/medals` is your medal case, with progress to the next tier and the share of players holding each tier. Pin up to 3 medals to feature them at the top of your profile. Profiles show every medal a soldier holds.
+
+Rules live in `src/medals.js`; awarding and storage are in `src/medal-service.js`.
+
 ## PvP and the hospital
 
 - **Attacking** costs 10 energy and is started from another player's profile. Both sides trade hits for up to 10 rounds using real health and gear. The attacker strikes first and the defender fights back automatically.
@@ -181,6 +204,7 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
   - a daily order being completed
   - unit events (applications, acceptance, promotions, removal, upgrades, disbanding)
   - unit wars (declared, won, lost, drawn)
+  - medals awarded
 - **The bell** in the header shows the unread count. `/notifications` lists the latest 50 (each inbox keeps up to 200) and marks them read when you view it.
 - **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
 - **The combat feed** on HQ shows the latest fights across the whole game.
@@ -238,6 +262,9 @@ src/
   routes/daily.js    claim orders, commendation and supply drop
   units.js           unit rules: names, roles, upgrades, requirements (pure)
   wars.js            unit war rules: declaring, scoring, settling (pure)
+  medals.js          medal list, tiers, progress (pure)
+  medal-service.js   career metrics, awarding, pins
+  routes/medals.js   medal case and pinning
   war-service.js     unit wars storage, fight scoring and settling
   units-repo.js      units, applications, board and unit log storage
   routes/units.js    unit list, unit page and all unit actions
@@ -273,6 +300,7 @@ test/                node:test suites
 - `/bank`: cash on hand vs banked, deposit and withdraw (with "All" and a live fee preview), and recent transactions
 - `/units`: every unit ranked by strength, with search, your applications and the form to found a unit
 - `/units/:id`: a unit's page showing its roster and upgrades, plus (for members) the treasury, board and unit log, and (for the Commander) settings and command
+- `/medals`: your medal case, with progress, rarity and pins
 - `/wars`, `/wars/:id`: unit wars list and war room
 - `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat
 - `/scout/:username` (POST): buy intel on a player; the report appears on their profile for you only

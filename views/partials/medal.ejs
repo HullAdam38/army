@@ -1,0 +1,4 @@
+<span class="medal medal--<%= m.tierKey || 'none' %><%= locals.size ? ` medal--${size}` : '' %>" title="<%= m.tierLabel ? `${m.tierLabel} ${m.name}` : `${m.name} (not earned)` %>">
+  <span class="medal__ribbon" aria-hidden="true"></span>
+  <span class="medal__disc"><svg aria-hidden="true"><use href="#<%= m.icon %>"/></svg></span>
+</span>

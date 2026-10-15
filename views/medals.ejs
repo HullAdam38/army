@@ -1,0 +1,72 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Decorations</p>
+      <h1 class="page-head__title">Medal case</h1>
+      <p class="page-head__sub">Every medal has three tiers. Each tier pays once:
+        <% tiers.forEach(function (t, i) { %><strong class="tier-text tier-text--<%= t.key %>"><%= t.label %></strong> +<%= t.xp %> XP and <%= money(t.cash) %><%= i < tiers.length - 1 ? ', ' : '.' %><% }) %>
+        Pin up to <%= maxPinned %> to show at the top of your profile.</p>
+    </div>
+    <div class="medal-score">
+      <span class="medal-score__value"><%= earned %><small>/<%= possible %></small></span>
+      <span class="medal-score__label">tiers earned</span>
+    </div>
+  </div>
+
+  <form method="post" action="/medals/pins" class="reveal" style="--i:1">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <ol class="medal-grid">
+      <% list.forEach(function (m) { %>
+        <li class="medal-card<%= m.tier ? ` medal-card--${m.tierKey}` : ' medal-card--none' %>">
+          <div class="medal-card__head">
+            <%- include('partials/medal', { m, size: 'lg' }) %>
+            <div>
+              <h2 class="medal-card__name"><%= m.name %></h2>
+              <p class="medal-card__blurb"><%= m.blurb %></p>
+            </div>
+          </div>
+          <ol class="medal-tiers" aria-label="Tiers">
+            <% m.tiers.forEach(function (t) { %>
+              <li class="medal-tiers__tier<%= t.earned ? ' is-earned' : '' %> medal-tiers__tier--<%= t.key %>" title="<%= t.rarity %>% of soldiers hold this">
+                <span class="medal-tiers__label"><%= t.label %></span>
+                <span class="medal-tiers__need"><%= t.threshold.toLocaleString('en-US') %></span>
+                <span class="medal-tiers__rare"><%= t.rarity %>% hold</span>
+              </li>
+            <% }) %>
+          </ol>
+          <div class="progress-line">
+            <div class="progress-line__label">
+              <span><%= m.next ? `Next: ${m.nextLabel}` : 'Complete' %></span>
+              <span><%= m.value.toLocaleString('en-US') %><%= m.next ? ` / ${m.next.toLocaleString('en-US')}` : '' %> <%= m.unit %></span>
+            </div>
+            <span class="meter meter--xp" role="progressbar" aria-label="<%= m.name %> progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= m.pct %>"><span class="meter__fill" style="width:<%= m.pct %>%"></span></span>
+          </div>
+          <% if (m.tier) { %>
+            <label class="medal-card__pin"><input type="checkbox" name="pin" value="<%= m.id %>" <%- m.pinned ? 'checked' : '' %>> Pin to profile</label>
+          <% } %>
+        </li>
+      <% }) %>
+    </ol>
+    <div class="medal-actions">
+      <button class="btn btn--primary" type="submit">Save pinned medals</button>
+      <a class="btn btn--ghost" href="/profile/<%= encodeURIComponent(player.username) %>">View your profile</a>
+    </div>
+  </form>
+
+  <% if (recent.length) { %>
+    <section class="card reveal" style="--i:2" aria-labelledby="recent-title">
+      <h2 id="recent-title" class="card__title">Recently awarded</h2>
+      <ol class="dossier__log">
+        <% recent.forEach(function (r) { %>
+          <li class="log log--medal"><span class="log__time"><%= r.ago %></span> <span class="tier-text tier-text--<%= r.tier.key %>"><%= r.tier.label %></span> <%= r.name %></li>
+        <% }) %>
+      </ol>
+    </section>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

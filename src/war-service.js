@@ -31,6 +31,8 @@ function createWarService(db, players, unitRepo) {
       draw: db.prepare('UPDATE units SET war_draws = war_draws + 1, war_protected_until = ? WHERE id = ?'),
     },
     prize: db.prepare('UPDATE units SET treasury = treasury + ? WHERE id = ?'),
+    // Victory Medal: only soldiers who were in the winning unit when the war began.
+    veterans: db.prepare('UPDATE users SET wars_won = wars_won + 1 WHERE unit_id = ? AND unit_joined_at <= ?'),
     spend: db.prepare('UPDATE units SET treasury = treasury - ?1 WHERE id = ?2 AND treasury >= ?1'),
     history: db.prepare(`SELECT * FROM unit_wars WHERE attacker_unit_id = ?1 OR defender_unit_id = ?1 ORDER BY id DESC LIMIT ?2`),
     recent: db.prepare(`SELECT * FROM unit_wars WHERE status = 'ended' ORDER BY ended_at DESC LIMIT ?`),
@@ -76,6 +78,7 @@ function createWarService(db, players, unitRepo) {
       if (!unitId || forfeit === side) continue;
       const outcome = result.winner === null ? 'draw' : result.winner === side ? 'win' : 'loss';
       stmts.record[outcome].run(protectUntil, unitId);
+      if (outcome === 'win') stmts.veterans.run(unitId, war.started_at);
       if (prize) stmts.prize.run(prize, unitId);
     }
     const a = tagged(war.attacker_name, war.attacker_tag);

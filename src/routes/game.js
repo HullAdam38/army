@@ -17,13 +17,14 @@ const units = require('../units');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService) {
+function gameRoutes(players, daily, unitRepo, warService, medalService) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
   const statsOf = (user) => armory.statsOf(players, user);
 
   router.get('/hq', requireAuth, (req, res) => {
+    medalService.check(req.player.id); // e.g. defences or war wins since the last action
     const missions = game.missionViews(req.player, Date.now(), statsOf(req.player));
     const nextMission = missions.find((m) => !m.blocker) || null;
     res.render('hq', {
@@ -32,6 +33,7 @@ function gameRoutes(players, daily, unitRepo, warService) {
       activity: players.recentActivity(req.player.id),
       nextMission,
       daily: daily.view(req.player),
+      medalCount: medalService.rackFor(req.player.id).length,
       nextRank: game.nextRankFor(req.player.level),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
@@ -246,6 +248,7 @@ function gameRoutes(players, daily, unitRepo, warService) {
           return r ? { ...r.report, ago: presence.timeAgo(r.created_at, now) } : null;
         })(),
       },
+      medals: medalService.rackFor(user.id),
       battles: players.battlesFor(user.id, 6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at, now) })),
       loadout: loadoutView(user.level, players.equipment(user.id)),
       activity: players.publicActivity(user.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),

@@ -35,6 +35,7 @@
         <div><dt>Success rate</dt><dd><%= player.successRate === null ? '—' : player.successRate + '%' %></dd></div>
         <div><dt>Combat rating</dt><dd><a class="figure-link" href="/armory"><%= loadout.rating %></a></dd></div>
       </dl>
+      <a class="dossier__medals" href="/medals"><svg aria-hidden="true"><use href="#i-star"/></svg><%= medalCount ? `${medalCount} medal${medalCount === 1 ? '' : 's'} earned` : 'No medals yet' %> · Medal case</a>
     </section>
 
     <section class="card hq-card hq-card--orders reveal" style="--i:2" aria-labelledby="orders-title">
