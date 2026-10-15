@@ -103,6 +103,28 @@ Regeneration is calculated lazily from timestamps, so no background jobs are nee
 
 Rules live in `src/training.js` and `src/scouting.js`.
 
+## Basic training (new-player tutorial)
+
+A checklist at the top of HQ walks new players through the game. Each step ticks off **by itself** once it has really been done, and pays a small one-off reward.
+
+| Step | Reward |
+|---|---|
+| Run your first mission | $100 · 20 XP |
+| Equip gear from the Armory | $150 · 20 XP |
+| Train a stat | $100 · 20 XP |
+| Collect a supply drop | $50 · 15 XP |
+| Bank some cash | $50 · 15 XP |
+| Reach level 3 (PvP unlocks) | $200 |
+| Apply to or join a unit | $250 · 30 XP |
+| Win a PvP fight (one that paid XP) | $300 · 40 XP |
+
+- **Graduation:** finishing every step pays a **$500 + 100 XP** graduation bonus, and the checklist then disappears for good.
+- **Hiding:** players can hide the checklist. HQ then shows a "Show basic training (n/8)" link to bring it back.
+- **Notifications and the ledger:** each step sends a notification, and all rewards go through the ledger as `tutorial`.
+- **Players who started before this update:** they get the steps they've already done ticked off and paid at once the next time they open HQ.
+
+Rules live in `src/tutorial.js`; detection and payouts are in `src/tutorial-service.js`. `createApp({ tutorial: false })` turns tutorial rewards off, which tests of other systems use so their cash checks stay exact.
+
 ## Daily orders and supply drops
 
 - **Daily orders:** three orders each UTC day, picked to fit your level. They might be "Complete 4 missions", "Complete Convoy Escort twice", "Earn $580 from missions", "Win a PvP fight", "Train 3 sessions" or "Scout another player". PvP and scouting orders only appear from level 3.
@@ -225,6 +247,7 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
   - unit wars (declared, won, lost, drawn)
   - medals awarded
   - bounties (posted on you, collected on you, your bounty collected or refunded)
+  - basic training steps and graduation
 - **The bell** in the header shows the unread count. `/notifications` lists the latest 50 (each inbox keeps up to 200) and marks them read when you view it.
 - **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
 - **The combat feed** on HQ shows the latest fights across the whole game.
@@ -284,6 +307,8 @@ src/
   wars.js            unit war rules: declaring, scoring, settling (pure)
   medals.js          medal list, tiers, progress (pure)
   bounties.js        bounty rules: amounts, fees, who can post/collect (pure)
+  tutorial.js        basic training steps and rewards (pure)
+  tutorial-service.js detects steps, pays rewards, hide/show
   bounty-service.js  bounty storage, claiming in fights, expiry refunds
   routes/bounties.js bounty board and posting
   medal-service.js   career metrics, awarding, pins
@@ -311,7 +336,7 @@ test/                node:test suites
 
 - `/`: landing page
 - `/register`, `/login`: account forms (registration requires confirming you are 18+)
-- `/hq`: dashboard with service record, next mission, daily orders, supply drop streak, readiness (live regen timers), field hospital and radio log
+- `/hq`: dashboard with basic training (for new players), service record, next mission, daily orders, supply drop streak, readiness (live regen timers), field hospital and radio log
 - `/missions`: operations board. Deploying uses `fetch` and updates stats in place, and falls back to a normal form post without JavaScript.
 - `/players`: directory of all players. Search by callsign, filter to **Targets** (players you can attack right now) or **Online now**, and sort by level, PvP wins, newest or name, 25 per page. Each row shows rank, level, combat rating, PvP record and status, with an Attack button or the reason you can't attack.
 - `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.

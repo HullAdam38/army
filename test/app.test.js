@@ -7,7 +7,7 @@ const { openDatabase } = require('../src/db');
 
 async function startServer() {
   const db = openDatabase(':memory:');
-  const app = createApp({ db, secret: 'test-secret' });
+  const app = createApp({ db, secret: 'test-secret', tutorial: false });
   const server = await new Promise((resolve) => {
     const s = app.listen(0, () => resolve(s));
   });

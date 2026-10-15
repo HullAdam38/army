@@ -14,6 +14,39 @@
   </div>
 
   <div class="hq-grid">
+    <% if (!training.graduated && !training.dismissed) { %>
+      <section class="card hq-card hq-card--training reveal" style="--i:1" aria-labelledby="training-title">
+        <div class="training__head">
+          <div>
+            <h2 id="training-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-chevrons"/></svg>Basic training</h2>
+            <p class="training__lead">
+              <% if (training.next) { %>Next: <strong><%= training.next.title %></strong>. <%= training.next.hint %><% } %>
+            </p>
+          </div>
+          <div class="training__progress">
+            <span class="training__count"><%= training.count %><small>/<%= training.total %></small></span>
+            <span class="meter meter--xp" role="progressbar" aria-label="Basic training progress" aria-valuemin="0" aria-valuemax="<%= training.total %>" aria-valuenow="<%= training.count %>"><span class="meter__fill" style="width:<%= training.pct %>%"></span></span>
+          </div>
+        </div>
+        <ol class="training-steps">
+          <% training.steps.forEach(function (s, i) { %>
+            <li class="training-step<%= s.done ? ' is-done' : '' %><%= training.next && training.next.id === s.id ? ' is-next' : '' %>">
+              <span class="training-step__mark" aria-hidden="true"><%= s.done ? '✓' : i + 1 %></span>
+              <span class="training-step__text"><%= s.title %><span class="visually-hidden"><%= s.done ? ' (done)' : '' %></span></span>
+              <span class="training-step__reward">+$<%= s.cash %><%= s.xp ? ` · ${s.xp} XP` : '' %></span>
+              <% if (!s.done) { %><a class="btn btn--sm <%= training.next && training.next.id === s.id ? 'btn--primary' : 'btn--ghost' %>" href="<%= s.link %>"><%= s.cta %></a><% } %>
+            </li>
+          <% }) %>
+        </ol>
+        <div class="training__foot">
+          <p class="progress-line__note">Steps tick off by themselves as you play. Finish them all for a $<%= training.bonus.cash %> graduation bonus.</p>
+          <form method="post" action="/tutorial/hide">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="unit-post__delete" type="submit">Hide checklist</button>
+          </form>
+        </div>
+      </section>
+    <% } %>
     <section class="card hq-card hq-card--dossier reveal" style="--i:1" aria-labelledby="dossier-title">
       <h2 id="dossier-title" class="card__title">Service record</h2>
       <div class="dossier__who">
@@ -35,6 +68,12 @@
         <div><dt>Success rate</dt><dd><%= player.successRate === null ? '—' : player.successRate + '%' %></dd></div>
         <div><dt>Combat rating</dt><dd><a class="figure-link" href="/armory"><%= loadout.rating %></a></dd></div>
       </dl>
+      <% if (!training.graduated && training.dismissed) { %>
+        <form method="post" action="/tutorial/show" class="dossier__training">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="unit-post__delete" type="submit">Show basic training (<%= training.count %>/<%= training.total %>)</button>
+        </form>
+      <% } %>
       <a class="dossier__medals" href="/medals"><svg aria-hidden="true"><use href="#i-star"/></svg><%= medalCount ? `${medalCount} medal${medalCount === 1 ? '' : 's'} earned` : 'No medals yet' %> · Medal case</a>
     </section>
 

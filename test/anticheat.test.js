@@ -8,7 +8,7 @@ const rules = require('../src/anticheat/rules');
 
 async function startServer() {
   const db = openDatabase(':memory:');
-  const app = createApp({ db, secret: 'test-secret' });
+  const app = createApp({ db, secret: 'test-secret', tutorial: false });
   const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
   return { server, db, anti: app.anti, base: `http://127.0.0.1:${server.address().port}` };
 }

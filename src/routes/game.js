@@ -18,13 +18,14 @@ const bounties = require('../bounties');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
   const statsOf = (user) => armory.statsOf(players, user);
 
   router.get('/hq', requireAuth, (req, res) => {
+    tutorialService.check(req.player.id);
     medalService.check(req.player.id); // e.g. defences or war wins since the last action
     const missions = game.missionViews(req.player, Date.now(), statsOf(req.player));
     const nextMission = missions.find((m) => !m.blocker) || null;
@@ -35,10 +36,18 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       nextMission,
       daily: daily.view(req.player),
       medalCount: medalService.rackFor(req.player.id).length,
+      training: tutorialService.view(req.player.id),
       nextRank: game.nextRankFor(req.player.level),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
     });
+  });
+
+  // Basic training checklist: hide it, or bring it back.
+  router.post('/tutorial/:action', requireAuth, (req, res, next) => {
+    if (!['hide', 'show'].includes(req.params.action)) return next();
+    tutorialService.setDismissed(req.player.id, req.params.action === 'hide');
+    res.redirect(req.params.action === 'show' ? '/hq#training-title' : '/hq');
   });
 
   router.get('/missions', requireAuth, (req, res) => {

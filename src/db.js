@@ -288,6 +288,13 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_bounties_placer ON bounties(placer_id, status);
   CREATE INDEX IF NOT EXISTS idx_bounties_claimer ON bounties(claimer_id);
 
+  CREATE TABLE IF NOT EXISTS tutorial_progress (
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    step     TEXT    NOT NULL,
+    done_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, step)
+  );
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -333,6 +340,7 @@ const ADDED_COLUMNS = [
   ['users', 'orders_completed', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'wars_won', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'pinned_medals', "TEXT NOT NULL DEFAULT ''"],
+  ['users', 'tutorial_dismissed', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 function migrate(db) {

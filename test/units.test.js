@@ -62,7 +62,7 @@ test('drill ground boosts mission XP; unit members can’t attack each other', (
 
 async function startServer() {
   const db = openDatabase(':memory:');
-  const app = createApp({ db, secret: 'test-secret' });
+  const app = createApp({ db, secret: 'test-secret', tutorial: false });
   const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
   return { server, db, base: `http://127.0.0.1:${server.address().port}` };
 }

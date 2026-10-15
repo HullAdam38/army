@@ -28,6 +28,7 @@ const { createMedalService } = require('./medal-service');
 const { medalRoutes } = require('./routes/medals');
 const { createBountyService } = require('./bounty-service');
 const { bountyRoutes } = require('./routes/bounties');
+const { createTutorialService } = require('./tutorial-service');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -52,6 +53,7 @@ function createApp({
   secret = process.env.SESSION_SECRET,
   production = process.env.NODE_ENV === 'production',
   scanHours = Number(process.env.ANTICHEAT_SCAN_HOURS) || 6,
+  tutorial = true, // tests of other systems turn tutorial rewards off so cash stays predictable
 } = {}) {
   if (!secret) {
     if (production) throw new Error('SESSION_SECRET must be set in production.');
@@ -72,6 +74,7 @@ function createApp({
   bountyService.schedule();
   const medalService = createMedalService(db, players);
   app.medals = medalService; // exposed for tests
+  const tutorialService = createTutorialService(db, players, { enabled: tutorial });
   const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
@@ -123,11 +126,12 @@ function createApp({
   app.use(csrf);
   app.use(actionRateLimit());
   app.use(anti.actionTracker());
+  app.use(tutorialService.tracker());
   app.use(medalService.tracker());
 
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService));
