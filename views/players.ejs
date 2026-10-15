@@ -69,6 +69,8 @@
             <td data-label="Status">
               <% if (p.hospitalized) { %>
                 <span class="status status--hospital"><svg aria-hidden="true"><use href="#i-health"/></svg>Hospital <span data-until="<%= p.hospitalUntil %>"></span></span>
+              <% } else if (p.deployed) { %>
+                <span class="status status--deployed"><svg aria-hidden="true"><use href="#i-kit"/></svg>Deployed</span>
               <% } else if (p.online) { %>
                 <span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online</span>
               <% } else { %>

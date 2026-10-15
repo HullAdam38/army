@@ -232,6 +232,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         losses: u.pvp_losses,
         hospitalized: game.isHospitalized(u, now),
         hospitalUntil: u.hospital_until,
+        deployed: game.isDeployed(u, now),
         online: presence.isOnline(u, now),
         lastSeen: presence.timeAgo(u.last_seen_at, now),
         isYou,
@@ -297,6 +298,8 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         pvpLosses: user.pvp_losses,
         hospitalized: game.isHospitalized(them, now),
         hospitalUntil: them.hospital_until,
+        deployed: game.isDeployed(them, now),
+        deployedUntil: them.deploy_until,
         hospitalReason: them.hospital_reason,
         isYou,
         unit: (() => {

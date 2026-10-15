@@ -65,6 +65,15 @@
       </div>
     </div>
   <% } %>
+  <% if (player && player.deployed) { %>
+    <div class="ward-banner deploy-banner" role="status">
+      <div class="container ward-banner__inner">
+        <svg aria-hidden="true"><use href="#i-kit"/></svg>
+        <span>You're on deployment. Back in <strong data-until="<%= player.deployedUntil %>" data-reload>soon</strong>. Missions, training and PvP wait until you return.</span>
+        <a href="/deployments">Deployments</a>
+      </div>
+    </div>
+  <% } %>
 </header>
 <% if (player) { %><div class="toasts" data-toasts aria-live="polite"></div><% } %>
 <% if (flash.length) { %>

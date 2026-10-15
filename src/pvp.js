@@ -20,6 +20,7 @@ const CASH_CAP_PER_LEVEL = 25; // …but never more than $25 × the loser's leve
 function selfBlocker(attacker, now = Date.now()) {
   if (attacker.level < MIN_PVP_LEVEL) return `PvP unlocks at level ${MIN_PVP_LEVEL}`;
   if (game.isHospitalized(attacker, now)) return 'You’re in hospital';
+  if (game.isDeployed(attacker, now)) return 'You’re away on deployment';
   if (attacker.energy < ATTACK_ENERGY) return `Attacking needs ${ATTACK_ENERGY} energy`;
   if (attacker.health < game.MIN_DEPLOY_HEALTH) return 'You’re too injured to fight';
   return null;
@@ -32,6 +33,7 @@ function targetBlocker(attacker, defender, { now = Date.now(), lastAttackAt = nu
   if (attacker.unit_id && attacker.unit_id === defender.unit_id) return `${defender.username} is in your unit`;
   if (defender.level < MIN_PVP_LEVEL) return `${defender.username} is a Recruit and protected until level ${MIN_PVP_LEVEL}`;
   if (game.isHospitalized(defender, now)) return `${defender.username} is in hospital`;
+  if (game.isDeployed(defender, now)) return `${defender.username} is out on deployment and out of reach`;
   if (defender.level < attacker.level - MAX_LEVELS_BELOW) return `${defender.username} is too far below your level`;
   if (lastAttackAt && now - lastAttackAt < PAIR_COOLDOWN_MS) {
     const mins = Math.ceil((PAIR_COOLDOWN_MS - (now - lastAttackAt)) / 60000);

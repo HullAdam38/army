@@ -14,6 +14,8 @@
         <li>
           <% if (soldier.hospitalized) { %>
             <span class="status status--hospital"><svg aria-hidden="true"><use href="#i-health"/></svg>In hospital · out in <span data-until="<%= soldier.hospitalUntil %>">soon</span></span>
+          <% } else if (soldier.deployed) { %>
+            <span class="status status--deployed"><svg aria-hidden="true"><use href="#i-kit"/></svg><span>On deployment · back in <span data-until="<%= soldier.deployedUntil %>">soon</span></span></span>
           <% } else if (soldier.online) { %>
             <span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online now</span>
           <% } else { %>

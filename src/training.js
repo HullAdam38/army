@@ -82,6 +82,7 @@ function train(current, stat, times = 1) {
   const def = STATS[stat];
   if (!def) return { error: 'Pick Strength, Agility or Endurance.' };
   if (current.hospital_until && current.hospital_until > Date.now()) return { error: 'You can’t train while you’re in hospital.' };
+  if (current.deploy_until && current.deploy_until > Date.now()) return { error: 'You can’t train while you’re away on deployment.' };
   const cap = statCap(current.level);
   const player = { ...current };
   let sessions = 0;

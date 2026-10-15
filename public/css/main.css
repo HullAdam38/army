@@ -1095,6 +1095,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .engage__note strong { color: var(--text); font-family: var(--font-ui); }
 .status--hospital { color: var(--danger); }
 .status--hospital svg { width: 14px; height: 14px; }
+.status--deployed { color: var(--health); }
+.status--deployed svg { width: 14px; height: 14px; }
 .tag--hospital { color: #fff; background: var(--danger); }
 .tag--crit { color: var(--accent-ink); background: var(--energy); }
 .log__link { margin-left: 4px; font-family: var(--font-ui); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -1812,7 +1814,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .battle-row__time { grid-column: 2; }
   .round { grid-template-columns: 2.2rem 1fr; }
   .round__hp { grid-column: 2; }
-  .ward-banner__inner { flex-wrap: wrap; }
+  .ward-banner__inner { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
+  .ward-banner__inner a { grid-column: 2; margin-left: 0; }
   .armory-slot { scroll-margin-top: 230px; }
   .roster__row { grid-template-columns: auto 1fr auto; gap: 6px 14px; padding: 12px 14px; }
   .roster__level, .roster__row .stat__grade { grid-row: span 2; }
@@ -2622,3 +2625,19 @@ section[id], li[id] { scroll-margin-top: 190px; }
   .base-rating { justify-items: start; }
   .base-grid { grid-template-columns: 1fr; }
 }
+
+/* Deployments */
+.deploy-banner { background: rgb(110 170 90 / 0.12); border-top-color: rgb(110 170 90 / 0.45); }
+.deploy-banner svg { color: var(--health); }
+.deploy-cap { margin-bottom: 20px; }
+.deploy-cap__bar { height: 8px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.deploy-cap__bar span { display: block; height: 100%; background: var(--accent); }
+.deploy-cap__note { margin-top: 6px; font-size: 0.9rem; color: var(--text-muted); }
+.deploy-grid { margin-bottom: 24px; }
+.deploy-log__list { display: grid; gap: 10px; padding: 0; list-style: none; }
+.deploy-log__item { padding: 10px 12px; background: var(--bg-raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); }
+.deploy-log__item--recalled { border-left-color: var(--line); }
+.deploy-log__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-family: var(--font-ui); }
+.deploy-log__when { font-size: 0.8rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.deploy-log__pay { font-family: var(--font-ui); font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.deploy-log__report { font-size: 0.92rem; }

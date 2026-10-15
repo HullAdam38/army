@@ -119,6 +119,31 @@ From level 8, each player builds up their own base at `/base` (linked from the H
 
 Rules live in `src/base.js`; building and completion are in `src/base-service.js`.
 
+## Deployments
+
+At `/deployments` (linked from HQ) a player sends their soldier out on a timed patrol that pays out even when they're offline. Deployments cost no energy, but they come with limits:
+- While deployed, you can't run missions, operations, training, scouting or attacks.
+- While deployed, nobody can attack you: you drop off the Targets list and profiles show "On deployment".
+
+| Deployment | Length | Pay rate | Unlocks |
+|---|---|---|---|
+| Perimeter patrol | 1h | 100% | level 1 |
+| Recon sweep | 4h | 90% | level 1 |
+| Long-range patrol | 8h | 80% | level 5 |
+| Extended deployment | 12h | 70% | level 15 |
+
+- **Pay:** per hour, $60 + $30 × level and 8 + 3 × level XP, times the pay rate. That is well below active play. Officer rank perks (mission pay and XP) and live Double XP and Payday events apply.
+- **Random events:**
+  - 25% chance of a supply cache worth an extra 50% of the pay.
+  - 10% chance of an ambush on the way back, costing 20% of max health.
+  - Every return writes an after-action report.
+- **Limits:** at most 16 deployed hours in any rolling 24 hours. You need 25% health to leave, and you can't leave from hospital.
+- **Recalling:** you can recall early at any time. A recalled deployment pays nothing, and the hours already spent still count.
+- **Returns:** checked every minute, or as soon as you open the page. Each return sends a notification and pays through the ledger as `deployment` (ref `deployment:<id>`).
+- **Medal:** the new **Ranger Tab** medal counts completed deployments (10 / 50 / 200).
+
+Rules live in `src/deployments.js`; storage and returns are in `src/deployment-service.js`.
+
 ## Campaign 2: levels 15–35
 
 ### Missions
@@ -326,7 +351,7 @@ Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-servi
 
 ## Medals
 
-Twelve medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Thirteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -341,6 +366,7 @@ Twelve medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once:
 | War Hero | war points scored | 10 / 50 / 200 |
 | Bounty Hunter | bounties collected | 1 / 10 / 50 |
 | Architect | forward base rating | 5 / 15 / 28 |
+| Ranger Tab | deployments completed (not recalled) | 10 / 50 / 200 |
 | Victory Medal | unit wars won (as a member from the start of the war) | 1 / 5 / 20 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
@@ -466,6 +492,9 @@ src/
   base.js            forward base facilities, costs, perks (pure)
   base-service.js    builds: start, cancel, finish on time
   routes/base.js     forward base page and actions
+  deployments.js     offline patrols: pay, cap, outcomes (pure)
+  deployment-service.js start, recall, return on time
+  routes/deployments.js deployments page and actions
   event-service.js   event scheduling, live effects, announcements
   routes/events.js   events page and admin scheduling
   bbcode.js          safe BBCode → HTML renderer
@@ -518,6 +547,7 @@ test/                node:test suites
 - `/account/profile`: edit your profile bio
 - `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
 - `/base`: your forward base
+- `/deployments`: send your soldier on patrol, recall early, read after-action reports
 - `/events`: live, upcoming and recent events; `/admin/events` to schedule them
 - `/medals`: your medal case, with progress, rarity and pins
 - `/wars`, `/wars/:id`: unit wars list and war room

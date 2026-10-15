@@ -198,6 +198,11 @@ function isHospitalized(player, now = Date.now()) {
   return Boolean(player.hospital_until && player.hospital_until > now);
 }
 
+/** Away on a deployment (see deployments.js): can't act and can't be attacked. */
+function isDeployed(player, now = Date.now()) {
+  return Boolean(player.deploy_until && player.deploy_until > now);
+}
+
 /**
  * Returns a copy of the player with energy and health regenerated up to `now`,
  * and discharged from hospital if their stay has ended.
@@ -260,6 +265,7 @@ function successChance(mission, player, stats = statsFor(player.level)) {
 /** Why a player can't run a mission right now, or null if they can. */
 function missionBlocker(mission, player, now = Date.now()) {
   if (isHospitalized(player, now)) return 'You’re in hospital';
+  if (isDeployed(player, now)) return 'You’re away on deployment';
   if (player.level < mission.minLevel) return `Requires level ${mission.minLevel}`;
   if (player.energy < mission.energy) return 'Not enough energy';
   if (player.health < MIN_DEPLOY_HEALTH) return 'Too injured to deploy';
@@ -416,7 +422,9 @@ function playerView(raw, now = Date.now()) {
     missionsFailed: p.missions_failed,
     successRate: total ? Math.round((p.missions_completed / total) * 100) : null,
     hospitalCost: hospitalCost(p),
-    canDeploy: p.health >= MIN_DEPLOY_HEALTH && !isHospitalized(p, now),
+    canDeploy: p.health >= MIN_DEPLOY_HEALTH && !isHospitalized(p, now) && !isDeployed(p, now),
+    deployed: isDeployed(p, now),
+    deployedUntil: isDeployed(p, now) ? p.deploy_until : null,
     hospitalized: isHospitalized(p, now),
     hospitalUntil: p.hospital_until || null,
     hospitalReason: p.hospital_reason || null,
@@ -445,6 +453,7 @@ module.exports = {
   HOSPITAL_STAY_MS,
   MIN_DEPLOY_HEALTH,
   CAMPAIGNS,
+  isDeployed,
   MISSIONS,
   MISSIONS_BY_ID,
   RANKS,

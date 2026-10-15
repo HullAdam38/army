@@ -1,0 +1,88 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+<% const when = (ms) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Earn while you’re away</p>
+      <h1 class="page-head__title">Deployments</h1>
+      <p class="page-head__sub">Send your soldier out on patrol. Deployments cost no energy and pay out even if you close the game, but while you’re away you can’t run missions, train, scout or attack, and nobody can attack you. Recalling early pays nothing.</p>
+    </div>
+    <div class="base-rating">
+      <span class="base-rating__value"><%= left %><small>h</small></span>
+      <span class="base-rating__label">left today</span>
+    </div>
+  </div>
+
+  <div class="deploy-cap reveal" style="--i:1">
+    <div class="deploy-cap__bar" role="img" aria-label="<%= used %> of <%= cap %> hours used in the last 24 hours"><span style="width:<%= Math.min(100, Math.round((used / cap) * 100)) %>%"></span></div>
+    <p class="deploy-cap__note"><%= used %>h of <%= cap %>h used in the last 24 hours. Hours free up as old deployments roll out of the window.<% if (boosted) { %> <strong>Rank perks or a live event are boosting your pay.</strong><% } %></p>
+  </div>
+
+  <% if (active) { %>
+    <section class="base-build deploy-active reveal" style="--i:2" aria-label="Current deployment">
+      <span class="base-build__icon" aria-hidden="true"><svg><use href="#i-kit"/></svg></span>
+      <div class="base-build__text">
+        <p class="base-build__title">On <strong><%= active.kind.name %></strong></p>
+        <p class="base-build__meta">Back in <strong data-until="<%= active.ends_at %>" data-reload>soon</strong> · left <%= when(active.started_at) %></p>
+      </div>
+      <form method="post" action="/deployments/recall" data-confirm="Recall your soldier now? A recalled deployment pays nothing, and the hours already spent still count toward today’s limit.">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn--ghost btn--sm" type="submit">Recall early</button>
+      </form>
+    </section>
+  <% } %>
+
+  <ul class="base-grid deploy-grid">
+    <% kinds.forEach(function (k, i) { %>
+      <li class="card facility deploy-kind<%= active && active.kind.id === k.id ? ' is-building' : '' %> reveal" style="--i:<%= i + 3 %>">
+        <div class="facility__head">
+          <span class="facility__icon" aria-hidden="true"><svg><use href="#i-kit"/></svg></span>
+          <div>
+            <h2 class="facility__name"><%= k.name %></h2>
+            <p class="facility__blurb"><%= k.blurb %></p>
+          </div>
+        </div>
+        <dl class="facility__cost">
+          <div><dt>Duration</dt><dd><%= k.hours %>h</dd></div>
+          <div><dt>Pay</dt><dd><%= money(k.reward.cash) %></dd></div>
+          <div><dt>XP</dt><dd><%= k.reward.xp.toLocaleString('en-US') %></dd></div>
+        </dl>
+        <p class="facility__next"><span>Also</span> 25% chance of a supply cache (+50% pay), 10% chance of an ambush (−20% health)<% if (k.minLevel > 1) { %> · needs level <%= k.minLevel %><% } %></p>
+        <form method="post" action="/deployments/start/<%= k.id %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--primary btn--block" type="submit" <%- k.blocker ? 'disabled' : '' %>>Deploy · <%= k.hours %>h</button>
+          <% if (k.blocker) { %><p class="mission__blocker"><%= k.blocker %></p><% } %>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+
+  <section class="card deploy-log reveal" style="--i:8" aria-labelledby="deploy-log-title">
+    <h2 class="card__title" id="deploy-log-title">After-action reports</h2>
+    <% if (!history.length) { %>
+      <p class="muted">No deployments yet. Your reports will appear here.</p>
+    <% } else { %>
+      <ol class="deploy-log__list">
+        <% history.forEach(function (d) { %>
+          <li class="deploy-log__item deploy-log__item--<%= d.status %>">
+            <p class="deploy-log__head">
+              <strong><%= d.kind ? d.kind.name : d.kind %></strong>
+              <span class="deploy-log__when"><%= when(d.returned_at || d.ends_at) %></span>
+            </p>
+            <% if (d.status === 'returned') { %>
+              <p class="deploy-log__pay">+<%= money(d.cash) %> · +<%= d.xp %> XP</p>
+              <p class="deploy-log__report"><%= d.report %></p>
+            <% } else { %>
+              <p class="deploy-log__report muted">Recalled early. No pay.</p>
+            <% } %>
+          </li>
+        <% }) %>
+      </ol>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

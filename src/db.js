@@ -368,6 +368,21 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_events_time ON events(starts_at, ends_at);
 
+  CREATE TABLE IF NOT EXISTS deployments (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind         TEXT    NOT NULL,
+    started_at   INTEGER NOT NULL,
+    ends_at      INTEGER NOT NULL,
+    status       TEXT    NOT NULL DEFAULT 'active',
+    cash         INTEGER NOT NULL DEFAULT 0,
+    xp           INTEGER NOT NULL DEFAULT 0,
+    report       TEXT,
+    returned_at  INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_deployments_user ON deployments(user_id, started_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_deployments_due ON deployments(status, ends_at);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -429,6 +444,7 @@ const ADDED_COLUMNS = [
   ['users', 'base_build', 'TEXT'],
   ['users', 'base_build_until', 'INTEGER'],
   ['users', 'base_build_cost', 'INTEGER'],
+  ['users', 'deploy_until', 'INTEGER'],
 ];
 
 function migrate(db) {

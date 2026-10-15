@@ -24,6 +24,7 @@ function scoutBlocker(scout, target, now = Date.now()) {
   if (scout.id === target.id) return 'You already know your own record';
   if (target.banned_at) return `${target.username} is suspended`;
   if (game.isHospitalized(scout, now)) return 'You can’t run recon from a hospital bed';
+  if (game.isDeployed(scout, now)) return 'You can’t scout while you’re away on deployment';
   if (scout.energy < SCOUT_ENERGY) return `Scouting needs ${SCOUT_ENERGY} energy`;
   const cost = scoutCost(scout, target);
   if (scout.cash < cost) return `Scouting ${target.username} costs $${cost.toLocaleString('en-US')}`;

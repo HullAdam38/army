@@ -8,7 +8,7 @@ const MUTABLE_FIELDS = [
   'hospital_until', 'hospital_reason', 'pvp_wins', 'pvp_losses', 'bank_balance',
   'stat_str', 'stat_agi', 'stat_end',
   'streak_count', 'streak_day', 'streak_best',
-  'adrenaline_at', 'stim_loaded',
+  'adrenaline_at', 'stim_loaded', 'deploy_until',
 ];
 
 // Sort keys map to fixed SQL fragments; user input never reaches the query text.
@@ -209,14 +209,14 @@ function createPlayerRepo(db) {
         params.push(enemyUnitId);
       }
       if (filter === 'targets') {
-        where.push('id != ? AND level >= ? AND level >= ? AND (hospital_until IS NULL OR hospital_until <= ?) AND (unit_id IS NULL OR unit_id IS NOT ?)');
-        params.push(me.id, targetRules.minLevel, me.level - targetRules.maxLevelsBelow, now, me.unit_id ?? null);
+        where.push('id != ? AND level >= ? AND level >= ? AND (hospital_until IS NULL OR hospital_until <= ?) AND (deploy_until IS NULL OR deploy_until <= ?) AND (unit_id IS NULL OR unit_id IS NOT ?)');
+        params.push(me.id, targetRules.minLevel, me.level - targetRules.maxLevelsBelow, now, now, me.unit_id ?? null);
       }
       const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
       const order = PLAYER_SORTS[sort] || PLAYER_SORTS.level;
       const total = db.prepare(`SELECT COUNT(*) AS n FROM users ${clause}`).get(...params).n;
       const rows = db.prepare(`
-        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, pvp_wins, pvp_losses
+        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, deploy_until, pvp_wins, pvp_losses
         FROM users ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset);
       return { rows, total };
     },
