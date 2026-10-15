@@ -4,8 +4,11 @@
   "description": "EliteForces — a text-based military strategy game",
   "main": "src/server.js",
   "scripts": {
+    "prestart": "node scripts/check-node.js",
     "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "predev": "node scripts/check-node.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "pretest": "node scripts/check-node.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
     "admin": "node --disable-warning=ExperimentalWarning scripts/admin.js"
   },

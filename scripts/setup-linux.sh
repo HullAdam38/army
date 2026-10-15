@@ -37,7 +37,13 @@ else
   say "Installing Node.js 22 from NodeSource"
   curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
   sudo apt-get install -y nodejs
-  node_ok || { echo "Node.js 22.13+ still isn't available (found $(node -v 2>/dev/null || echo none))." >&2; exit 1; }
+  hash -r
+  if ! node_ok; then
+    echo "Node.js 22 was installed to /usr/bin/node, but 'node' here is still $(node -v 2>/dev/null || echo missing) at $(command -v node || echo nowhere)." >&2
+    echo "An older Node (often from nvm) comes first in your PATH. Fix it with:  nvm install 22 && nvm alias default 22" >&2
+    echo "or remove the old one, then open a new terminal and run this script again." >&2
+    exit 1
+  fi
   say "Node.js $(node -v) installed"
 fi
 
