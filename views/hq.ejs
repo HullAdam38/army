@@ -54,6 +54,7 @@
         <div>
           <p class="dossier__name"><%= player.rank %></p>
           <p class="dossier__meta">Level <%= player.level %><%= nextRank ? ` · ${nextRank.name} at level ${nextRank.level}` : ' · highest rank achieved' %></p>
+          <% if (nextPerk) { %><p class="dossier__perk">Next rank perk: <%= nextPerk.text %> at level <%= nextPerk.level %></p><% } %>
         </div>
       </div>
       <div class="progress-line">

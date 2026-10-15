@@ -7,13 +7,14 @@ const pvp = require('../pvp');
 const admin = require('../admin');
 
 const DEVICE_COOKIE = 'ef.dev';
-const MAX_MISSION_CASH = Math.max(...MISSIONS.map((m) => m.cash[1]));
+// The most a single mission can pay: the best mission's top roll with every rank-perk bonus.
+const MAX_MISSION_CASH = Math.ceil(Math.max(...MISSIONS.map((m) => m.cash[1])) * (1 + require('../perks').MAX_CASH_BONUS));
 const MAX_PVP_CASH = pvp.CASH_CAP_PER_LEVEL * admin.MAX_LEVEL;
 
 /** Which game action a POST path is, or null for ones we don't time (sign-in, admin…). */
 function actionKind(path) {
   const first = path.split('/')[1] || '';
-  const kinds = { missions: 'mission', attack: 'attack', bank: 'bank', armory: 'armory', hospital: 'hospital', training: 'training', scout: 'scout', daily: 'daily', units: 'unit' };
+  const kinds = { missions: 'mission', attack: 'attack', bank: 'bank', armory: 'armory', hospital: 'hospital', training: 'training', scout: 'scout', daily: 'daily', units: 'unit', operations: 'operation' };
   return kinds[first] || null;
 }
 

@@ -344,6 +344,16 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_reports_status ON message_reports(status, created_at DESC);
 
+  CREATE TABLE IF NOT EXISTS operation_progress (
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    op_id         TEXT    NOT NULL,
+    stage         INTEGER NOT NULL DEFAULT 1,
+    completed_at  INTEGER,
+    completions   INTEGER NOT NULL DEFAULT 0,
+    updated_at    INTEGER NOT NULL,
+    PRIMARY KEY (user_id, op_id)
+  );
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -394,6 +404,8 @@ const ADDED_COLUMNS = [
   ['users', 'terms_accepted_at', 'INTEGER'],
   ['users', 'bio', "TEXT NOT NULL DEFAULT ''"],
   ['users', 'bio_updated_at', 'INTEGER'],
+  ['users', 'adrenaline_at', 'INTEGER'],
+  ['users', 'stim_loaded', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 function migrate(db) {

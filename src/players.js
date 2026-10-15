@@ -8,6 +8,7 @@ const MUTABLE_FIELDS = [
   'hospital_until', 'hospital_reason', 'pvp_wins', 'pvp_losses', 'bank_balance',
   'stat_str', 'stat_agi', 'stat_end',
   'streak_count', 'streak_day', 'streak_best',
+  'adrenaline_at', 'stim_loaded',
 ];
 
 // Sort keys map to fixed SQL fragments; user input never reaches the query text.

@@ -1,5 +1,6 @@
 <%- include('partials/head', { bodyClass: 'page-game' }) %>
 <%- include('partials/header') %>
+<% const k = (n) => (n >= 1000 ? `${Math.round(n / 100) / 10}k` : String(n)); /* $4400 → $4.4k so pay fits the card */ %>
 
 <main id="main" class="container game-main">
   <div class="page-head reveal" style="--i:0">
@@ -12,34 +13,97 @@
 
   <div class="mission-result" data-mission-result aria-live="polite" hidden></div>
 
-  <ul class="mission-grid">
-    <% missions.forEach(function (m, i) { %>
-      <li class="card mission reveal<%= m.locked ? ' mission--locked' : '' %>" style="--i:<%= i + 1 %>" data-mission="<%= m.id %>">
-        <div class="mission__head">
-          <span class="mission__theatre"><%= m.theatre %></span>
-          <span class="mission__level">Lv <%= m.minLevel %>+</span>
+  <% if (perks.unlocked.length || perks.next) { %>
+    <p class="perk-strip reveal" style="--i:1">
+      <svg aria-hidden="true"><use href="#i-chevrons"/></svg>
+      <% if (perks.unlocked.length) { %>Rank perks: <strong><%= perks.unlocked.map((p) => p.text).join(' · ') %></strong>.<% } %>
+      <% if (perks.next) { %><span class="muted"><%= perks.unlocked.length ? ' Next' : 'Officer ranks bring perks. First' %>: <%= perks.next.text %> at level <%= perks.next.level %> (<%= perks.next.rank %>).</span><% } %>
+    </p>
+  <% } %>
+
+  <% campaigns.forEach(function (c) { %>
+    <section class="campaign" aria-labelledby="campaign-<%= c.id %>">
+      <div class="campaign__head">
+        <h2 id="campaign-<%= c.id %>" class="section-title">Campaign <%= c.id %>: <%= c.name %></h2>
+        <p class="campaign__blurb"><%= c.blurb %></p>
+      </div>
+      <ul class="mission-grid">
+        <% c.missions.forEach(function (m, i) { %>
+        <li class="card mission reveal<%= m.locked ? ' mission--locked' : '' %>" style="--i:<%= i + 1 %>" data-mission="<%= m.id %>">
+          <div class="mission__head">
+            <span class="mission__theatre"><%= m.theatre %></span>
+            <span class="mission__level">Lv <%= m.minLevel %>+</span>
+          </div>
+          <h2 class="mission__name"><%= m.name %></h2>
+          <p class="mission__brief"><%= m.brief %></p>
+          <% if (m.favoursLabel) { %><p class="mission__favours">Favours <span class="tag tag--stat"><%= m.favoursLabel %></span><% if (m.favoursBonusPct) { %> <span class="mission__bonus">+<%= m.favoursBonusPct %>% from your training</span><% } %></p><% } %>
+          <dl class="mission__stats">
+            <div><dt><svg aria-hidden="true"><use href="#i-bolt"/></svg>Energy</dt><dd><%= m.energy %></dd></div>
+            <div><dt><svg aria-hidden="true"><use href="#i-target"/></svg>Success</dt><dd data-chance><%= m.locked ? '—' : m.chancePct + '%' %></dd></div>
+            <div><dt><svg aria-hidden="true"><use href="#i-star"/></svg>XP</dt><dd><%= m.xp[0] %>–<%= m.xp[1] %></dd></div>
+            <div><dt><svg aria-hidden="true"><use href="#i-cash"/></svg>Pay</dt><dd>$<%= k(m.cash[0]) %>–<%= k(m.cash[1]) %></dd></div>
+          </dl>
+          <form method="post" action="/missions/<%= m.id %>" class="mission__form" data-mission-form>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% if (m.locked) { %>
+              <button class="btn btn--locked btn--block" type="button" disabled><svg class="btn__icon" aria-hidden="true"><use href="#i-lock"/></svg>Unlocks at level <%= m.minLevel %></button>
+            <% } else { %>
+              <button class="btn btn--primary btn--block" type="submit" <%- m.blocker ? 'disabled' : '' %>>Deploy</button>
+              <p class="mission__blocker" data-blocker><%= m.blocker || '' %></p>
+            <% } %>
+          </form>
+        </li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <% if (c.id === 2) { %>
+      <section id="operations" class="campaign" aria-labelledby="ops-title">
+        <div class="campaign__head">
+          <h2 id="ops-title" class="section-title">Operations</h2>
+          <p class="campaign__blurb">Three stages in a row. A failed stage stays put, so try again. Clear all three for a big bonus, then each operation resets after 20 hours.</p>
         </div>
-        <h2 class="mission__name"><%= m.name %></h2>
-        <p class="mission__brief"><%= m.brief %></p>
-        <% if (m.favoursLabel) { %><p class="mission__favours">Favours <span class="tag tag--stat"><%= m.favoursLabel %></span><% if (m.favoursBonusPct) { %> <span class="mission__bonus">+<%= m.favoursBonusPct %>% from your training</span><% } %></p><% } %>
-        <dl class="mission__stats">
-          <div><dt><svg aria-hidden="true"><use href="#i-bolt"/></svg>Energy</dt><dd><%= m.energy %></dd></div>
-          <div><dt><svg aria-hidden="true"><use href="#i-target"/></svg>Success</dt><dd data-chance><%= m.locked ? '—' : m.chancePct + '%' %></dd></div>
-          <div><dt><svg aria-hidden="true"><use href="#i-star"/></svg>XP</dt><dd><%= m.xp[0] %>–<%= m.xp[1] %></dd></div>
-          <div><dt><svg aria-hidden="true"><use href="#i-cash"/></svg>Pay</dt><dd>$<%= m.cash[0] %>–<%= m.cash[1] %></dd></div>
-        </dl>
-        <form method="post" action="/missions/<%= m.id %>" class="mission__form" data-mission-form>
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <% if (m.locked) { %>
-            <button class="btn btn--locked btn--block" type="button" disabled><svg class="btn__icon" aria-hidden="true"><use href="#i-lock"/></svg>Unlocks at level <%= m.minLevel %></button>
-          <% } else { %>
-            <button class="btn btn--primary btn--block" type="submit" <%- m.blocker ? 'disabled' : '' %>>Deploy</button>
-            <p class="mission__blocker" data-blocker><%= m.blocker || '' %></p>
-          <% } %>
-        </form>
-      </li>
-    <% }) %>
-  </ul>
+        <ol class="op-list">
+          <% operations.forEach(function (op) { %>
+            <li id="op-<%= op.id %>" class="card op<%= op.locked ? ' op--locked' : '' %><%= op.coolingUntil ? ' op--done' : '' %>">
+              <div class="op__main">
+                <div class="mission__head">
+                  <span class="mission__theatre"><%= op.theatre %></span>
+                  <span class="mission__level">Lv <%= op.minLevel %>+</span>
+                </div>
+                <h3 class="mission__name"><%= op.name %></h3>
+                <p class="mission__brief"><%= op.brief %></p>
+                <ol class="op-stages" aria-label="Stages">
+                  <% op.stages.forEach(function (st) { const done = st.stage <= op.cleared; const current = op.stage === st.stage; %>
+                    <li class="op-stage<%= done ? ' is-done' : '' %><%= current ? ' is-current' : '' %>">
+                      <span class="op-stage__mark" aria-hidden="true"><%= done ? '✓' : st.stage %></span>
+                      <span class="op-stage__name"><%= st.name %><span class="visually-hidden"><%= done ? ' (cleared)' : current ? ' (next)' : '' %></span></span>
+                      <span class="op-stage__cost"><svg aria-hidden="true"><use href="#i-bolt"/></svg><%= st.energy %></span>
+                    </li>
+                  <% }) %>
+                </ol>
+              </div>
+              <div class="op__side">
+                <p class="op__bonus">Completion bonus<strong>$<%= op.bonus.cash.toLocaleString('en-US') %></strong><span>+<%= op.bonus.xp.toLocaleString('en-US') %> XP</span></p>
+                <% if (op.locked) { %>
+                  <button class="btn btn--locked btn--block" type="button" disabled><svg class="btn__icon" aria-hidden="true"><use href="#i-lock"/></svg>Unlocks at level <%= op.minLevel %></button>
+                <% } else if (op.coolingUntil) { %>
+                  <p class="op__status">Complete<% if (op.completions > 1) { %> (×<%= op.completions %>)<% } %>. Ready again in <span data-until="<%= op.coolingUntil %>">soon</span>.</p>
+                <% } else { %>
+                  <p class="op__status">Stage <%= op.stage %>: <strong><%= op.next.name %></strong>. <%= op.next.brief %><br><%= op.next.chancePct %>% success · +<%= op.next.xp[0] %>–<%= op.next.xp[1] %> XP</p>
+                  <form method="post" action="/operations/<%= op.id %>">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn--primary btn--block" type="submit" <%- op.next.blocker ? 'disabled' : '' %>>Deploy · stage <%= op.stage %></button>
+                    <% if (op.next.blocker) { %><p class="mission__blocker"><%= op.next.blocker %></p><% } %>
+                  </form>
+                <% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ol>
+      </section>
+    <% } %>
+  <% }) %>
 </main>
 
 <%- include('partials/foot') %>

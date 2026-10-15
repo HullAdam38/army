@@ -3,6 +3,7 @@
 const combat = require('./combat');
 const { modifiersFor } = require('./items');
 const training = require('./training');
+const perks = require('./perks');
 
 /**
  * Pure game rules. Nothing here touches the database, so the whole loop can be
@@ -45,7 +46,7 @@ const MISSIONS = [
     name: 'Perimeter Patrol',
     theatre: 'Home Base',
     brief: 'Walk the wire, check the sensors and report anything that moves.',
-    minLevel: 1, energy: 5, chance: 0.9,
+    campaign: 1, minLevel: 1, energy: 5, chance: 0.9,
     xp: [8, 12], cash: [20, 40], damage: [3, 8],
   },
   {
@@ -54,7 +55,7 @@ const MISSIONS = [
     name: 'Convoy Escort',
     theatre: 'Route Iron',
     brief: 'Ride shotgun on a supply convoy through contested roads.',
-    minLevel: 1, energy: 8, chance: 0.8,
+    campaign: 1, minLevel: 1, energy: 8, chance: 0.8,
     xp: [14, 20], cash: [40, 75], damage: [5, 12],
   },
   {
@@ -63,7 +64,7 @@ const MISSIONS = [
     name: 'Forward Recon',
     theatre: 'Ridge Line',
     brief: 'Slip past enemy pickets and map their positions before dawn.',
-    minLevel: 3, energy: 10, chance: 0.72,
+    campaign: 1, minLevel: 3, energy: 10, chance: 0.72,
     xp: [22, 30], cash: [70, 120], damage: [8, 16],
   },
   {
@@ -72,7 +73,7 @@ const MISSIONS = [
     name: 'Secure the Bridge',
     theatre: 'River Crossing',
     brief: 'Take and hold the crossing until armour can roll through.',
-    minLevel: 5, energy: 15, chance: 0.65,
+    campaign: 1, minLevel: 5, energy: 15, chance: 0.65,
     xp: [40, 55], cash: [150, 240], damage: [12, 22],
   },
   {
@@ -81,7 +82,7 @@ const MISSIONS = [
     name: 'Hostage Extraction',
     theatre: 'Old Town',
     brief: 'Breach, clear and bring every civilian home. No second chances.',
-    minLevel: 8, energy: 20, chance: 0.58,
+    campaign: 1, minLevel: 8, energy: 20, chance: 0.58,
     xp: [70, 95], cash: [300, 450], damage: [15, 30],
   },
   {
@@ -90,12 +91,73 @@ const MISSIONS = [
     name: 'High-Value Target',
     theatre: 'Classified',
     brief: 'Locate and neutralise a high-value target deep behind enemy lines.',
-    minLevel: 12, energy: 30, chance: 0.5,
+    campaign: 1, minLevel: 12, energy: 30, chance: 0.5,
     xp: [130, 170], cash: [650, 900], damage: [20, 40],
+  },
+  // Campaign 2: forward operations, levels 15+. Better XP and pay per energy
+  // as you climb, so higher levels stay worth the grind.
+  {
+    id: 'night-raid',
+    favours: 'agility',
+    name: 'Night Raid',
+    theatre: 'Harbour District',
+    brief: 'Hit an enemy depot on the docks under cover of darkness and be gone before the alarm.',
+    campaign: 2, minLevel: 15, energy: 30, chance: 0.55,
+    xp: [170, 210], cash: [900, 1300], damage: [20, 40],
+  },
+  {
+    id: 'supply-ambush',
+    favours: 'strength',
+    name: 'Ambush the Supply Line',
+    theatre: 'Mountain Pass',
+    brief: 'Cut the only road through the pass and starve the forward positions.',
+    campaign: 2, minLevel: 18, energy: 35, chance: 0.52,
+    xp: [230, 280], cash: [1300, 1800], damage: [25, 45],
+  },
+  {
+    id: 'pilot-rescue',
+    favours: 'endurance',
+    name: 'Rescue the Downed Pilot',
+    theatre: 'Jungle LZ',
+    brief: 'A pilot is down behind the line. Reach the crash site, hold it, and get them out.',
+    campaign: 2, minLevel: 22, energy: 40, chance: 0.5,
+    xp: [310, 370], cash: [1800, 2500], damage: [30, 50],
+  },
+  {
+    id: 'radar-sabotage',
+    favours: 'agility',
+    name: 'Sabotage the Radar Site',
+    theatre: 'Coastal Ridge',
+    brief: 'Blind their air defence. Slip in, set charges, and blow the array on schedule.',
+    campaign: 2, minLevel: 26, energy: 45, chance: 0.48,
+    xp: [410, 480], cash: [2500, 3400], damage: [35, 55],
+  },
+  {
+    id: 'citadel-siege',
+    favours: 'strength',
+    name: 'Siege of the Citadel',
+    theatre: 'The Capital',
+    brief: 'Lead the assault on the old fortress at the heart of the city. Expect resistance on every floor.',
+    campaign: 2, minLevel: 30, energy: 50, chance: 0.45,
+    xp: [520, 600], cash: [3300, 4500], damage: [40, 65],
+  },
+  {
+    id: 'decapitation-strike',
+    favours: 'agility',
+    name: 'Decapitation Strike',
+    theatre: 'Black Site',
+    brief: 'Find the enemy command bunker and end the war in a single night.',
+    campaign: 2, minLevel: 34, energy: 55, chance: 0.42,
+    xp: [650, 750], cash: [4400, 6000], damage: [45, 70],
   },
 ];
 
 const MISSIONS_BY_ID = new Map(MISSIONS.map((m) => [m.id, m]));
+
+const CAMPAIGNS = [
+  { id: 1, name: 'Home front', blurb: 'Patrols, escorts and raids close to home. Levels 1–14.' },
+  { id: 2, name: 'Forward operations', blurb: 'Deep behind the line, for seasoned soldiers. Levels 15–34.' },
+];
 
 function xpToNext(level) {
   return Math.round(100 * Math.pow(level, 1.6));
@@ -220,10 +282,18 @@ function grantXp(player, amount) {
  * Resolves a mission. Returns { player, result } where `player` is the updated
  * copy to persist, or { error } when the mission can't be attempted.
  */
-function runMission(missionId, current, { now = Date.now(), rng = Math.random, stats, xpBonus = 0 } = {}) {
+function runMission(missionId, current, opts = {}) {
   const mission = MISSIONS_BY_ID.get(missionId);
   if (!mission) return { error: 'Unknown mission.' };
+  return resolveMission(mission, current, opts);
+}
 
+/**
+ * Rolls any mission-shaped object (a mission, or one stage of an operation).
+ * `xpBonus` and `cashBonus` are fractions from the unit Drill ground and rank perks.
+ */
+function resolveMission(mission, current, { now = Date.now(), rng = Math.random, stats, xpBonus = 0, cashBonus = 0 } = {}) {
+  const missionId = mission.id;
   const player = applyRegen(current, now);
   const blocker = missionBlocker(mission, player, now);
   if (blocker) return { error: `${blocker}.`, player };
@@ -239,7 +309,7 @@ function runMission(missionId, current, { now = Date.now(), rng = Math.random, s
 
   if (success) {
     result.xp = randInt(mission.xp, rng);
-    result.cash = randInt(mission.cash, rng);
+    result.cash = Math.round(randInt(mission.cash, rng) * (1 + cashBonus));
     player.cash += result.cash;
     player.missions_completed += 1;
   } else {
@@ -253,13 +323,14 @@ function runMission(missionId, current, { now = Date.now(), rng = Math.random, s
     player.missions_failed += 1;
   }
 
-  if (xpBonus > 0) result.xp = Math.round(result.xp * (1 + xpBonus)); // unit Drill ground
+  if (xpBonus > 0) result.xp = Math.round(result.xp * (1 + xpBonus)); // unit Drill ground + rank perks
   result.levelsGained = grantXp(player, result.xp);
   return { player, result };
 }
 
 function hospitalCost(player) {
-  return (player.max_health - player.health) * HOSPITAL_COST_PER_HP;
+  const discount = perks.perksFor(player.level || 1).hospitalDiscount; // Major's rank perk
+  return Math.round((player.max_health - player.health) * HOSPITAL_COST_PER_HP * (1 - discount));
 }
 
 /** Pays to restore health to full. */
@@ -369,7 +440,9 @@ module.exports = {
   HEALTH_REGEN_MS,
   HOSPITAL_STAY_MS,
   MIN_DEPLOY_HEALTH,
+  CAMPAIGNS,
   MISSIONS,
+  MISSIONS_BY_ID,
   RANKS,
   admitToHospital,
   applyRegen,
@@ -378,11 +451,13 @@ module.exports = {
   isHospitalized,
   grantXp,
   hospitalCost,
+  missionBlocker,
   missionViews,
   newPlayerDefaults,
   nextRankFor,
   playerView,
   rankFor,
+  resolveMission,
   gearBonus,
   runMission,
   statsFor,

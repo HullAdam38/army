@@ -15,15 +15,23 @@ const training = require('../training');
 const units = require('../units');
 const bounties = require('../bounties');
 const bbcode = require('../bbcode');
+const perks = require('../perks');
+const operations = require('../operations');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
   const statsOf = (user) => armory.statsOf(players, user);
+  /** Mission XP and pay bonuses from the player's unit Drill ground and rank perks. */
+  const bonusesFor = (user) => {
+    const unit = user.unit_id ? unitRepo.findById(user.unit_id) : null;
+    const p = perks.perksFor(user.level);
+    return { xpBonus: units.xpBonus(unit) + p.missionXp, cashBonus: p.missionCash };
+  };
 
   router.get('/hq', requireAuth, (req, res) => {
     tutorialService.check(req.player.id);
@@ -39,6 +47,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       medalCount: medalService.rackFor(req.player.id).length,
       training: tutorialService.view(req.player.id),
       nextRank: game.nextRankFor(req.player.level),
+      nextPerk: perks.nextPerk(req.player.level),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
     });
@@ -52,10 +61,28 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
   });
 
   router.get('/missions', requireAuth, (req, res) => {
+    const now = Date.now();
+    const me = game.applyRegen(req.player, now);
+    const stats = statsOf(req.player);
+    const missions = game.missionViews(req.player, now, stats);
+    const progress = operationService.progressFor(me.id, now);
+    const bonus = bonusesFor(me);
     res.render('missions', {
       title: 'Missions',
       nav: 'missions',
-      missions: game.missionViews(req.player, Date.now(), statsOf(req.player)),
+      campaigns: game.CAMPAIGNS.map((c) => ({ ...c, missions: missions.filter((m) => m.campaign === c.id) })),
+      missions,
+      operations: operations.OPERATIONS.map((op) => {
+        const pr = progress.get(op.id);
+        const stage = pr.stage ? op.stages[pr.stage - 1] : null;
+        return {
+          ...op,
+          ...pr,
+          locked: me.level < op.minLevel,
+          next: stage ? { ...stage, blocker: game.missionBlocker(stage, me, now), chancePct: Math.round(game.successChance(stage, me, stats) * 100) } : null,
+        };
+      }),
+      perks: { unlocked: perks.unlocked(me.level), next: perks.nextPerk(me.level), bonus },
       result: null,
     });
   });
@@ -64,8 +91,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     const outcome = players.transaction(() => {
       // Re-read inside the transaction so we act on the freshest state.
       const fresh = players.findById(req.player.id);
-      const unit = fresh.unit_id ? unitRepo.findById(fresh.unit_id) : null;
-      const out = game.runMission(req.params.id, fresh, { stats: statsOf(fresh), xpBonus: units.xpBonus(unit) });
+      const out = game.runMission(req.params.id, fresh, { stats: statsOf(fresh), ...bonusesFor(fresh) });
       if (out.error) return out;
       players.save(out.player, { reason: 'mission', ref: req.params.id });
       const r = out.result;
@@ -116,6 +142,26 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       }
     }
     res.redirect('/missions');
+  });
+
+  router.post('/operations/:id', requireAuth, (req, res) => {
+    const outcome = players.transaction(() => {
+      const fresh = players.findById(req.player.id);
+      return operationService.run(fresh.id, String(req.params.id), { stats: statsOf(fresh), ...bonusesFor(fresh) });
+    });
+    if (outcome.error) {
+      req.flash('error', outcome.error);
+    } else {
+      const { op, stage, result: r, completed, bonus } = outcome;
+      res.locals.gains = { xp: r.xp + (bonus ? bonus.xp : 0), cash: r.cash + (bonus ? bonus.cash : 0) }; // for anti-cheat
+      if (r.success) daily.progress(req.player.id, 'missions_won', 1);
+      req.flash(r.success ? 'success' : 'error', r.success
+        ? `${op.name} · ${stage.name}: done. +${r.xp} XP, +$${r.cash.toLocaleString('en-US')}.`
+        : `${op.name} · ${stage.name}: failed. You took ${r.damage} damage but earned ${r.xp} XP. Try the stage again.`);
+      if (completed) req.flash('success', `${op.name} complete! Bonus +$${bonus.cash.toLocaleString('en-US')} and +${bonus.xp} XP.`);
+      if (outcome.levelsGained.length) req.flash('success', `Promotion! You are now level ${outcome.levelsGained.at(-1)}.`);
+    }
+    res.redirect(`/missions#op-${req.params.id}`);
   });
 
   router.get('/online', requireAuth, (req, res) => {

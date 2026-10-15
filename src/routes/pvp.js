@@ -6,6 +6,7 @@ const pvp = require('../pvp');
 const presence = require('../presence');
 const { statsOf } = require('../armory');
 const scouting = require('../scouting');
+const supplies = require('../supplies');
 const { createRequireAuth } = require('../require-auth');
 const { announceLevels } = require('../notify');
 
@@ -23,8 +24,10 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
       const defender = players.findById(target.id);
       const now = Date.now();
       const rewards = anti.pvpRewards(attacker.id, defender.id, now);
+      const stim = Boolean(attacker.stim_loaded);
+      const aStatsBase = statsOf(players, attacker);
       const out = pvp.resolveAttack(attacker, defender, {
-        aStats: statsOf(players, attacker),
+        aStats: stim ? supplies.withStim(aStatsBase) : aStatsBase,
         dStats: statsOf(players, defender),
         lastAttackAt: players.lastAttackAt(attacker.id, defender.id),
         rewards,
@@ -33,6 +36,10 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
       if (out.error) return out;
 
       const r = out.report;
+      if (stim) {
+        r.attackerStim = true; // shown on the battle report
+        out.attacker.stim_loaded = 0; // used up by this attack, win or lose
+      }
       const id = players.recordBattle(attacker.id, defender.id, r, now);
       players.save(out.attacker, { reason: 'pvp', ref: `battle:${id}` });
       players.save(out.defender, { reason: 'pvp', ref: `battle:${id}` });

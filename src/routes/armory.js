@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const supplies = require('../supplies');
+const game = require('../game');
 const { ITEMS_BY_ID, SLOTS } = require('../items');
 const { catalogueView, checkEquip, checkPurchase, loadoutView } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
@@ -18,7 +20,29 @@ function armoryRoutes(players) {
       nav: 'armory',
       loadout: loadoutView(req.player.level, equipment, req.player),
       catalogue: catalogueView(req.player, owned, equipment),
+      supplies: (() => {
+        const now = Date.now();
+        const me = game.applyRegen(req.player, now);
+        return supplies.SUPPLIES.map((s) => ({ ...s, locked: me.level < s.minLevel, blocker: supplies.buyBlocker(s, me, now), loaded: s.id === 'stim' && Boolean(me.stim_loaded) }));
+      })(),
     });
+  });
+
+  // Consumables: bought and used in one step.
+  router.post('/armory/supplies/:id', requireAuth, (req, res) => {
+    const supply = supplies.SUPPLIES_BY_ID.get(String(req.params.id));
+    if (!supply) return res.redirect('/armory#supplies');
+    const outcome = players.transaction(() => {
+      const now = Date.now();
+      const fresh = game.applyRegen(players.findById(req.player.id), now);
+      const blocker = supplies.buyBlocker(supply, fresh, now);
+      if (blocker) return { error: `${supply.name}: ${blocker}.` };
+      const out = supplies.use(supply, fresh, now);
+      players.save(out.player, { reason: 'supplies', ref: supply.id });
+      return out;
+    });
+    req.flash(outcome.error ? 'error' : 'success', outcome.error || `${supply.name} used: ${outcome.note}.`);
+    res.redirect('/armory#supplies');
   });
 
   router.post('/armory/buy/:id', requireAuth, (req, res) => {

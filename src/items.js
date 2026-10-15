@@ -33,6 +33,19 @@ const ITEMS = [
   { id: 'light-machine-gun', slot: 'weapon', name: 'Light Machine Gun', minLevel: 14, price: 12000,
     blurb: 'Suppressive fire that turns firefights decisively.',
     mods: [flat('attack', 40), more('damage', 0.15)] },
+  // Forward-operations tier (levels 15+).
+  { id: 'battle-rifle', slot: 'weapon', name: 'Battle Rifle', minLevel: 17, price: 22000,
+    blurb: 'Full-calibre rifle that punches through cover.',
+    mods: [flat('attack', 52), flat('critChance', 0.04), increased('damage', 0.1)] },
+  { id: 'anti-materiel-rifle', slot: 'weapon', name: 'Anti-Materiel Rifle', minLevel: 22, price: 45000,
+    blurb: 'Built for engines and walls. Overkill for everything else.',
+    mods: [flat('attack', 64), flat('critChance', 0.1), flat('critDamage', 0.4)] },
+  { id: 'gpmg', slot: 'weapon', name: 'General-Purpose MG', minLevel: 28, price: 80000,
+    blurb: 'Belt-fed and relentless. Holds a line on its own.',
+    mods: [flat('attack', 80), more('damage', 0.2)] },
+  { id: 'smart-rifle', slot: 'weapon', name: 'XM Smart Rifle', minLevel: 33, price: 140000,
+    blurb: 'Computer-assisted fire control. It doesn’t miss much.',
+    mods: [flat('attack', 95), flat('critChance', 0.12), more('damage', 0.15)] },
 
   // Body armour: the main source of armour.
   { id: 'flak-vest', slot: 'body', name: 'Flak Vest', minLevel: 1, price: 120,
@@ -47,6 +60,15 @@ const ITEMS = [
   { id: 'heavy-assault-plate', slot: 'body', name: 'Heavy Assault Plate', minLevel: 12, price: 9000,
     blurb: 'Breacher-grade protection with a weight to match.',
     mods: [flat('armor', 70), increased('armor', 0.1)] },
+  { id: 'ceramic-plate-rig', slot: 'body', name: 'Ceramic Plate Rig', minLevel: 16, price: 18000,
+    blurb: 'Multi-hit ceramic plates in a quick-release rig.',
+    mods: [flat('armor', 90), increased('armor', 0.1)] },
+  { id: 'exo-frame', slot: 'body', name: 'Exo-Frame Armour', minLevel: 23, price: 50000,
+    blurb: 'A powered frame carries the weight so you don’t have to.',
+    mods: [flat('armor', 110), increased('armor', 0.15)] },
+  { id: 'juggernaut-suit', slot: 'body', name: 'Juggernaut Suit', minLevel: 31, price: 110000,
+    blurb: 'Bomb-disposal protection rebuilt for the assault.',
+    mods: [flat('armor', 135), increased('armor', 0.2)] },
 
   // Helmets: a little armour plus utility.
   { id: 'combat-helmet', slot: 'helmet', name: 'Combat Helmet', minLevel: 2, price: 250,
@@ -58,6 +80,12 @@ const ITEMS = [
   { id: 'night-vision-helmet', slot: 'helmet', name: 'Night Vision Helmet', minLevel: 11, price: 6000,
     blurb: 'Own the dark. See them before they see you.',
     mods: [flat('armor', 18), flat('critChance', 0.05)] },
+  { id: 'comms-helmet', slot: 'helmet', name: 'Integrated Comms Helmet', minLevel: 19, price: 25000,
+    blurb: 'Hearing protection, team radio and a heads-up threat marker.',
+    mods: [flat('armor', 24), flat('critChance', 0.06)] },
+  { id: 'panoramic-helmet', slot: 'helmet', name: 'Panoramic NVG Helmet', minLevel: 27, price: 60000,
+    blurb: 'Four-tube night vision. The night belongs to you.',
+    mods: [flat('armor', 30), flat('critChance', 0.08), flat('critDamage', 0.15)] },
 
   // Tactical kit: damage multipliers and crits.
   { id: 'red-dot-sight', slot: 'kit', name: 'Red Dot Sight', minLevel: 2, price: 400,
@@ -69,6 +97,15 @@ const ITEMS = [
   { id: 'rangefinder', slot: 'kit', name: 'Tactical Rangefinder', minLevel: 9, price: 4000,
     blurb: 'Laser ranging and ballistic correction on demand.',
     mods: [more('damage', 0.1), flat('critDamage', 0.2)] },
+  { id: 'thermal-scope', slot: 'kit', name: 'Thermal Scope', minLevel: 18, price: 20000,
+    blurb: 'Heat signatures through smoke, foliage and darkness.',
+    mods: [more('damage', 0.12), flat('critChance', 0.04)] },
+  { id: 'drone-uplink', slot: 'kit', name: 'Recon Drone Uplink', minLevel: 25, price: 55000,
+    blurb: 'Eyes overhead and targets marked before you move.',
+    mods: [more('damage', 0.15), flat('critDamage', 0.3)] },
+  { id: 'smart-munitions', slot: 'kit', name: 'Smart Munitions', minLevel: 30, price: 100000,
+    blurb: 'Guided rounds that find the gaps in cover.',
+    mods: [more('damage', 0.2), flat('critChance', 0.06)] },
 ];
 
 const ITEMS_BY_ID = new Map(ITEMS.map((i) => [i.id, i]));

@@ -34,6 +34,7 @@ const { legalSettings } = require('./legal');
 const { createMessageService } = require('./message-service');
 const { messageRoutes } = require('./routes/messages');
 const { formatRoutes } = require('./routes/format');
+const { createOperationService } = require('./operation-service');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -81,6 +82,7 @@ function createApp({
   app.medals = medalService; // exposed for tests
   const tutorialService = createTutorialService(db, players, { enabled: tutorial });
   const messageService = createMessageService(db, players);
+  const operationService = createOperationService(db, players);
   const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
@@ -142,7 +144,7 @@ function createApp({
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService));

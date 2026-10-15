@@ -98,6 +98,64 @@ There are six missions, unlocking at levels 1, 1, 3, 5, 8 and 12. Success chance
 
 Regeneration is calculated lazily from timestamps, so no background jobs are needed. All game rules live in `src/game.js` as pure functions.
 
+## Campaign 2: levels 15–35
+
+### Missions
+
+Missions are grouped into two campaigns. Campaign 2, **Forward operations**, opens at level 15. Each new mission pays more XP and cash per energy than the one before (a test enforces this), so higher levels stay worth playing.
+
+| Mission | Level | Energy | XP | Pay |
+|---|---|---|---|---|
+| Night Raid | 15 | 30 | 170–210 | $900–1.3k |
+| Ambush the Supply Line | 18 | 35 | 230–280 | $1.3k–1.8k |
+| Rescue the Downed Pilot | 22 | 40 | 310–370 | $1.8k–2.5k |
+| Sabotage the Radar Site | 26 | 45 | 410–480 | $2.5k–3.4k |
+| Siege of the Citadel | 30 | 50 | 520–600 | $3.3k–4.5k |
+| Decapitation Strike | 34 | 55 | 650–750 | $4.4k–6k |
+
+### Operations
+
+Operations are three-stage missions. Each stage is rolled like a mission, and a failed stage stays put. Clearing all three pays a completion bonus, and each operation can then be run again after 20 hours. Payouts go through the ledger as `operation`.
+
+| Operation | Level | Stage energy | Completion bonus |
+|---|---|---|---|
+| Iron Gate | 16 | 25 / 30 / 35 | $4,000 + 600 XP |
+| Nightfall | 24 | 35 / 40 / 45 | $9,000 + 1,400 XP |
+| Last Light | 32 | 45 / 50 / 55 | $16,000 + 2,600 XP |
+
+### New gear tier
+
+Levels 16–33, four items per slot type:
+- **Weapons:** Battle Rifle, Anti-Materiel Rifle, GPMG, XM Smart Rifle
+- **Armour:** Ceramic Plate Rig, Exo-Frame, Juggernaut Suit
+- **Helmets:** Comms Helmet, Panoramic NVG Helmet
+- **Kit:** Thermal Scope, Drone Uplink, Smart Munitions
+
+Prices run from $18k to $140k, and the best combat rating climbs from about 200 to about 850. Armour reduction tops out at about 66%, under the 75% cap.
+
+### Supplies
+
+Consumables in the Armory from level 15, bought and used in one step (ledger reason `supplies`):
+- **Adrenaline Shot ($2,500):** +30 energy, up to your maximum, once every 20 hours.
+- **Combat Stim ($3,000):** +15% damage in your next attack. One at a time, and battle reports show when one was used.
+
+### Rank perks
+
+Officer ranks bring permanent economic perks, never combat ones, so PvP balance doesn't depend on rank:
+
+| Rank | Level | Perk |
+|---|---|---|
+| Second Lieutenant | 17 | +5% mission pay |
+| Captain | 21 | +5% mission XP |
+| Major | 23 | 25% off hospital treatment |
+| Colonel | 27 | another +5% pay |
+| Brigadier General | 29 | another +5% XP |
+| General | 35 | supply drops +50% |
+
+Pay and XP perks also apply to operations. The Missions page lists your perks, and HQ shows the next one. Anti-cheat's "impossible payout" limit includes the perk bonus.
+
+Rules live in `src/game.js` (missions), `src/operations.js`, `src/items.js`, `src/supplies.js` and `src/perks.js`.
+
 ## Training and scouting
 
 - **Training** (`/training`): three stats raised one point per session, at 5 energy plus cash that rises with the stat ($25, $30, $35…). Each stat can reach 10 × your level.
@@ -360,6 +418,10 @@ src/
   medals.js          medal list, tiers, progress (pure)
   bounties.js        bounty rules: amounts, fees, who can post/collect (pure)
   tutorial.js        basic training steps and rewards (pure)
+  operations.js      three-stage operations (pure)
+  operation-service.js operation progress, payouts, cooldowns
+  supplies.js        consumables: adrenaline, stims (pure)
+  perks.js           officer rank perks (pure)
   bbcode.js          safe BBCode → HTML renderer
   messages.js        private message rules (pure)
   message-service.js conversations, blocks, reports

@@ -7,6 +7,10 @@
 
 const crypto = require('node:crypto');
 const { MISSIONS } = require('./game');
+const perks = require('./perks');
+
+/** Supply drop pay for `level` on a streak day with multiplier `mult` (Generals get a perk bonus). */
+const dropCash = (level, mult) => Math.round((25 + 15 * level) * mult * (1 + perks.perksFor(level).supplyDrop));
 
 const ORDERS_PER_DAY = 3;
 const STREAK_CYCLE = [1, 1, 1.5, 1.5, 2, 2, 3]; // supply drop multiplier for days 1–7 of a streak
@@ -101,7 +105,7 @@ function supplyDrop(player, today) {
   const continuing = player.streak_day === previousDay(today);
   const streak = continuing ? (player.streak_count || 0) + 1 : 1;
   const cycleDay = ((streak - 1) % STREAK_CYCLE.length) + 1;
-  const cash = Math.round((25 + 15 * player.level) * STREAK_CYCLE[cycleDay - 1]);
+  const cash = dropCash(player.level, STREAK_CYCLE[cycleDay - 1]);
   return {
     streak,
     cycleDay,
@@ -127,7 +131,7 @@ function streakView(player, today) {
     cycleDay,
     days: STREAK_CYCLE.map((mult, i) => ({
       day: i + 1,
-      cash: Math.round((25 + 15 * player.level) * mult),
+      cash: dropCash(player.level, mult),
       energy: i === STREAK_CYCLE.length - 1,
       done: i + 1 < cycleDay || (claimedToday && i + 1 === cycleDay),
       today: i + 1 === cycleDay,
