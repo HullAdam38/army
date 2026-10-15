@@ -12,6 +12,19 @@ A text-based military strategy game for players aged 18+. You enlist, spend ener
 
 ## Getting started
 
+### Linux Mint / Ubuntu / Debian (one command)
+
+```bash
+git clone -b claude/determined-keller-i7bgjo https://github.com/HullAdam38/army.git eliteforces
+cd eliteforces
+bash scripts/setup-linux.sh
+npm run dev        # then open http://localhost:3000
+```
+
+`scripts/setup-linux.sh` installs git, curl, Node.js 22 (from NodeSource, because the distro's own Node is too old) and DB Browser for SQLite. It then installs the packages and runs the tests. It's safe to run again.
+
+### Any system with Node.js 22.13+
+
 ```bash
 npm install
 npm run dev        # http://localhost:3000, restarts on file changes
