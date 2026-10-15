@@ -13,6 +13,12 @@
     <a class="btn btn--primary" href="/missions">View missions <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   </div>
 
+  <% if (upcomingEvents.length) { %>
+    <p class="event-upcoming reveal" style="--i:1">
+      <svg aria-hidden="true"><use href="#i-star"/></svg>
+      Coming up: <% upcomingEvents.forEach(function (e, i) { %><a href="/events"><strong><%= e.title %></strong></a> in <span data-until="<%= e.starts_at %>">soon</span><%= i < upcomingEvents.length - 1 ? ' · ' : '' %><% }) %>
+    </p>
+  <% } %>
   <div class="hq-grid">
     <% if (!training.graduated && !training.dismissed) { %>
       <section class="card hq-card hq-card--training reveal" style="--i:1" aria-labelledby="training-title">

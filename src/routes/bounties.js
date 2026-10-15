@@ -6,7 +6,7 @@ const game = require('../game');
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
 
-function bountyRoutes(players, bountyService) {
+function bountyRoutes(players, bountyService, effects = () => ({ bountyFeeFree: false })) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -31,7 +31,7 @@ function bountyRoutes(players, bountyService) {
       mine: bountyService.placedBy(req.player.id).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at, now) })),
       onYou: bountyService.onTarget(req.player.id, now),
       form: { target: String(req.query.target || '').slice(0, 20) },
-      rules: { min: bounties.MIN_BOUNTY, feePct: Math.round(bounties.FEE_RATE * 100), days: bounties.DURATION_MS / 86_400_000, maxOpen: bounties.MAX_OPEN_PER_PLACER },
+      rules: { min: bounties.MIN_BOUNTY, feePct: effects(now).bountyFeeFree ? 0 : Math.round(bounties.FEE_RATE * 100), days: bounties.DURATION_MS / 86_400_000, maxOpen: bounties.MAX_OPEN_PER_PLACER },
     });
   });
 

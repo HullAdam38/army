@@ -1,0 +1,16 @@
+<article class="card event-card event-card--<%= e.status %>">
+  <div class="event-card__head">
+    <span class="event-card__icon" aria-hidden="true"><svg><use href="#<%= e.def.icon %>"/></svg></span>
+    <div>
+      <p class="eyebrow"><%= e.def.name %><%= e.status === 'live' ? ' · live now' : '' %></p>
+      <h3 class="event-card__title"><%= e.title %></h3>
+    </div>
+    <p class="event-card__time">
+      <% if (e.status === 'live') { %>Ends in <strong data-until="<%= e.ends_at %>" data-reload>soon</strong>
+      <% } else if (e.status === 'upcoming') { %>Starts in <strong data-until="<%= e.starts_at %>">soon</strong>
+      <% } else { %>Ended <%= e.ago %><% } %>
+    </p>
+  </div>
+  <p class="event-card__summary"><%= e.def.summary %></p>
+  <% if (e.messageHtml) { %><div class="bb-content event-card__message"><%- e.messageHtml %></div><% } %>
+</article>

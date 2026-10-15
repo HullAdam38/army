@@ -1,0 +1,83 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Live ops</p>
+      <h1 class="page-head__title">Events</h1>
+      <p class="page-head__sub">Schedule timed boosts. Different types can overlap and their effects combine; the same type can’t overlap itself. All times are UTC (it’s <%= nowUtc.replace('T', ' ') %> UTC now).</p>
+    </div>
+  </div>
+
+  <section class="card admin-event-form" aria-labelledby="new-title">
+    <h2 id="new-title" class="card__title">New event</h2>
+    <form method="post" action="/admin/events" class="form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <fieldset class="event-types-pick">
+        <legend>Type</legend>
+        <% Object.entries(types).forEach(function ([key, t], i) { %>
+          <label class="event-type-option">
+            <input type="radio" name="type" value="<%= key %>" <%- (draft.type ? draft.type === key : i === 0) ? 'checked' : '' %>>
+            <span><strong><%= t.name %></strong><small><%= t.summary %></small></span>
+          </label>
+        <% }) %>
+      </fieldset>
+      <div class="field-row">
+        <div class="field">
+          <label for="ev-title">Title <span class="muted">(optional)</span></label>
+          <input id="ev-title" name="title" maxlength="<%= limits.title %>" value="<%= draft.title || '' %>" placeholder="e.g. Founders’ Weekend">
+        </div>
+        <div class="field">
+          <label for="ev-hours">Duration (hours)</label>
+          <input id="ev-hours" name="hours" type="number" min="<%= limits.minHours %>" max="<%= limits.maxHours %>" step="1" required value="<%= draft.hours || 48 %>">
+        </div>
+      </div>
+      <fieldset class="event-start">
+        <legend>Start</legend>
+        <label class="event-start__opt"><input type="radio" name="start" value="now" <%- draft.start === 'later' ? '' : 'checked' %>> Now</label>
+        <label class="event-start__opt"><input type="radio" name="start" value="later" <%- draft.start === 'later' ? 'checked' : '' %>> At</label>
+        <label class="visually-hidden" for="ev-start">Start time (UTC)</label>
+        <input id="ev-start" name="startAt" type="datetime-local" value="<%= draft.startAt || '' %>" min="<%= nowUtc %>">
+        <span class="muted">UTC</span>
+      </fieldset>
+      <div class="field">
+        <label for="ev-message">Announcement <span class="muted">(optional, shown on the events page)</span></label>
+        <%- include('../partials/bb-editor', { id: 'ev-message', name: 'message', label: 'Announcement', value: draft.message || '', max: limits.message, rows: 4, required: false, compact: true, placeholder: 'Tell soldiers what’s happening.' }) %>
+      </div>
+      <button class="btn btn--primary" type="submit">Schedule event</button>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="list-title">
+    <h2 id="list-title" class="card__title">All events</h2>
+    <% if (list.length) { %>
+      <table class="directory event-table">
+        <thead><tr><th>Event</th><th>Type</th><th>Starts</th><th>Ends</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% list.forEach(function (e) { %>
+            <tr class="is-<%= e.status %>">
+              <td data-label="Event"><strong><%= e.title %></strong><% if (e.creator) { %><br><span class="muted">by <%= e.creator %></span><% } %></td>
+              <td data-label="Type"><%= e.def.name %></td>
+              <td data-label="Starts"><%= fmt(e.starts_at) %></td>
+              <td data-label="Ends"><%= fmt(e.ends_at) %></td>
+              <td data-label="Status"><span class="event-status event-status--<%= e.status %>"><%= e.status %></span></td>
+              <td class="event-table__actions">
+                <% if (e.status === 'live') { %>
+                  <form method="post" action="/admin/events/<%= e.id %>/end" data-confirm="End <%= e.title %> now?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn--ghost btn--sm" type="submit">End now</button></form>
+                <% } else if (e.status === 'upcoming') { %>
+                  <form method="post" action="/admin/events/<%= e.id %>/cancel" data-confirm="Cancel <%= e.title %>?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn--ghost btn--sm" type="submit">Cancel</button></form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <p class="muted">No events yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

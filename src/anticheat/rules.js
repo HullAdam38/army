@@ -148,10 +148,10 @@ function botVerdict(timestamps) {
  * have had, spent on the best-paying mission they can access, all succeeding.
  * `refills` counts full energy refills (promotions, admin restores).
  */
-function missionCashCap({ missions, level, maxEnergy, refills, windowMs = ACTIVITY_WINDOW_MS, energyRegenMs }) {
+function missionCashCap({ missions, level, maxEnergy, refills, windowMs = ACTIVITY_WINDOW_MS, energyRegenMs, cashMult = 1 }) {
   const best = Math.max(...missions.filter((m) => m.minLevel <= level).map((m) => m.cash[1] / m.energy));
   const energy = Math.floor(windowMs / energyRegenMs) + maxEnergy * (1 + refills);
-  return Math.ceil(energy * best * CAP_MARGIN);
+  return Math.ceil(energy * best * cashMult * CAP_MARGIN); // cashMult: rank perks and Payday events
 }
 
 /**

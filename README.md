@@ -235,6 +235,24 @@ The same editor and renderer are used for **every** free-text field a player wri
 
 Every editor previews through `POST /format/preview`. Callsigns, unit names and tags, and short moderation notes stay plain text.
 
+## Events
+
+Admins schedule timed world events at **Admin → Events** (`/admin/events`): pick a type, a duration of 1–168 hours, a start time (now, or a UTC date and time up to 60 days ahead), and an optional announcement written with the BBCode editor. Events can be ended early or cancelled, and every action is written to the audit log.
+
+| Type | Effect |
+|---|---|
+| Double XP | missions and operations pay ×2 XP |
+| Payday | missions and operations pay ×1.5 cash |
+| Supply Surge | supply drops ×2, daily order and Commendation rewards ×2 |
+| War Season | unit war points ×2, war prizes ×1.5 |
+| Most Wanted | no fee for posting bounties |
+
+- **Combining:** different types can overlap and their effects combine, but the same type can't overlap itself. Event multipliers apply on top of rank perks and the unit Drill ground.
+- **What players see:** everyone gets a notification when an event starts, and a banner with a live countdown shows on every page while it runs. HQ shows events starting within 7 days, and `/events` lists live, upcoming and recent events (also linked from the footer).
+- **Anti-cheat:** the limits allow for events. The energy-based income cap includes rank perks and any Payday live in the last 24 hours, and the "impossible payout" limit includes the largest event multiplier.
+
+Rules live in `src/events.js`; scheduling, live effects and announcements are in `src/event-service.js`. Game systems read the live multipliers through an `effects(now)` function passed to their services.
+
 ## Daily orders and supply drops
 
 - **Daily orders:** three orders each UTC day, picked to fit your level. They might be "Complete 4 missions", "Complete Convoy Escort twice", "Earn $580 from missions", "Win a PvP fight", "Train 3 sessions" or "Scout another player". PvP and scouting orders only appear from level 3.
@@ -422,6 +440,9 @@ src/
   operation-service.js operation progress, payouts, cooldowns
   supplies.js        consumables: adrenaline, stims (pure)
   perks.js           officer rank perks (pure)
+  events.js          world event types and effects (pure)
+  event-service.js   event scheduling, live effects, announcements
+  routes/events.js   events page and admin scheduling
   bbcode.js          safe BBCode → HTML renderer
   messages.js        private message rules (pure)
   message-service.js conversations, blocks, reports
@@ -471,6 +492,7 @@ test/                node:test suites
 - `/bounties`: the most wanted list, recent collections, your bounties and the posting form
 - `/account/profile`: edit your profile bio
 - `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
+- `/events`: live, upcoming and recent events; `/admin/events` to schedule them
 - `/medals`: your medal case, with progress, rarity and pins
 - `/wars`, `/wars/:id`: unit wars list and war room
 - `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat

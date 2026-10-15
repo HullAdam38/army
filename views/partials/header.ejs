@@ -43,6 +43,19 @@
     <% } %>
   </div>
   <% if (player) { %><%- include('statbar') %><% } %>
+  <% if (player && liveEvents.length) { %>
+    <div class="event-banner" role="status">
+      <div class="container event-banner__inner">
+        <% liveEvents.forEach(function (e) { %>
+          <a class="event-banner__item" href="/events">
+            <svg aria-hidden="true"><use href="#<%= e.def.icon %>"/></svg>
+            <span><strong><%= e.title %></strong> is live: <%= e.def.summary %></span>
+            <span class="event-banner__time">Ends in <span data-until="<%= e.ends_at %>">soon</span></span>
+          </a>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
   <% if (player && player.hospitalized) { %>
     <div class="ward-banner" role="status">
       <div class="container ward-banner__inner">

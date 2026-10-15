@@ -21,7 +21,7 @@ const operations = require('../operations');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -30,7 +30,11 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
   const bonusesFor = (user) => {
     const unit = user.unit_id ? unitRepo.findById(user.unit_id) : null;
     const p = perks.perksFor(user.level);
-    return { xpBonus: units.xpBonus(unit) + p.missionXp, cashBonus: p.missionCash };
+    const e = eventService.effects(); // Double XP / Payday multiply everything else
+    return {
+      xpBonus: (1 + units.xpBonus(unit) + p.missionXp) * e.xpMult - 1,
+      cashBonus: (1 + p.missionCash) * e.cashMult - 1,
+    };
   };
 
   router.get('/hq', requireAuth, (req, res) => {
@@ -48,6 +52,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       training: tutorialService.view(req.player.id),
       nextRank: game.nextRankFor(req.player.level),
       nextPerk: perks.nextPerk(req.player.level),
+      upcomingEvents: eventService.upcoming(Date.now(), 3).filter((e) => e.starts_at - Date.now() < 7 * 24 * 3600 * 1000),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
     });

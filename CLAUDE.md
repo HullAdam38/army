@@ -23,6 +23,7 @@ Keep as plain text: callsigns, unit names and tags, search boxes, numbers, and s
 - Every cash or bank change goes through `players.save(player, { reason, ref })`, which writes the ledger. A missing reason gets flagged by anti-cheat.
 - Multi-step changes run inside `players.transaction(fn)`. It doesn't nest. Follow-up checks (medals, tutorial) run after the response via `res.on('finish')`.
 - Anything that pays out must not let linked accounts pass value to each other (see `anti.linked`, `anti.pvpRewards`).
+- Reward multipliers stack as: base × (1 + unit and rank-perk bonuses) × live event multiplier. Services get event effects through an `effects(now)` option (`src/events.js` lists them). If a new event type changes how much cash players can earn, update the anti-cheat limits in `src/anticheat`.
 
 ### Front end
 - Strict CSP: no inline `<script>` or `on*=` handlers. JavaScript lives in `public/js/app.js` (progressive enhancement; every page works without it). Inline `style=` attributes are allowed.

@@ -16,11 +16,11 @@ const MAX_OPEN_PER_PLACER = 5;
 const feeFor = (amount) => Math.ceil(amount * FEE_RATE);
 
 /** Parses an amount like "2,500" or "$2500". Returns { error } or { amount, fee, total }. */
-function parseAmount(input) {
+function parseAmount(input, { feeFree = false } = {}) {
   const amount = Math.floor(Number(String(input || '').replace(/[,$\s]/g, '')));
   if (!Number.isFinite(amount) || amount < MIN_BOUNTY) return { error: `Bounties start at $${MIN_BOUNTY.toLocaleString('en-US')}.` };
   if (amount > MAX_BOUNTY) return { error: `The largest bounty is $${MAX_BOUNTY.toLocaleString('en-US')}.` };
-  const fee = feeFor(amount);
+  const fee = feeFree ? 0 : feeFor(amount); // free during the Most Wanted event
   return { amount, fee, total: amount + fee };
 }
 

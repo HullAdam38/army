@@ -354,6 +354,20 @@ const SCHEMA = `
     PRIMARY KEY (user_id, op_id)
   );
 
+  CREATE TABLE IF NOT EXISTS events (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    type          TEXT    NOT NULL,
+    title         TEXT    NOT NULL,
+    message       TEXT    NOT NULL DEFAULT '',
+    starts_at     INTEGER NOT NULL,
+    ends_at       INTEGER NOT NULL,
+    created_by    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at    INTEGER NOT NULL,
+    cancelled_at  INTEGER,
+    announced_at  INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_events_time ON events(starts_at, ends_at);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,

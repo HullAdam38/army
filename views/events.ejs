@@ -1,0 +1,46 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Theatre-wide</p>
+      <h1 class="page-head__title">Events</h1>
+      <p class="page-head__sub">Limited-time boosts run by HQ. Everyone gets a notification when one starts, and a banner shows across the game while it’s live.</p>
+    </div>
+  </div>
+
+  <section class="reveal" style="--i:1" aria-labelledby="live-title">
+    <h2 id="live-title" class="section-title">Live now</h2>
+    <% if (live.length) { %>
+      <div class="event-list"><% live.forEach(function (e) { %><%- include('partials/event-card', { e }) %><% }) %></div>
+    <% } else { %>
+      <p class="card muted">No events are running right now.</p>
+    <% } %>
+  </section>
+
+  <% if (upcoming.length) { %>
+    <section class="reveal" style="--i:2" aria-labelledby="up-title">
+      <h2 id="up-title" class="section-title">Coming up</h2>
+      <div class="event-list"><% upcoming.forEach(function (e) { %><%- include('partials/event-card', { e }) %><% }) %></div>
+    </section>
+  <% } %>
+
+  <% if (recent.length) { %>
+    <section class="reveal" style="--i:3" aria-labelledby="past-title">
+      <h2 id="past-title" class="section-title">Recent</h2>
+      <div class="event-list event-list--past"><% recent.forEach(function (e) { %><%- include('partials/event-card', { e }) %><% }) %></div>
+    </section>
+  <% } %>
+
+  <section class="card reveal event-types" style="--i:4" aria-labelledby="types-title">
+    <h2 id="types-title" class="card__title">Event types</h2>
+    <ul>
+      <% Object.values(types).forEach(function (t) { %>
+        <li><svg aria-hidden="true"><use href="#<%= t.icon %>"/></svg><strong><%= t.name %>:</strong> <%= t.summary %></li>
+      <% }) %>
+    </ul>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

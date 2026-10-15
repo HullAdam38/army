@@ -1,6 +1,7 @@
 'use strict';
 
 const wars = require('./wars');
+const { NEUTRAL } = require('./events');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
@@ -8,7 +9,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
  * Unit wars backed by the database. declare() and finish() change treasuries,
  * so call them inside players.transaction(); finishDue() opens its own.
  */
-function createWarService(db, players, unitRepo) {
+function createWarService(db, players, unitRepo, { effects = () => NEUTRAL } = {}) {
   const ACTIVE_BETWEEN = `status = 'active' AND ((attacker_unit_id = ?1 AND defender_unit_id = ?2) OR (attacker_unit_id = ?2 AND defender_unit_id = ?1))`;
   const stmts = {
     insert: db.prepare(`INSERT INTO unit_wars (attacker_unit_id, defender_unit_id, attacker_name, attacker_tag, defender_name, defender_tag, stake, started_at, ends_at)
@@ -67,6 +68,8 @@ function createWarService(db, players, unitRepo) {
       note = `${forfeit === 'attacker' ? tagged(war.attacker_name, war.attacker_tag) : tagged(war.defender_name, war.defender_tag)} disbanded.`;
     } else {
       result = wars.settle(war);
+      const mult = effects(now).warPrizeMult; // War Season event
+      result = { ...result, attackerPrize: Math.round(result.attackerPrize * mult), defenderPrize: Math.round(result.defenderPrize * mult) };
     }
     if (!stmts.end.run(result.winner, note, now, war.id).changes) return null; // already settled
     const protectUntil = now + wars.PROTECTION_MS;
@@ -133,8 +136,9 @@ function createWarService(db, players, unitRepo) {
       if (!a.unit_id || !d.unit_id || a.unit_id === d.unit_id) return null;
       const war = stmts.between.get(a.unit_id, d.unit_id);
       if (!war || war.ends_at <= now) return null;
-      const scored = wars.scoreFight(war, { a, d, attackerWon, knockout, fullRewards });
-      if (!scored) return null;
+      const found = wars.scoreFight(war, { a, d, attackerWon, knockout, fullRewards });
+      if (!found) return null;
+      const scored = { ...found, points: found.points * effects(now).warPointsMult }; // War Season event
       const winner = attackerWon ? a : d;
       if (!stmts.addFight.run(war.id, battleId, scored.side, winner.id, scored.points, now).changes) return null;
       stmts.score[scored.side].run(scored.points, war.id);

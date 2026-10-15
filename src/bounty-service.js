@@ -1,6 +1,7 @@
 'use strict';
 
 const bounties = require('./bounties');
+const { NEUTRAL } = require('./events');
 const game = require('./game');
 const pvp = require('./pvp');
 
@@ -11,7 +12,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
  * them inside players.transaction(); expireDue() opens its own.
  * `isLinked(a, b)` comes from anti-cheat (shared device or network).
  */
-function createBountyService(db, players, isLinked) {
+function createBountyService(db, players, isLinked, { effects = () => NEUTRAL } = {}) {
   const stmts = {
     insert: db.prepare('INSERT INTO bounties (target_id, placer_id, amount, fee, anonymous, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)'),
     openOn: db.prepare("SELECT * FROM bounties WHERE target_id = ? AND status = 'open' AND expires_at > ? ORDER BY id"),
@@ -54,7 +55,7 @@ function createBountyService(db, players, isLinked) {
         linked: placer.id !== target.id && isLinked(placer.id, target.id, now),
       });
       if (blocker) return { error: blocker };
-      const a = bounties.parseAmount(amountInput);
+      const a = bounties.parseAmount(amountInput, { feeFree: effects(now).bountyFeeFree });
       if (a.error) return a;
       if (placer.cash < a.total) return { error: `A ${money(a.amount)} bounty costs ${money(a.total)} including the ${money(a.fee)} fee. You have ${money(placer.cash)} on hand.` };
       placer.cash -= a.total;

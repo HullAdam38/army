@@ -7,8 +7,10 @@ const pvp = require('../pvp');
 const admin = require('../admin');
 
 const DEVICE_COOKIE = 'ef.dev';
-// The most a single mission can pay: the best mission's top roll with every rank-perk bonus.
-const MAX_MISSION_CASH = Math.ceil(Math.max(...MISSIONS.map((m) => m.cash[1])) * (1 + require('../perks').MAX_CASH_BONUS));
+const perks = require('../perks');
+const events = require('../events');
+// The most a single mission can pay: the best mission's top roll with every rank perk and a Payday event.
+const MAX_MISSION_CASH = Math.ceil(Math.max(...MISSIONS.map((m) => m.cash[1])) * (1 + perks.MAX_CASH_BONUS) * events.MAX_CASH_MULT);
 const MAX_PVP_CASH = pvp.CASH_CAP_PER_LEVEL * admin.MAX_LEVEL;
 
 /** Which game action a POST path is, or null for ones we don't time (sign-in, admin…). */
@@ -125,6 +127,7 @@ function createAntiCheat(db, players, { secret }) {
     resolveFlag: db.prepare('UPDATE flags SET status = ?, resolution = ?, resolved_by = ?, resolved_at = ? WHERE id = ?'),
     battle: db.prepare('SELECT * FROM battles WHERE id = ?'),
     markReversed: db.prepare('UPDATE battles SET reversed_at = ? WHERE id = ?'),
+    eventTypes: db.prepare('SELECT type FROM events WHERE cancelled_at IS NULL AND starts_at < ? AND ends_at > ?'),
   };
 
   const parseFlag = (row) => (row ? { ...row, evidence: JSON.parse(row.evidence), userIdList: row.user_ids.split(',').filter(Boolean).map(Number) } : null);
@@ -341,12 +344,15 @@ function createAntiCheat(db, players, { secret }) {
      */
     checkGains(now = Date.now()) {
       const since = now - rules.ACTIVITY_WINDOW_MS;
+      // A Payday event in the window raises what honest play can earn.
+      const eventCashMult = stmts.eventTypes.all(now, since).reduce((m, e) => Math.max(m, events.effectsOf([e.type]).cashMult), 1);
       const rows = stmts.gains.all(since);
       const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
       for (const r of rows) {
         const refills = stmts.refills.get(r.user_id, since).n;
         const cap = rules.missionCashCap({
           missions: MISSIONS, level: r.level, maxEnergy: r.max_energy, refills, energyRegenMs: ENERGY_REGEN_MS,
+          cashMult: (1 + perks.perksFor(r.level).missionCash) * eventCashMult,
         });
         const reasons = [];
         let severity = 0;
