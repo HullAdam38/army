@@ -34,6 +34,7 @@ function createPlayerRepo(db) {
     touchLogin: db.prepare('UPDATE users SET last_login_at = ?1, last_seen_at = ?1 WHERE id = ?2'),
     touchSeen: db.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?'),
     signOut: db.prepare('UPDATE users SET signed_out_at = ? WHERE id = ?'),
+    acceptTerms: db.prepare('UPDATE users SET terms_version = ?, terms_accepted_at = ? WHERE id = ?'),
     byUsername: db.prepare('SELECT * FROM users WHERE username = ?'),
     online: db.prepare(`
       SELECT username, level, xp, last_seen_at, hospital_until
@@ -126,6 +127,8 @@ function createPlayerRepo(db) {
       stmts.log.run(id, 'system', 'Enlisted with EliteForces. Welcome to the unit, soldier.', now);
       return id;
     },
+    /** Records which version of the Terms of Service the player accepted, and when. */
+    acceptTerms: (id, version, now = Date.now()) => stmts.acceptTerms.run(version, now, id),
 
     /**
      * Writes a player back. Any change to cash or bank balance is recorded in

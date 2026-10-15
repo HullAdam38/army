@@ -2,6 +2,10 @@
 
 const game = require('./game');
 const presence = require('./presence');
+const { TERMS_VERSION } = require('./legal');
+
+// Pages a player can reach before accepting new terms.
+const TERMS_FREE = new Set(['/terms', '/terms/accept', '/logout', '/account/password']);
 const { wantsJson } = require('./middleware');
 
 /** Loads the signed-in player onto req.player, or sends them to sign in. */
@@ -25,6 +29,11 @@ function createRequireAuth(players) {
     if (user.must_change_password && req.path !== '/account/password') {
       if (wantsJson(req)) return res.status(403).json({ ok: false, error: 'Set a new password first.' });
       return res.redirect('/account/password');
+    }
+    if (user.terms_version !== TERMS_VERSION && !TERMS_FREE.has(req.path)) {
+      if (wantsJson(req)) return res.status(403).json({ ok: false, error: 'Accept the updated Terms of Service first.' });
+      if (req.method === 'GET') req.session.returnTo = req.originalUrl;
+      return res.redirect('/terms/accept');
     }
     const now = Date.now();
     if (!user.last_seen_at || now - user.last_seen_at > presence.SEEN_THROTTLE_MS) {

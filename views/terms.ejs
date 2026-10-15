@@ -1,0 +1,42 @@
+<%- include('partials/head', { bodyClass: player ? 'page-game' : 'page-auth' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main terms">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Rules of engagement</p>
+      <h1 class="page-head__title">Terms of Service</h1>
+      <p class="page-head__sub">Version <%= legal.version %> · effective <%= legal.effective %>. The short version: be 18+, use one account, play fair, don’t cheat or use bots, treat people decently, and remember that in-game cash isn’t real money.</p>
+    </div>
+  </div>
+
+  <% if (accept) { %>
+    <p class="notice notice--warn terms-notice reveal" style="--i:1"><%= firstTime ? 'Before you continue, please read and accept our Terms of Service.' : 'Our Terms of Service have changed. Please read and accept the new version to keep playing.' %> <a href="#accept">Jump to accept</a></p>
+  <% } %>
+
+  <article class="card terms-card reveal" style="--i:1">
+    <%- include('partials/terms-body') %>
+  </article>
+
+  <% if (accept) { %>
+    <section id="accept" class="card terms-accept reveal" style="--i:2" aria-labelledby="accept-title">
+      <h2 id="accept-title" class="card__title">Accept and continue</h2>
+      <form method="post" action="/terms/accept" class="form terms-accept__form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="check">
+          <input id="agree" name="agree" type="checkbox" required>
+          <label for="agree">I’m <%= legal.minAge %> or older and I agree to the Terms of Service (version <%= legal.version %>).</label>
+        </div>
+        <div class="terms-accept__actions">
+          <button class="btn btn--primary" type="submit">Accept and continue</button>
+        </div>
+      </form>
+      <form method="post" action="/logout" class="terms-accept__out">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="unit-post__delete" type="submit">I don’t agree, sign me out</button>
+      </form>
+    </section>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

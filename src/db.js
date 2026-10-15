@@ -341,6 +341,8 @@ const ADDED_COLUMNS = [
   ['users', 'wars_won', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'pinned_medals', "TEXT NOT NULL DEFAULT ''"],
   ['users', 'tutorial_dismissed', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'terms_version', 'TEXT'],
+  ['users', 'terms_accepted_at', 'INTEGER'],
 ];
 
 function migrate(db) {

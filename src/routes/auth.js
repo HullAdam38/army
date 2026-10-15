@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const { TERMS_VERSION } = require('../legal');
 const bcrypt = require('bcryptjs');
 const { createFailureTracker, rateLimit, safeRedirectPath } = require('../middleware');
 const { TEMP_PASSWORD_TTL_MS } = require('../admin');
@@ -25,7 +26,7 @@ function validateRegistration({ username, email, password, confirm, adult, terms
   if (problem) errors.password = problem;
   if (password !== confirm) errors.confirm = 'Passwords do not match.';
   if (!adult) errors.adult = 'You must be 18 or older to enlist.';
-  if (!terms) errors.terms = 'You must accept the rules of engagement.';
+  if (!terms) errors.terms = 'You must accept the Terms of Service.';
   return errors;
 }
 
@@ -85,6 +86,7 @@ function authRoutes(players, anti) {
       let id;
       try {
         id = players.create({ username: values.username, email: values.email, passwordHash });
+        players.acceptTerms(id, TERMS_VERSION);
       } catch (err) {
         // Two sign-ups for the same name/email at once: the database's unique
         // constraint catches the loser of the race.

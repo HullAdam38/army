@@ -39,6 +39,17 @@ SESSION_SECRET="$(openssl rand -hex 32)" NODE_ENV=production npm start
 
 See `.env.example` for all settings, and **[SECURITY.md](SECURITY.md)** for the security review and the production checklist (HTTPS proxy, secrets, backups).
 
+## Terms of Service
+
+- **The page:** `/terms` is public and linked from every page footer and the sign-up form. It covers eligibility (18+), one account per player, fair play (no alts, bots, exploits or real-money trading), conduct, virtual items, enforcement, data, liability, changes and governing law. Retention periods are read from the anti-cheat settings, so the page always matches what the game does.
+- **Your details:** set these in the environment (see `.env.example`). Until you do, the page shows visible `[placeholders]` and production start-up logs a warning.
+  - `LEGAL_OPERATOR`: who runs the game
+  - `LEGAL_CONTACT_EMAIL`: where players send appeals, data requests and account deletions
+  - `LEGAL_JURISDICTION`: whose law applies
+- **Recording acceptance:** each account stores the version it accepted (`terms_version`, `terms_accepted_at`).
+- **Changing the terms:** edit `views/partials/terms-body.ejs`, then bump `TERMS_VERSION` and `EFFECTIVE_DATE` in `src/legal.js`. Every player is sent to `/terms/accept` on their next visit and must accept before playing again; they can also choose to sign out. Accounts created before the terms existed are asked once.
+- **Not legal advice:** the text is a sensible starting point written around how this game actually works. Have it reviewed by someone qualified in your jurisdiction before you launch.
+
 ## Admin
 
 Admins are created from the server's command line, never through the website:
@@ -335,6 +346,7 @@ test/                node:test suites
 ## Pages
 
 - `/`: landing page
+- `/terms`: Terms of Service (public); `/terms/accept` when a player must accept a new version
 - `/register`, `/login`: account forms (registration requires confirming you are 18+)
 - `/hq`: dashboard with basic training (for new players), service record, next mission, daily orders, supply drop streak, readiness (live regen timers), field hospital and radio log
 - `/missions`: operations board. Deploying uses `fetch` and updates stats in place, and falls back to a normal form post without JavaScript.

@@ -60,7 +60,7 @@
         </div>
         <div class="check">
           <input id="terms" name="terms" type="checkbox" required <%- values.terms ? 'checked' : '' %> <%- fieldAttrs('terms') %>>
-          <label for="terms">I'll follow the rules of engagement: one account per player, no cheating, no harassment.</label>
+          <label for="terms">I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>: one account per player, no cheating or bots, no harassment.</label>
           <%- fieldError('terms') %>
         </div>
         <button class="btn btn--primary btn--block" type="submit">Enlist <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>

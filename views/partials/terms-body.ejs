@@ -1,0 +1,146 @@
+<%
+  const sections = [
+    ['agreement', 'The agreement'],
+    ['eligibility', 'Who can play'],
+    ['account', 'Your account'],
+    ['fair-play', 'Fair play'],
+    ['conduct', 'Conduct and content'],
+    ['virtual', 'Virtual items and currency'],
+    ['enforcement', 'Moderation and enforcement'],
+    ['data', 'Your data'],
+    ['service', 'The service'],
+    ['liability', 'Disclaimers and liability'],
+    ['ending', 'Leaving the game'],
+    ['changes', 'Changes to these terms'],
+    ['law', 'Governing law'],
+    ['contact', 'Contact'],
+  ];
+%>
+<nav class="terms-toc" aria-label="Contents">
+  <p class="terms-toc__title">Contents</p>
+  <ol>
+    <% sections.forEach(function ([id, title]) { %><li><a href="#<%= id %>"><%= title %></a></li><% }) %>
+  </ol>
+</nav>
+
+<div class="terms-body">
+  <section id="agreement">
+    <h2>1. The agreement</h2>
+    <p>EliteForces (“the game”, “we”, “us”) is a free, browser-based, text military strategy game run by <strong><%= legal.operator %></strong>. These Terms of Service (“terms”) are a binding agreement between you and us. By creating an account or playing, you agree to them. If you don’t agree, don’t use the game.</p>
+    <p>EliteForces is a work of fiction. Its units, operations, ranks and people are invented. Nothing in it represents real military forces or real events, and nothing in it is advice of any kind.</p>
+  </section>
+
+  <section id="eligibility">
+    <h2>2. Who can play</h2>
+    <ul>
+      <li>You must be at least <strong><%= legal.minAge %> years old</strong>. The game contains depictions of combat and violence intended for adults.</li>
+      <li>You must be legally able to agree to these terms where you live, and playing must be lawful for you there.</li>
+      <li>You can’t play if we have previously suspended or removed you, unless we agree otherwise in writing.</li>
+    </ul>
+  </section>
+
+  <section id="account">
+    <h2>3. Your account</h2>
+    <ul>
+      <li><strong>One account per person.</strong> You may hold only one account. Don’t create, share, buy, sell, trade or give away accounts, and don’t let anyone else play yours.</li>
+      <li>Give a real email address you control, and keep your password secret. You’re responsible for everything that happens on your account.</li>
+      <li>Your callsign must follow the conduct rules in section 5. We may rename callsigns that don’t.</li>
+      <li>If you lose access, staff can issue a temporary password after confirming the account is yours. Staff will never ask you for your password.</li>
+    </ul>
+  </section>
+
+  <section id="fair-play">
+    <h2>4. Fair play</h2>
+    <p>Everyone deserves a fair fight. You agree not to:</p>
+    <ul>
+      <li>use more than one account, or use other accounts (“alts”), friends or family members to gain an advantage, including feeding wins, cash or bounties between accounts, or farming another player;</li>
+      <li>use bots, scripts, macros, auto-clickers, browser extensions or any other automation to play, or to send requests to the game other than through normal use of the website;</li>
+      <li>exploit bugs, glitches or unintended mechanics. If you find one, report it to us and don’t use it;</li>
+      <li>collude to move value between players in ways the game doesn’t intend, for example through bounties, unit treasuries, staged wars or deliberately losing fights;</li>
+      <li>buy, sell or trade accounts, in-game cash, items or services for real money or anything outside the game;</li>
+      <li>attack, overload, probe, scrape or reverse-engineer the game or its servers, or try to access accounts, data or admin areas that aren’t yours.</li>
+    </ul>
+    <p><strong>How we enforce this.</strong> The game uses automated anti-cheat checks. They record sign-ins (a device cookie and a scrambled, keyed hash of your IP address, never the raw address), the timing of your actions, and every change to your cash and bank balance. These checks look for linked accounts, farming, automated play and payouts the game rules don’t allow. They raise flags for staff to review; a person decides what action to take.</p>
+  </section>
+
+  <section id="conduct">
+    <h2>5. Conduct and content</h2>
+    <p>You’re responsible for anything you write in the game: your callsign, unit names, tags and descriptions, unit board posts, and application messages. Don’t post anything that:</p>
+    <ul>
+      <li>harasses, threatens, bullies or intimidates anyone, or targets people for their race, ethnicity, nationality, religion, sex, gender identity, sexual orientation, disability or age;</li>
+      <li>promotes or glorifies real-world terrorism, violent extremism, or violence against real people or groups;</li>
+      <li>is sexually explicit, or sexualises minors in any way;</li>
+      <li>shares anyone’s personal information without their consent (“doxxing”);</li>
+      <li>impersonates staff or another player, is spam or advertising, or links to malware, scams or phishing;</li>
+      <li>breaks the law or infringes someone else’s rights.</li>
+    </ul>
+    <p>You keep ownership of what you write, but you give us a worldwide, royalty-free licence to store, display and moderate it for as long as it’s needed to run the game. We may rename, edit or remove any name or post, and disband units, that break these rules.</p>
+  </section>
+
+  <section id="virtual">
+    <h2>6. Virtual items and currency</h2>
+    <ul>
+      <li>In-game cash, bank balances, unit treasuries, bounties, gear, medals, ranks and all other game items are <strong>virtual</strong>. They have no real-world value, aren’t your property and can’t be exchanged for money or anything of value.</li>
+      <li>You get a limited, personal, revocable licence to use them inside the game. That licence ends when your account is closed.</li>
+      <li>We may change, rebalance, reset or remove virtual items, prices, rewards and game rules at any time, including resetting progress for everyone (a “wipe”). We may also reverse gains that came from cheating, bugs or breaking these terms.</li>
+      <li>The game is currently free and nothing is sold. If we ever offer paid features, they’ll come with their own terms, which you’ll be shown before you pay.</li>
+    </ul>
+  </section>
+
+  <section id="enforcement">
+    <h2>7. Moderation and enforcement</h2>
+    <p>If we believe you’ve broken these terms, we may, at our discretion and in proportion to what happened:</p>
+    <ul>
+      <li>send you a warning;</li>
+      <li>reverse cash or rewards gained unfairly;</li>
+      <li>rename your callsign, unit or tag, or remove what you posted;</li>
+      <li>disband a unit;</li>
+      <li>suspend your account, temporarily or permanently, and any accounts linked to it.</li>
+    </ul>
+    <p>Suspended players are signed out immediately and can’t sign back in. If you think we’ve made a mistake, contact us (section 14) with your callsign and we’ll review it. Our decision after review is final.</p>
+  </section>
+
+  <section id="data">
+    <h2>8. Your data</h2>
+    <p>We keep only what the game needs to run and to stay fair:</p>
+    <ul>
+      <li><strong>Account details:</strong> your callsign, email address, and your password stored as a one-way bcrypt hash. Staff can never see your password.</li>
+      <li><strong>Gameplay:</strong> your progress, battles, messages you post, notifications, and a ledger of every change to your cash and bank balance.</li>
+      <li><strong>Security and anti-cheat:</strong> sign-in records (device cookie, keyed hash of your IP address, browser name) kept for <%= legal.retention.signInDays %> days, and action timing records kept for <%= legal.retention.actionDays %> days.</li>
+      <li><strong>Cookies:</strong> a session cookie that keeps you signed in, and a device cookie used by anti-cheat. Both are strictly necessary for the game. We don’t use advertising or third-party tracking cookies.</li>
+    </ul>
+    <p>Other players see your public profile: your callsign, rank, level, online status, battles, medals, unit and gear. Your email, cash, bank balance, energy, health and trained stats stay private, except that trained stats can be revealed to a player who pays to scout you.</p>
+    <p>We don’t sell your data. We’ll only share it if the law requires us to, or to protect players and the game from serious harm. To ask what we hold about you, or to have your account deleted, contact us (section 14).</p>
+  </section>
+
+  <section id="service">
+    <h2>9. The service</h2>
+    <p>EliteForces is in active development. We may add, change or remove features, take the game offline for maintenance, or stop running it altogether. We’ll try to give notice of big changes, but we can’t promise the game will always be available, error-free or that your progress will be kept.</p>
+  </section>
+
+  <section id="liability">
+    <h2>10. Disclaimers and liability</h2>
+    <p>The game is provided <strong>“as is” and “as available”</strong>, without warranties of any kind, to the fullest extent the law allows. To the fullest extent the law allows, we aren’t liable for any indirect, incidental or consequential loss, or for loss of data, progress or virtual items, arising from your use of the game. Because the game is free, our total liability to you for any claim is limited to the amount you’ve paid us in the past twelve months, which is currently nothing.</p>
+    <p>Nothing in these terms limits any rights you have under consumer law that can’t be limited, or liability that can’t be excluded by law.</p>
+  </section>
+
+  <section id="ending">
+    <h2>11. Leaving the game</h2>
+    <p>You can stop playing at any time. To have your account and personal data deleted, contact us from the email address on your account. We may keep limited records afterwards where the law requires it, or to enforce a suspension. We may close accounts that break these terms, as described in section 7.</p>
+  </section>
+
+  <section id="changes">
+    <h2>12. Changes to these terms</h2>
+    <p>We may update these terms. When we make a change you should agree to, we’ll update the version date at the top and ask you to accept the new terms the next time you visit. If you don’t accept them, you can stop playing and ask us to delete your account.</p>
+  </section>
+
+  <section id="law">
+    <h2>13. Governing law</h2>
+    <p>These terms are governed by the laws of <strong><%= legal.jurisdiction %></strong>, without regard to its conflict-of-law rules. Any dispute will be handled by the courts there, unless the law where you live gives you the right to bring a claim in your local courts. If any part of these terms can’t be enforced, the rest still applies.</p>
+  </section>
+
+  <section id="contact">
+    <h2>14. Contact</h2>
+    <p>Questions, appeals, bug reports, data requests or account deletion: <% if (legal.hasContact) { %><a href="mailto:<%= legal.contactEmail %>"><%= legal.contactEmail %></a><% } else { %><strong><%= legal.contactEmail %></strong><% } %>. Please include your callsign.</p>
+  </section>
+</div>

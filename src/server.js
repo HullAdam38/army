@@ -29,6 +29,8 @@ const { medalRoutes } = require('./routes/medals');
 const { createBountyService } = require('./bounty-service');
 const { bountyRoutes } = require('./routes/bounties');
 const { createTutorialService } = require('./tutorial-service');
+const { termsRoutes } = require('./routes/terms');
+const { legalSettings } = require('./legal');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -88,6 +90,10 @@ function createApp({
   app.locals.assetVersion = pkg.version;
   app.locals.siteName = 'EliteForces';
   app.locals.year = new Date().getFullYear();
+  app.locals.legal = legalSettings();
+  if (production && app.locals.legal.missing.length) {
+    console.warn(`[eliteforces] The Terms of Service show placeholders until you set: ${app.locals.legal.missing.join(', ')}.`);
+  }
   // Defaults so any template (including error pages) renders even if a middleware never ran.
   Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, latestNotificationId: 0, isAdmin: false });
 
@@ -131,6 +137,7 @@ function createApp({
 
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
+  app.use(termsRoutes(players));
   app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
