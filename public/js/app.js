@@ -414,7 +414,7 @@
       previewPane.textContent = 'Loading preview…';
       try {
         const token = ta.form && ta.form.querySelector('input[name="_csrf"]');
-        const res = await fetch('/messages/preview', {
+        const res = await fetch(editor.dataset.previewUrl || '/format/preview', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': token ? token.value : '' },

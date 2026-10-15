@@ -163,6 +163,20 @@ Rules live in `src/tutorial.js`; detection and payouts are in `src/tutorial-serv
 
 Rules live in `src/messages.js`; storage is in `src/message-service.js`; the parser is in `src/bbcode.js`.
 
+### Formatting everywhere players write
+
+The same editor and renderer are used for **every** free-text field a player writes. New fields follow the same rule; see `CLAUDE.md`.
+
+| Where | Limit |
+|---|---|
+| Private messages | 5,000 |
+| Profile bio (`/account/profile`, shown as **About** on the profile; admins can clear it) | 2,000 |
+| Unit board posts (with **Quote**) | 2,000 |
+| Unit descriptions (founding form and Command settings) | 1,000 |
+| Unit applications | 500 |
+
+Every editor previews through `POST /format/preview`. Callsigns, unit names and tags, and short moderation notes stay plain text.
+
 ## Daily orders and supply drops
 
 - **Daily orders:** three orders each UTC day, picked to fit your level. They might be "Complete 4 missions", "Complete Convoy Escort twice", "Earn $580 from missions", "Win a PvP fight", "Train 3 sessions" or "Scout another player". PvP and scouting orders only appear from level 3.
@@ -349,7 +363,8 @@ src/
   bbcode.js          safe BBCode → HTML renderer
   messages.js        private message rules (pure)
   message-service.js conversations, blocks, reports
-  routes/messages.js inbox, compose, threads, preview, block, report
+  routes/messages.js inbox, compose, threads, block, report
+  routes/format.js   shared BBCode preview for every editor
   tutorial-service.js detects steps, pays rewards, hide/show
   bounty-service.js  bounty storage, claiming in fights, expiry refunds
   routes/bounties.js bounty board and posting
@@ -392,6 +407,7 @@ test/                node:test suites
 - `/units`: every unit ranked by strength, with search, your applications and the form to found a unit
 - `/units/:id`: a unit's page showing its roster and upgrades, plus (for members) the treasury, board and unit log, and (for the Commander) settings and command
 - `/bounties`: the most wanted list, recent collections, your bounties and the posting form
+- `/account/profile`: edit your profile bio
 - `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
 - `/medals`: your medal case, with progress, rarity and pins
 - `/wars`, `/wars/:id`: unit wars list and war room

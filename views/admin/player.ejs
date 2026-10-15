@@ -82,6 +82,19 @@
       <% } %>
     </section>
 
+    <section class="card" aria-labelledby="bio-title">
+      <h2 id="bio-title" class="card__title">Profile bio</h2>
+      <% if (t.bio) { %>
+        <div class="admin-bio bb-content"><%- bioHtml %></div>
+        <form method="post" action="/admin/players/<%= t.id %>/clear-bio" class="admin-inline" data-confirm="Clear <%= t.username %>'s bio? They'll be notified.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Clear bio</button>
+        </form>
+      <% } else { %>
+        <p class="muted">No bio.</p>
+      <% } %>
+    </section>
+
     <section class="card" aria-labelledby="msg-title">
       <h2 id="msg-title" class="card__title">Send a message</h2>
       <form method="post" action="/admin/players/<%= t.id %>/notify" class="form admin-form">

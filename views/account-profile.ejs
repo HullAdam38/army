@@ -1,0 +1,27 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/profile/<%= encodeURIComponent(player.username) %>"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Your profile</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Service record</p>
+      <h1 class="page-head__title">Edit profile</h1>
+      <p class="page-head__sub">Your bio shows on your public profile. Use the toolbar to format it. Keep it within the conduct rules in the <a href="/terms#conduct">Terms of Service</a>: moderators can remove bios that break them.</p>
+    </div>
+  </div>
+
+  <section class="card compose reveal" style="--i:1">
+    <form method="post" action="/account/profile" class="compose__form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('partials/bb-editor', { id: 'bio', name: 'bio', label: 'Bio', value: bio, max: maxBio, rows: 10, required: false, placeholder: 'Who are you on the battlefield?' }) %>
+      <div class="compose__actions">
+        <button class="btn btn--primary" type="submit">Save profile</button>
+        <a class="btn btn--ghost" href="/profile/<%= encodeURIComponent(player.username) %>">Cancel</a>
+        <span class="muted compose__hint">Leave it empty to remove your bio.</span>
+      </div>
+    </form>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

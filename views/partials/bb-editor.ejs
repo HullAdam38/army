@@ -2,7 +2,7 @@
   const id = locals.id || 'body';
   const colors = [['red', '#ff5a52'], ['orange', '#ff8a3d'], ['yellow', '#f2c230'], ['green', '#4ade80'], ['blue', '#60a5fa'], ['purple', '#c084fc'], ['gray', '#9aa59c']];
 %>
-<div class="bb-editor" data-bb-editor>
+<div class="bb-editor<%= locals.compact ? ' bb-editor--compact' : '' %>" data-bb-editor data-preview-url="/format/preview">
   <div class="bb-editor__bar" role="toolbar" aria-label="Formatting" aria-controls="<%= id %>">
     <div class="bb-tabs" role="tablist">
       <button type="button" class="bb-tab" role="tab" data-bb-tab="write" aria-selected="true">Write</button>
@@ -40,7 +40,7 @@
     </div>
   </div>
   <label class="visually-hidden" for="<%= id %>"><%= locals.label || 'Message' %></label>
-  <textarea id="<%= id %>" name="<%= locals.name || 'body' %>" class="bb-editor__input" rows="<%= locals.rows || 8 %>" maxlength="<%= locals.max || 5000 %>" required placeholder="<%= locals.placeholder || 'Write your message…' %>"><%= locals.value || '' %></textarea>
+  <textarea id="<%= id %>" name="<%= locals.name || 'body' %>" class="bb-editor__input" rows="<%= locals.rows || 8 %>" maxlength="<%= locals.max || 5000 %>" <%- locals.required === false ? '' : 'required' %> placeholder="<%= locals.placeholder || 'Write your message…' %>"><%= locals.value || '' %></textarea>
   <div class="bb-editor__preview bb-content" data-bb-preview aria-live="polite"></div>
   <div class="bb-editor__foot">
     <details class="bb-help">

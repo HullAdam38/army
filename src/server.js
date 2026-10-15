@@ -33,6 +33,7 @@ const { termsRoutes } = require('./routes/terms');
 const { legalSettings } = require('./legal');
 const { createMessageService } = require('./message-service');
 const { messageRoutes } = require('./routes/messages');
+const { formatRoutes } = require('./routes/format');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -152,6 +153,7 @@ function createApp({
   app.use(dailyRoutes(players, daily));
   app.use(medalRoutes(players, medalService));
   app.use(bountyRoutes(players, bountyService));
+  app.use(formatRoutes(players));
   app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players));

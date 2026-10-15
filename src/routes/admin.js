@@ -7,6 +7,7 @@ const game = require('../game');
 const presence = require('../presence');
 const { loadoutView } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
+const bbcode = require('../bbcode');
 
 const PAGE_SIZE = 25;
 const { RULES, SEVERITY } = require('../anticheat/rules');
@@ -74,6 +75,7 @@ function adminRoutes(players, adminRepo, anti, messages) {
       rating: loadoutView(t.level, players.equipment(t.id), t).rating,
       trainingPoints: require('../training').pointsOf(t),
       maxLevel: admin.MAX_LEVEL,
+      bioHtml: bbcode.render(t.bio || ''),
       isSelf: t.id === req.player.id,
       fmt: (ms) => (ms ? new Date(ms).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '—'),
       ago: (ms) => presence.timeAgo(ms, now),
@@ -150,6 +152,17 @@ function adminRoutes(players, adminRepo, anti, messages) {
     } catch (err) {
       next(err);
     }
+  });
+
+  // Moderation: wipe a player's profile bio (e.g. offensive content).
+  router.post('/admin/players/:id/clear-bio', loadTarget, (req, res) => {
+    if (req.target.bio) {
+      players.setBio(req.target.id, '');
+      adminRepo.log(req.player.id, req.target.id, 'clear-bio', req.target.bio.slice(0, 300));
+      players.notify(req.target.id, 'system', 'HQ removed your profile bio because it broke the conduct rules in the Terms of Service.', '/terms#conduct');
+      req.flash('success', `${req.target.username}'s bio was cleared.`);
+    }
+    back(res, req.target);
   });
 
   router.post('/admin/players/:id/notify', loadTarget, (req, res) => {

@@ -13,9 +13,9 @@ const MIN_DONATION = 10;
 const LEAVE_COOLDOWN_MS = 12 * 60 * 60 * 1000; // after leaving, before joining or founding another
 const MAX_PENDING_APPLICATIONS = 3;
 const POST_COOLDOWN_MS = 10 * 1000;
-const MAX_POST = 500;
-const MAX_APPLY_MESSAGE = 200;
-const MAX_DESCRIPTION = 300;
+const MAX_POST = 2000; // BBCode tags count towards these limits
+const MAX_APPLY_MESSAGE = 500;
+const MAX_DESCRIPTION = 1000;
 
 const ROLES = {
   leader: { label: 'Commander', rank: 3 },

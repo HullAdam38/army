@@ -57,9 +57,20 @@
       </ul>
     <% } %>
     <% if (soldier.isYou) { %>
-      <p class="profile-hero__note">This is how other soldiers see you. <a href="/hq">Back to HQ</a> · <a href="/medals">Medals</a> · <a href="/account/password">Change password</a></p>
+      <p class="profile-hero__note">This is how other soldiers see you. <a href="/account/profile">Edit profile</a> · <a href="/hq">Back to HQ</a> · <a href="/medals">Medals</a> · <a href="/account/password">Change password</a></p>
     <% } %>
   </section>
+
+  <% if (bioHtml || soldier.isYou) { %>
+    <section id="about" class="card profile-about reveal" style="--i:2" aria-labelledby="about-title">
+      <h2 id="about-title" class="card__title">About <%= soldier.username %><% if (soldier.isYou) { %> <a class="card__title-link" href="/account/profile">Edit</a><% } %></h2>
+      <% if (bioHtml) { %>
+        <div class="bb-content profile-about__body"><%- bioHtml %></div>
+      <% } else { %>
+        <p class="muted">You haven’t written a bio yet. <a href="/account/profile">Tell other soldiers about yourself</a>: your unit, your play style, who you’re hunting.</p>
+      <% } %>
+    </section>
+  <% } %>
 
   <div class="profile-grid">
     <section class="card reveal" style="--i:2" aria-labelledby="record-title">

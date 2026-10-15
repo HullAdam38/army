@@ -36,6 +36,7 @@ function createPlayerRepo(db) {
     signOut: db.prepare('UPDATE users SET signed_out_at = ? WHERE id = ?'),
     acceptTerms: db.prepare('UPDATE users SET terms_version = ?, terms_accepted_at = ? WHERE id = ?'),
     hasBlocked: db.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?'),
+    setBio: db.prepare('UPDATE users SET bio = ?, bio_updated_at = ? WHERE id = ?'),
     // Conversations with a message from someone else since you last read them.
     unreadMessages: db.prepare(`
       SELECT COUNT(*) AS n FROM conversation_members m JOIN conversations c ON c.id = m.conversation_id
@@ -137,6 +138,8 @@ function createPlayerRepo(db) {
     acceptTerms: (id, version, now = Date.now()) => stmts.acceptTerms.run(version, now, id),
     unreadMessageCount: (id) => stmts.unreadMessages.get(id).n,
     hasBlocked: (id, otherId) => Boolean(stmts.hasBlocked.get(id, otherId)),
+    /** Saves a player's profile bio (BBCode source; render with bbcode.render). */
+    setBio: (id, bio, now = Date.now()) => stmts.setBio.run(bio, now, id),
 
     /**
      * Writes a player back. Any change to cash or bank balance is recorded in

@@ -15,7 +15,7 @@
     <div class="unit-hero__body">
       <p class="eyebrow">Unit profile · ranked #<%= unit.position %> · founded <time datetime="<%= stats.foundedIso %>"><%= stats.founded %></time></p>
       <h1 id="unit-name" class="profile-hero__name"><%= unit.name %> <span class="unit-tag">[<%= unit.tag %>]</span></h1>
-      <% if (unit.description) { %><p class="unit-hero__desc"><%= unit.description %></p><% } %>
+      <% if (unit.description) { %><div class="unit-hero__desc bb-content"><%- unit.descriptionHtml %></div><% } %>
       <p class="unit-hero__leader">Commander <% const lead = roster.find((m) => m.unit_role === 'leader'); %><% if (lead) { %><a href="/profile/<%= encodeURIComponent(lead.username) %>"><%= lead.username %></a><% } else { %>—<% } %></p>
       <dl class="figures unit-hero__figures">
         <div><dt>Strength</dt><dd><%= unit.strength %></dd></div>
@@ -52,8 +52,7 @@
         <p class="unit-hero__role">You meet their requirements.</p>
         <form method="post" action="/units/<%= unit.id %>/apply" class="unit-apply">
           <%- csrf %>
-          <label class="visually-hidden" for="apply-msg">Message to the officers</label>
-          <textarea id="apply-msg" name="message" rows="2" maxlength="<%= limits.message %>" placeholder="Why should they take you? (optional)"></textarea>
+          <%- include('partials/bb-editor', { id: 'apply-msg', name: 'message', label: 'Message to the officers', max: limits.message, rows: 3, required: false, compact: true, placeholder: 'Why should they take you? (optional)' }) %>
           <button class="btn btn--primary btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-flag"/></svg>Apply to join</button>
         </form>
       <% } %>
@@ -130,7 +129,7 @@
               <% applications.forEach(function (a) { %>
                 <li>
                   <p><a class="directory__name" href="/profile/<%= encodeURIComponent(a.username) %>"><strong><%= a.username %></strong></a> <span class="muted">· Lv <%= a.level %> · <%= a.missions_completed %> missions · <%= a.pvp_wins %> PvP wins · <%= a.ago %></span></p>
-                  <% if (a.message) { %><blockquote class="unit-quote"><%= a.message %></blockquote><% } %>
+                  <% if (a.message) { %><div class="unit-quote bb-content"><%- a.html %></div><% } %>
                   <div class="unit-apps-review__actions">
                     <form method="post" action="/units/<%= unit.id %>/applications/<%= a.id %>/accept"><%- csrf %><button class="btn btn--primary btn--sm" type="submit" <%- members >= unit.capacity ? 'disabled' : '' %>>Accept</button></form>
                     <form method="post" action="/units/<%= unit.id %>/applications/<%= a.id %>/reject"><%- csrf %><button class="btn btn--ghost btn--sm" type="submit">Reject</button></form>
@@ -220,8 +219,7 @@
         <h2 id="board-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Unit board</h2>
         <form method="post" action="/units/<%= unit.id %>/posts" class="unit-post-form">
           <%- csrf %>
-          <label class="visually-hidden" for="post-body">Message to your unit</label>
-          <textarea id="post-body" name="body" rows="2" maxlength="<%= limits.post %>" placeholder="Message your unit…" required></textarea>
+          <%- include('partials/bb-editor', { id: 'post-body', name: 'body', label: 'Message to your unit', max: limits.post, rows: 3, placeholder: 'Message your unit…' }) %>
           <button class="btn btn--primary btn--sm" type="submit">Post</button>
         </form>
         <% if (posts.length) { %>
@@ -231,11 +229,12 @@
                 <div class="unit-post__head">
                   <a class="directory__name" href="/profile/<%= encodeURIComponent(p.username) %>"><strong><%= p.username %></strong></a><% if (!p.still_member) { %> <span class="muted">(left)</span><% } %>
                   <span class="feed__time"><%= p.ago %></span>
+                  <button type="button" class="msg__link" data-bb-quote="#post-body" data-author="<%= p.username %>" data-body="<%= p.body %>">Quote</button>
                   <% if (p.canDelete) { %>
                     <form method="post" action="/units/<%= unit.id %>/posts/<%= p.id %>/delete" data-confirm="Delete this post?"><%- csrf %><button class="unit-post__delete" type="submit" aria-label="Delete post">Delete</button></form>
                   <% } %>
                 </div>
-                <p class="unit-post__body"><%= p.body %></p>
+                <div class="unit-post__body bb-content"><%- p.html %></div>
               </li>
             <% }) %>
           </ol>
@@ -263,7 +262,7 @@
           <%- csrf %>
           <div class="field">
             <label for="settings-desc">Description</label>
-            <textarea id="settings-desc" name="description" rows="3" maxlength="<%= limits.description %>"><%= unit.description %></textarea>
+            <%- include('partials/bb-editor', { id: 'settings-desc', name: 'description', label: 'Unit description', value: unit.description, max: limits.description, rows: 5, required: false, compact: true, placeholder: 'Tell soldiers what your unit is about.' }) %>
           </div>
           <div class="check">
             <input id="settings-recruiting" type="checkbox" name="recruiting" <%- unit.recruiting ? 'checked' : '' %>>

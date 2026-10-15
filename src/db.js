@@ -392,6 +392,8 @@ const ADDED_COLUMNS = [
   ['users', 'tutorial_dismissed', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'terms_version', 'TEXT'],
   ['users', 'terms_accepted_at', 'INTEGER'],
+  ['users', 'bio', "TEXT NOT NULL DEFAULT ''"],
+  ['users', 'bio_updated_at', 'INTEGER'],
 ];
 
 function migrate(db) {

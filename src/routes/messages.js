@@ -2,7 +2,6 @@
 
 const express = require('express');
 const rules = require('../messages');
-const bbcode = require('../bbcode');
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
 
@@ -59,13 +58,6 @@ function messageRoutes(players, messages) {
     }
     req.flash('success', `Message sent to ${out.recipient}.`);
     res.redirect(`/messages/${out.id}`);
-  });
-
-  // Renders a draft exactly as it will appear. Returns { html }.
-  router.post('/messages/preview', requireAuth, (req, res) => {
-    const body = String((req.body && req.body.body) || '').slice(0, rules.MAX_BODY);
-    res.set('Cache-Control', 'no-store');
-    res.json({ html: bbcode.render(body) });
   });
 
   router.get('/messages/blocked', requireAuth, (req, res) => {

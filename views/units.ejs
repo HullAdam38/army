@@ -107,7 +107,7 @@
           </div>
           <div class="field">
             <label for="unit-desc">Description <span class="muted">(optional)</span></label>
-            <textarea id="unit-desc" name="description" rows="3" maxlength="300"><%= form.description || '' %></textarea>
+            <%- include('partials/bb-editor', { id: 'unit-desc', name: 'description', label: 'Unit description', value: form.description || '', max: maxDescription, rows: 4, required: false, compact: true, placeholder: 'Tell soldiers what your unit is about.' }) %>
           </div>
           <button class="btn btn--primary" type="submit">Found unit for <%= money(createCost) %></button>
         </form>

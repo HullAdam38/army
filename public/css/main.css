@@ -1942,7 +1942,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 
 .unit-hero { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px 28px; margin-bottom: 20px; background: radial-gradient(60% 120% at 100% 0%, rgb(255 107 26 / 0.12), transparent 70%), linear-gradient(180deg, var(--surface), var(--bg-raised)); }
 .unit-hero__body { flex: 1 1 22rem; min-width: 0; }
-.unit-hero__desc { margin-top: 10px; max-width: 46rem; color: var(--text-muted); white-space: pre-line; overflow-wrap: anywhere; }
+.unit-hero__desc { margin-top: 10px; max-width: 46rem; color: var(--text-muted); overflow-wrap: anywhere; }
 .unit-hero__figures { margin-top: 18px; }
 .unit-hero__action { display: grid; gap: 10px; flex: 0 1 18rem; justify-items: start; }
 .unit-hero__role { font-size: 0.95rem; color: var(--text-muted); }
@@ -1983,7 +1983,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .unit-apps-review li { padding-bottom: 12px; border-bottom: 1px dashed var(--line-strong); }
 .unit-apps-review li:last-child { padding-bottom: 0; border-bottom: 0; }
 .unit-apps-review__actions { display: flex; gap: 8px; margin-top: 8px; }
-.unit-quote { margin: 8px 0 0; padding: 6px 12px; color: var(--text-muted); border-left: 2px solid var(--line-strong); white-space: pre-line; overflow-wrap: anywhere; }
+.unit-quote { margin: 8px 0 0; padding: 6px 12px; color: var(--text-muted); border-left: 2px solid var(--line-strong); overflow-wrap: anywhere; }
 
 .unit-treasury { font-family: var(--font-display); font-size: 2.2rem; line-height: 1; color: var(--health); font-variant-numeric: tabular-nums; }
 .unit-donate { display: grid; gap: 10px; margin-top: 14px; }
@@ -1995,7 +1995,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .unit-upgrade__level { font-family: var(--font-ui); font-size: 0.85rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .unit-upgrades--public { margin-top: 0; gap: 8px; }
 
-.unit-post-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; margin-bottom: 16px; }
+.unit-post-form { display: grid; gap: 10px; margin-bottom: 16px; }
+.unit-post-form > .btn { justify-self: start; }
 .unit-posts { display: grid; gap: 10px; padding: 0; list-style: none; }
 .unit-post { padding: 10px 14px; background: var(--bg-raised); border: 1px solid var(--line); border-left: 3px solid var(--line-strong); border-radius: var(--radius); }
 .unit-post.is-you { border-left-color: var(--accent); }
@@ -2004,7 +2005,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .unit-post__head .feed__time { margin-left: 0; }
 .unit-post__delete { padding: 0; font-size: 0.78rem; color: var(--text-faint); background: none; border: 0; cursor: pointer; text-decoration: underline; }
 .unit-post__delete:hover { color: var(--danger); }
-.unit-post__body { margin-top: 4px; white-space: pre-line; overflow-wrap: anywhere; }
+.unit-post__body { margin-top: 4px; overflow-wrap: anywhere; }
 
 .unit-command__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
 .unit-command__form { margin-top: 0; align-content: start; }
@@ -2462,3 +2463,16 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 @media (min-width: 641px) and (max-width: 1100px) {
   .site-header--admin .game-nav { grid-auto-flow: row; grid-template-columns: repeat(5, 1fr); }
 }
+
+/* Smaller editors for short fields (descriptions, applications) */
+.bb-editor--compact .bb-editor__input, .bb-editor--compact .bb-editor__preview { min-height: 5rem; }
+.unit-post__head .msg__link { margin-left: 4px; }
+
+/* Profile bio */
+.profile-about { margin-bottom: 20px; }
+.profile-about__body { max-width: 52rem; color: var(--text-muted); }
+.admin-bio { margin-bottom: 12px; padding: 10px 12px; max-height: 14rem; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); }
+
+/* Anchor links (#about, #board, #treasury…) land below the sticky header. */
+section[id], li[id] { scroll-margin-top: 190px; }
+@media (max-width: 640px) { section[id], li[id] { scroll-margin-top: 250px; } }

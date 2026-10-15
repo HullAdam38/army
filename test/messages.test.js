@@ -149,9 +149,9 @@ test('private messages end to end: send, read, reply, quote, preview, block, rep
 
     // Live preview renders through the same parser, and needs the CSRF token.
     const token = await alpha.csrf();
-    const prev = await alpha.request('/messages/preview', { method: 'POST', json: { body: '[i]draft[/i] <b>x</b>' }, headers: { 'x-csrf-token': token } });
+    const prev = await alpha.request('/format/preview', { method: 'POST', json: { body: '[i]draft[/i] <b>x</b>' }, headers: { 'x-csrf-token': token } });
     assert.equal(JSON.parse(prev.text).html, '<em>draft</em> &lt;b&gt;x&lt;/b&gt;');
-    assert.equal((await alpha.request('/messages/preview', { method: 'POST', json: { body: 'x' } })).res.status, 403);
+    assert.equal((await alpha.request('/format/preview', { method: 'POST', json: { body: 'x' } })).res.status, 403);
 
     // Strangers can't read a conversation.
     const charlie = await enlist('Charlie');

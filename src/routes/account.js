@@ -6,6 +6,8 @@ const { createFailureTracker } = require('../middleware');
 const { passwordProblem } = require('./auth');
 const { createRequireAuth } = require('../require-auth');
 
+const MAX_BIO = 2000; // BBCode source, tags included
+
 function accountRoutes(players) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
@@ -53,7 +55,26 @@ function accountRoutes(players) {
     }
   });
 
+  // Profile bio: free text with BBCode formatting, shown on the public profile.
+  router.get('/account/profile', requireAuth, (req, res) => {
+    const draft = req.session.bioDraft;
+    delete req.session.bioDraft;
+    res.render('account-profile', { title: 'Edit profile', nav: 'profile', bio: draft === undefined ? req.player.bio : draft, maxBio: MAX_BIO });
+  });
+
+  router.post('/account/profile', requireAuth, (req, res) => {
+    const bio = String(req.body.bio || '').replace(/\r\n?/g, '\n').replace(/\n{4,}/g, '\n\n\n').trim();
+    if (bio.length > MAX_BIO) {
+      req.session.bioDraft = bio.slice(0, MAX_BIO * 2); // keep what they wrote
+      req.flash('error', `Your bio is limited to ${MAX_BIO.toLocaleString('en-US')} characters (yours is ${bio.length.toLocaleString('en-US')}).`);
+      return res.redirect('/account/profile');
+    }
+    players.setBio(req.player.id, bio);
+    req.flash('success', bio ? 'Profile updated.' : 'Bio cleared.');
+    res.redirect(`/profile/${encodeURIComponent(req.player.username)}#about`);
+  });
+
   return router;
 }
 
-module.exports = { accountRoutes };
+module.exports = { MAX_BIO, accountRoutes };

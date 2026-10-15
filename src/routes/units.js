@@ -6,6 +6,7 @@ const game = require('../game');
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
 const wars = require('../wars');
+const bbcode = require('../bbcode');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
@@ -84,6 +85,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService) {
       foundBlocker: units.foundBlocker(req.player, now),
       createCost: units.CREATE_COST,
       createLevel: units.CREATE_LEVEL,
+      maxDescription: units.MAX_DESCRIPTION,
       form: req.session.unitForm || {},
     });
     delete req.session.unitForm;
@@ -157,7 +159,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService) {
       } : null,
       title: unit.name,
       nav: member ? 'unit' : null,
-      unit: { ...unit, capacity: units.capacity(unit), xpBonusPct: Math.round(units.xpBonus(unit) * 100), position: unitRepo.position(unit.id) },
+      unit: { ...unit, descriptionHtml: bbcode.render(unit.description), capacity: units.capacity(unit), xpBonusPct: Math.round(units.xpBonus(unit) * 100), position: unitRepo.position(unit.id) },
       role,
       roleLabel: role ? units.roleLabel(role) : null,
       can: {
@@ -170,8 +172,8 @@ function unitRoutes(players, unitRepo, adminRepo, warService) {
       upgrades: Object.entries(units.UPGRADES).map(([key, def]) => ({
         key, ...def, level: unit[key] || 0, max: def.costs.length, next: units.nextUpgrade(unit, key), now: def.effect(unit[key] || 0),
       })),
-      applications: units.can.review(role) ? unitRepo.pendingForUnit(unit.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })) : [],
-      posts: member ? unitRepo.posts(unit.id).map((p) => ({ ...p, ago: presence.timeAgo(p.created_at, now), canDelete: p.user_id === req.player.id || units.can.moderate(role) })) : [],
+      applications: units.can.review(role) ? unitRepo.pendingForUnit(unit.id).map((a) => ({ ...a, html: bbcode.render(a.message), ago: presence.timeAgo(a.created_at, now) })) : [],
+      posts: member ? unitRepo.posts(unit.id).map((p) => ({ ...p, html: bbcode.render(p.body), ago: presence.timeAgo(p.created_at, now), canDelete: p.user_id === req.player.id || units.can.moderate(role) })) : [],
       log: member ? unitRepo.recentLog(unit.id).map((l) => ({ ...l, ago: presence.timeAgo(l.created_at, now) })) : [],
       apply: member ? null : {
         blocker: units.applyBlocker(req.player, unit, {

@@ -14,6 +14,7 @@ const scouting = require('../scouting');
 const training = require('../training');
 const units = require('../units');
 const bounties = require('../bounties');
+const bbcode = require('../bbcode');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
@@ -259,6 +260,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         })(),
       },
       medals: medalService.rackFor(user.id),
+      bioHtml: user.bio ? bbcode.render(user.bio) : '',
       blocked: isYou ? false : players.hasBlocked(req.player.id, user.id),
       bounty: {
         ...bountyService.totalOn(user.id, now),
