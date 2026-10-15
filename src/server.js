@@ -26,6 +26,8 @@ const { createUnitRepo } = require('./units-repo');
 const { createWarService } = require('./war-service');
 const { createMedalService } = require('./medal-service');
 const { medalRoutes } = require('./routes/medals');
+const { createBountyService } = require('./bounty-service');
+const { bountyRoutes } = require('./routes/bounties');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -66,6 +68,8 @@ function createApp({
   const unitRepo = createUnitRepo(db);
   const warService = createWarService(db, players, unitRepo);
   warService.schedule();
+  const bountyService = createBountyService(db, players, (a, b, now) => anti.linked(a, b, now));
+  bountyService.schedule();
   const medalService = createMedalService(db, players);
   app.medals = medalService; // exposed for tests
   const adminRepo = createAdminRepo(db);
@@ -123,16 +127,17 @@ function createApp({
 
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
-  app.use(pvpRoutes(players, anti, daily, warService));
+  app.use(pvpRoutes(players, anti, daily, warService, bountyService));
   app.use(notificationRoutes(players));
   app.use(bankRoutes(players));
   app.use(trainingRoutes(players, daily));
   app.use(leaderboardRoutes(players, db));
   app.use(dailyRoutes(players, daily));
   app.use(medalRoutes(players, medalService));
+  app.use(bountyRoutes(players, bountyService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players));
   app.use(adminRoutes(players, adminRepo, anti));

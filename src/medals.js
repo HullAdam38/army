@@ -25,6 +25,7 @@ const MEDALS = [
   { id: 'merit', name: 'Order of Merit', icon: 'i-star', metric: 'orders', unit: 'daily orders', thresholds: [15, 60, 250], blurb: 'Complete and claim daily orders.' },
   { id: 'commission', name: 'Commission', icon: 'i-crest', metric: 'level', unit: 'level', thresholds: [10, 20, 35], blurb: 'Rise through the ranks.' },
   { id: 'warhero', name: 'War Hero', icon: 'i-flag', metric: 'warPoints', unit: 'war points', thresholds: [10, 50, 200], blurb: 'Score points for your unit in wars.' },
+  { id: 'hunter', name: 'Bounty Hunter', icon: 'i-cash', metric: 'bounties', unit: 'bounties collected', thresholds: [1, 10, 50], blurb: 'Beat wanted soldiers and collect the bounties on them.' },
   { id: 'victory', name: 'Victory Medal', icon: 'i-helmet', metric: 'warsWon', unit: 'wars won', thresholds: [1, 5, 20], blurb: 'Win unit wars. You must be in the unit when the war begins.' },
 ];
 

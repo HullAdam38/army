@@ -1,0 +1,92 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <%- include('partials/players-subnav', { active: 'bounties' }) %>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Wanted</p>
+      <h1 class="page-head__title">Bounty board</h1>
+      <p class="page-head__sub">Put cash on someone’s head. The first soldier to beat them in a fight collects every bounty on them. Posting costs a <%= rules.feePct %>% fee, which isn’t returned. Bounties can’t be cancelled, and any nobody collects within <%= rules.days %> days are refunded.</p>
+    </div>
+  </div>
+
+  <% if (onYou.length) { %>
+    <section class="wanted-you reveal" style="--i:1" aria-label="Bounties on you">
+      <svg aria-hidden="true"><use href="#i-target"/></svg>
+      <div>
+        <p class="wanted-you__title">There’s <%= money(onYou.reduce((n, b) => n + b.amount, 0)) %> on your head</p>
+        <p class="wanted-you__meta"><%= onYou.map((b) => `${money(b.amount)} from ${b.placer}`).join(' · ') %>. Bank your cash and watch your health.</p>
+      </div>
+    </section>
+  <% } %>
+
+  <div class="bounty-grid">
+    <section class="reveal" style="--i:2" aria-labelledby="wanted-title">
+      <h2 id="wanted-title" class="section-title">Most wanted</h2>
+      <% if (wanted.length) { %>
+        <ol class="wanted-list">
+          <% wanted.forEach(function (w, i) { %>
+            <li class="wanted<%= w.isYou ? ' is-you' : '' %>">
+              <span class="wanted__pos"><%= i + 1 %></span>
+              <span class="stat__grade"><%= w.grade %></span>
+              <span class="wanted__who">
+                <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(w.username) %>"><%= w.username %></a><% if (w.isYou) { %> <span class="tag">You</span><% } %></span>
+                <span class="roster__rank">Lv <%= w.level %> · <%= w.count %> bount<%= w.count === 1 ? 'y' : 'ies' %> ·
+                  <% if (w.hospitalized) { %><span class="status status--hospital">In hospital</span><% } else if (w.online) { %><span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online</span><% } else { %>offline<% } %>
+                </span>
+              </span>
+              <span class="wanted__reward"><%= money(w.total) %></span>
+              <% if (!w.isYou) { %><a class="btn btn--ghost btn--sm" href="/profile/<%= encodeURIComponent(w.username) %>">Hunt</a><% } %>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="card muted">Nobody is wanted right now. Be the first to post a bounty.</p>
+      <% } %>
+
+      <% if (claims.length) { %>
+        <h2 class="section-title">Recently collected</h2>
+        <ol class="feed card">
+          <% claims.forEach(function (c) { %>
+            <li>
+              <a class="feed__row" href="/battles/<%= c.battle_id %>">
+                <span class="feed__text"><strong><%= c.claimer %></strong> collected <strong><%= money(c.total) %></strong> for beating <strong><%= c.target %></strong></span>
+                <span class="feed__time"><%= c.ago %></span>
+              </a>
+            </li>
+          <% }) %>
+        </ol>
+      <% } %>
+    </section>
+
+    <aside class="bounty-side">
+      <section class="card reveal" style="--i:3" aria-labelledby="post-title">
+        <h2 id="post-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-cash"/></svg>Post a bounty</h2>
+        <%- include('partials/bounty-form', { rules, prefill: form.target }) %>
+        <p class="progress-line__note">Paid from cash on hand. You can have <%= rules.maxOpen %> open bounties. Accounts that share a device or network can’t post on, or collect from, each other.</p>
+      </section>
+
+      <section class="card reveal" style="--i:4" aria-labelledby="mine-title">
+        <h2 id="mine-title" class="card__title">Your bounties</h2>
+        <% if (mine.length) { %>
+          <ol class="my-bounties">
+            <% mine.forEach(function (b) { %>
+              <li class="my-bounties__row my-bounties__row--<%= b.status %>">
+                <span><a href="/profile/<%= encodeURIComponent(b.target) %>"><%= b.target %></a> · <%= money(b.amount) %><%= b.anonymous ? ' · anonymous' : '' %></span>
+                <span class="my-bounties__status">
+                  <% if (b.status === 'open') { %>Open<% } else if (b.status === 'claimed') { %>Collected by <%= b.claimer || 'a soldier' %><% } else { %>Expired, refunded<% } %>
+                </span>
+              </li>
+            <% }) %>
+          </ol>
+        <% } else { %>
+          <p class="muted">You haven’t posted any bounties.</p>
+        <% } %>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

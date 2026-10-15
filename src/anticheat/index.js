@@ -248,6 +248,16 @@ function createAntiCheat(db, players, { secret }) {
     signInsFor: (userId, limit = 10) => stmts.signInsFor.all(userId, limit),
     ledgerFor: (userId, limit = 15) => stmts.ledgerFor.all(userId, limit),
 
+    /**
+     * True when two accounts have shared a device or network recently. Used
+     * where money could pass between them (bounties), so it's stricter than PvP.
+     */
+    linked(a, b, now = Date.now()) {
+      if (a === b) return true;
+      const since = now - rules.LINK_WINDOW_MS;
+      return Boolean(stmts.deviceLinked.get(a, b, since) || stmts.networkLinked.get(a, b, since));
+    },
+
     /** How much of the usual PvP rewards this attack should pay out. */
     pvpRewards(attackerId, defenderId, now = Date.now()) {
       return rules.pvpRewardPlan({

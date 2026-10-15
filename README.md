@@ -155,7 +155,7 @@ Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-servi
 
 ## Medals
 
-Ten medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Eleven medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -168,6 +168,7 @@ Ten medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Br
 | Order of Merit | daily orders claimed | 15 / 60 / 250 |
 | Commission | level | 10 / 20 / 35 |
 | War Hero | war points scored | 10 / 50 / 200 |
+| Bounty Hunter | bounties collected | 1 / 10 / 50 |
 | Victory Medal | unit wars won (as a member from the start of the war) | 1 / 5 / 20 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
@@ -175,6 +176,24 @@ Ten medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Br
 - **Where they show:** `/medals` is your medal case, with progress to the next tier and the share of players holding each tier. Pin up to 3 medals to feature them at the top of your profile. Profiles show every medal a soldier holds.
 
 Rules live in `src/medals.js`; awarding and storage are in `src/medal-service.js`.
+
+## Bounties
+
+- **Posting:** put cash (from cash on hand) on any soldier who can be attacked (level 3+), from their profile or the **Bounty board** (`/bounties`, under Players).
+  - The minimum is $500, plus a **10% fee that's destroyed**, which makes bounties a money sink.
+  - Bounties can be anonymous, and each player can have up to 5 open at once.
+  - The target is notified, and their profile shows **Wanted · $X**.
+- **Collecting:** the first soldier to beat the target in a **full-reward PvP win** collects every bounty on them. The battle report and notifications say who collected what.
+- **Expiry:** bounties nobody collects within **7 days** are refunded to whoever posted them; the fee isn't.
+- **Anti-laundering:**
+  - you can't post on yourself
+  - accounts that have shared a device or network can't post on, or collect from, each other
+  - you can't collect your own bounty
+  - bounties can't be cancelled
+  - posting, collecting and refunds all go through the ledger (`bounty-placed`, `bounty-claim`, `bounty-refund`)
+- **Medal:** the **Bounty Hunter** medal (1 / 10 / 50 bounties collected).
+
+Rules live in `src/bounties.js`; storage and payouts are in `src/bounty-service.js`.
 
 ## PvP and the hospital
 
@@ -205,6 +224,7 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
   - unit events (applications, acceptance, promotions, removal, upgrades, disbanding)
   - unit wars (declared, won, lost, drawn)
   - medals awarded
+  - bounties (posted on you, collected on you, your bounty collected or refunded)
 - **The bell** in the header shows the unread count. `/notifications` lists the latest 50 (each inbox keeps up to 200) and marks them read when you view it.
 - **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
 - **The combat feed** on HQ shows the latest fights across the whole game.
@@ -263,6 +283,9 @@ src/
   units.js           unit rules: names, roles, upgrades, requirements (pure)
   wars.js            unit war rules: declaring, scoring, settling (pure)
   medals.js          medal list, tiers, progress (pure)
+  bounties.js        bounty rules: amounts, fees, who can post/collect (pure)
+  bounty-service.js  bounty storage, claiming in fights, expiry refunds
+  routes/bounties.js bounty board and posting
   medal-service.js   career metrics, awarding, pins
   routes/medals.js   medal case and pinning
   war-service.js     unit wars storage, fight scoring and settling
@@ -300,6 +323,7 @@ test/                node:test suites
 - `/bank`: cash on hand vs banked, deposit and withdraw (with "All" and a live fee preview), and recent transactions
 - `/units`: every unit ranked by strength, with search, your applications and the form to found a unit
 - `/units/:id`: a unit's page showing its roster and upgrades, plus (for members) the treasury, board and unit log, and (for the Commander) settings and command
+- `/bounties`: the most wanted list, recent collections, your bounties and the posting form
 - `/medals`: your medal case, with progress, rarity and pins
 - `/wars`, `/wars/:id`: unit wars list and war room
 - `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat

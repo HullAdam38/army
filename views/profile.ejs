@@ -37,6 +37,9 @@
         </p>
       </div>
     <% } %>
+    <% if (bounty.total) { %>
+      <p class="wanted-tag"><svg aria-hidden="true"><use href="#i-target"/></svg>Wanted · <strong>$<%= bounty.total.toLocaleString('en-US') %></strong> bounty<%= bounty.count > 1 ? ` from ${bounty.count} soldiers` : '' %><%= soldier.isYou ? '' : '. Beat them to collect it.' %></p>
+    <% } %>
     <% if (medals.length) { %>
       <ul class="medal-pins" aria-label="Featured medals">
         <% medals.slice(0, 3).forEach(function (m) { %>
@@ -106,6 +109,13 @@
           </button>
           <span class="intel__note"><%= scout.blocker ? scout.blocker + '.' : `${scout.energy} energy. Price depends on ${soldier.username}’s level${soldier.level > player.level ? ' (+50%, they outrank you)' : ''}.` %></span>
         </form>
+      </section>
+    <% } %>
+
+    <% if (bounty.canPost) { %>
+      <section id="bounty" class="card profile-grid__wide reveal" style="--i:4" aria-labelledby="bounty-title">
+        <h2 id="bounty-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-cash"/></svg>Put a bounty on <%= soldier.username %> <a class="card__title-link" href="/bounties">Bounty board</a></h2>
+        <%- include('partials/bounty-form', { rules: bounty.rules, fixedTarget: soldier.username }) %>
       </section>
     <% } %>
 

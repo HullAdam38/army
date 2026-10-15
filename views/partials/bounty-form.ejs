@@ -1,0 +1,22 @@
+<form method="post" action="/bounties" class="bounty-form" data-bounty-form data-fee="<%= rules.feePct / 100 %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% if (locals.fixedTarget) { %>
+    <input type="hidden" name="target" value="<%= fixedTarget %>">
+    <input type="hidden" name="back" value="profile">
+  <% } else { %>
+    <div class="field">
+      <label for="bounty-target">Target callsign</label>
+      <input id="bounty-target" name="target" required maxlength="20" autocomplete="off" value="<%= locals.prefill || '' %>">
+    </div>
+  <% } %>
+  <div class="field">
+    <label for="bounty-amount">Bounty</label>
+    <div class="money-input">
+      <span aria-hidden="true">$</span>
+      <input id="bounty-amount" name="amount" inputmode="numeric" autocomplete="off" placeholder="<%= rules.min %>" required>
+    </div>
+    <span class="field__hint" data-bounty-preview aria-live="polite">Minimum $<%= rules.min.toLocaleString('en-US') %>, plus a <%= rules.feePct %>% fee.</span>
+  </div>
+  <label class="bounty-form__anon"><input type="checkbox" name="anonymous"> Post anonymously</label>
+  <button class="btn btn--danger" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-cash"/></svg>Post bounty</button>
+</form>

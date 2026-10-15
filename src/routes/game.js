@@ -13,11 +13,12 @@ const { announceLevels } = require('../notify');
 const scouting = require('../scouting');
 const training = require('../training');
 const units = require('../units');
+const bounties = require('../bounties');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -249,6 +250,11 @@ function gameRoutes(players, daily, unitRepo, warService, medalService) {
         })(),
       },
       medals: medalService.rackFor(user.id),
+      bounty: {
+        ...bountyService.totalOn(user.id, now),
+        canPost: !isYou && user.level >= pvp.MIN_PVP_LEVEL && !user.banned_at,
+        rules: { min: bounties.MIN_BOUNTY, feePct: Math.round(bounties.FEE_RATE * 100) },
+      },
       battles: players.battlesFor(user.id, 6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at, now) })),
       loadout: loadoutView(user.level, players.equipment(user.id)),
       activity: players.publicActivity(user.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),

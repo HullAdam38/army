@@ -9,7 +9,7 @@ const scouting = require('../scouting');
 const { createRequireAuth } = require('../require-auth');
 const { announceLevels } = require('../notify');
 
-function pvpRoutes(players, anti, daily, warService) {
+function pvpRoutes(players, anti, daily, warService, bountyService) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -64,6 +64,10 @@ function pvpRoutes(players, anti, daily, warService) {
         const scorer = r.attackerWon ? attacker : defender;
         players.log(scorer.id, 'war', `War fight won: +${war.points} point${war.points === 1 ? '' : 's'} for [${war.unitTag}].`, `/wars/${war.warId}`);
       }
+      // Bounties pay out on a full-reward win only (no linked accounts, no repeat farming).
+      const bounty = r.attackerWon && rewards.attacker === 1
+        ? bountyService.claim({ claimerId: attacker.id, targetId: defender.id, battleId: id, now })
+        : null;
       // Only a full-reward win counts: no linked accounts, no repeat wins on one target.
       if (r.attackerWon && rewards.attacker === 1) daily.progress(attacker.id, 'pvp_wins', 1, { now });
       announceLevels(players, attacker.id, r.levelsGained.attacker);
@@ -74,7 +78,7 @@ function pvpRoutes(players, anti, daily, warService) {
           players.log(p.id, 'promotion', `Promoted to level ${lvl} — ${rank.name} (${rank.grade}).`);
         }
       }
-      return { id, xp: r.xp.attacker, cash: r.cashTaken };
+      return { id, xp: r.xp.attacker, cash: r.cashTaken, bounty };
     });
 
     if (outcome.error) {
@@ -84,6 +88,7 @@ function pvpRoutes(players, anti, daily, warService) {
       return res.redirect(back.startsWith('/players') && !back.startsWith('//') ? back : profileUrl);
     }
     res.locals.gains = { xp: outcome.xp, cash: outcome.cash }; // for anti-cheat
+    if (outcome.bounty) req.flash('success', `Bounty collected: +$${outcome.bounty.total.toLocaleString('en-US')}.`);
     res.redirect(`/battles/${outcome.id}`);
   });
 
@@ -112,12 +117,14 @@ function pvpRoutes(players, anti, daily, warService) {
     if (!battle) return next();
     const youAre = battle.attacker_id === req.player.id ? 'attacker' : battle.defender_id === req.player.id ? 'defender' : null;
     const warFight = warService.forBattle(battle.id);
+    const bounty = bountyService.forBattle(battle.id);
     res.render('battle', {
       title: `${battle.attacker_name} vs ${battle.defender_name}`,
       nav: null,
       battle,
       r: battle.report,
       youAre,
+      bounty,
       warFight: warFight ? { id: warFight.id, side: warFight.side, points: warFight.points, tag: warFight.side === 'attacker' ? warFight.attacker_tag : warFight.defender_tag, title: `${warFight.attacker_tag} vs ${warFight.defender_tag}` } : null,
       ago: presence.timeAgo(battle.created_at),
     });

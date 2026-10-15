@@ -21,6 +21,7 @@ function createMedalService(db, players) {
         COALESCE(SUM(defender_id = ?1 AND attacker_won = 0 AND defender_xp > 0), 0) AS defenses
       FROM battles WHERE (attacker_id = ?1 OR defender_id = ?1) AND reversed_at IS NULL`),
     warPoints: db.prepare('SELECT COALESCE(SUM(points), 0) AS n FROM unit_war_battles WHERE user_id = ?'),
+    bounties: db.prepare("SELECT COUNT(DISTINCT battle_id) AS n FROM bounties WHERE claimer_id = ? AND status = 'claimed'"),
     owned: db.prepare('SELECT medal_id, MAX(tier) AS tier, MAX(awarded_at) AS at FROM user_medals WHERE user_id = ? GROUP BY medal_id'),
     history: db.prepare('SELECT medal_id, tier, awarded_at FROM user_medals WHERE user_id = ? ORDER BY awarded_at DESC, tier DESC'),
     award: db.prepare('INSERT OR IGNORE INTO user_medals (user_id, medal_id, tier, awarded_at) VALUES (?, ?, ?, ?)'),
@@ -46,6 +47,7 @@ function createMedalService(db, players) {
       level: u.level,
       warPoints: stmts.warPoints.get(userId).n,
       warsWon: u.wars_won,
+      bounties: stmts.bounties.get(userId).n,
     };
   }
 

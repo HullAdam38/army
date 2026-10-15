@@ -269,6 +269,25 @@ const SCHEMA = `
     PRIMARY KEY (user_id, medal_id, tier)
   );
 
+  CREATE TABLE IF NOT EXISTS bounties (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    placer_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    amount      INTEGER NOT NULL,
+    fee         INTEGER NOT NULL,
+    anonymous   INTEGER NOT NULL DEFAULT 0,
+    status      TEXT    NOT NULL DEFAULT 'open',
+    claimer_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    battle_id   INTEGER REFERENCES battles(id) ON DELETE SET NULL,
+    created_at  INTEGER NOT NULL,
+    expires_at  INTEGER NOT NULL,
+    settled_at  INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_bounties_target ON bounties(target_id, status);
+  CREATE INDEX IF NOT EXISTS idx_bounties_status ON bounties(status, expires_at);
+  CREATE INDEX IF NOT EXISTS idx_bounties_placer ON bounties(placer_id, status);
+  CREATE INDEX IF NOT EXISTS idx_bounties_claimer ON bounties(claimer_id);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,

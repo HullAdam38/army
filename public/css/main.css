@@ -1304,6 +1304,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .toast--order { border-left-color: var(--xp); }
 .toast--war, .toast--unit { border-left-color: var(--accent); }
 .toast--medal { border-left-color: #f2c230; }
+.toast--bounty { border-left-color: var(--danger); }
 .toast__msg { font-size: 0.95rem; }
 .toast a { display: inline-block; margin-top: 6px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .toast__close { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; font-size: 1.2rem; line-height: 1; color: var(--text-faint); background: none; border: 0; border-radius: var(--radius); cursor: pointer; }
@@ -1339,6 +1340,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .note--unit .note__icon { color: var(--accent); }
 .note--medal { border-left-color: #f2c230; }
 .note--medal .note__icon { color: #f2c230; }
+.note--bounty { border-left-color: var(--danger); }
+.note--bounty .note__icon { color: var(--health); }
 .note__meta { margin-top: 2px; font-size: 0.85rem; color: var(--text-faint); }
 .note__meta a { font-weight: 600; }
 
@@ -2202,3 +2205,51 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 }
 .medal-card .progress-line__label > span:first-child { white-space: nowrap; }
 .medal-card .progress-line__label > span:last-child { text-align: right; }
+
+/* Bounties */
+.bounty-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 24px; align-items: start; }
+.bounty-grid .section-title:first-child { margin-top: 0; }
+.bounty-side { display: grid; gap: 20px; }
+.wanted-list { display: grid; gap: 8px; padding: 0; list-style: none; }
+.wanted {
+  display: grid; grid-template-columns: 1.8rem auto 1fr auto auto; align-items: center; gap: 12px;
+  padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--danger); border-radius: var(--radius);
+}
+.wanted.is-you { background: rgb(255 90 82 / 0.08); }
+.wanted__pos { font-family: var(--font-display); font-size: 1.4rem; color: var(--text-faint); text-align: center; }
+.wanted__who { display: grid; min-width: 0; }
+.wanted__who .roster__rank .status { font-size: 0.85rem; }
+.wanted__reward { font-family: var(--font-display); font-size: 1.6rem; color: var(--health); font-variant-numeric: tabular-nums; }
+.wanted-you { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding: 14px 18px; background: rgb(255 90 82 / 0.1); border: 1px solid rgb(255 90 82 / 0.45); border-left: 4px solid var(--danger); border-radius: var(--radius); }
+.wanted-you svg { flex: none; width: 24px; height: 24px; color: var(--danger); }
+.wanted-you__title { font-family: var(--font-ui); font-weight: 700; font-size: 1.1rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.wanted-you__meta { font-size: 0.92rem; color: var(--text-muted); }
+.wanted-tag { display: inline-flex; flex-basis: 100%; align-items: center; gap: 8px; font-size: 0.95rem; color: var(--text-muted); }
+.wanted-tag svg { width: 16px; height: 16px; color: var(--danger); }
+.wanted-tag strong { color: var(--health); }
+.bounty-form { display: grid; gap: 14px; }
+.bounty-form .btn { justify-self: start; }
+.bounty-form__anon { display: inline-flex; align-items: center; gap: 8px; font-size: 0.92rem; color: var(--text-muted); cursor: pointer; }
+.bounty-form__anon input { width: 18px; height: 18px; accent-color: var(--accent); }
+#bounty .bounty-form { grid-template-columns: minmax(12rem, 18rem) auto auto; align-items: end; gap: 14px 20px; }
+#bounty .bounty-form .field__hint { white-space: nowrap; }
+.my-bounties { display: grid; gap: 6px; padding: 0; list-style: none; }
+.my-bounties__row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; padding: 8px 10px; background: var(--bg-raised); border-left: 3px solid var(--line-strong); border-radius: var(--radius); font-size: 0.93rem; }
+.my-bounties__row--open { border-left-color: var(--danger); }
+.my-bounties__row--claimed { border-left-color: var(--health); }
+.my-bounties__status { color: var(--text-faint); }
+.battle-hero__bounty svg { color: var(--health); }
+
+@media (max-width: 960px) {
+  .bounty-grid { grid-template-columns: 1fr; }
+  #bounty .bounty-form { grid-template-columns: 1fr; }
+  #bounty .bounty-form .field__hint { white-space: normal; }
+}
+@media (max-width: 640px) {
+  .wanted { grid-template-columns: auto 1fr auto; }
+  .wanted__pos { display: none; }
+  .wanted .btn { grid-column: 1 / -1; }
+  .wanted__reward { font-size: 1.3rem; }
+  .subnav { gap: 16px; }
+  .subnav__link { font-size: 0.78rem; letter-spacing: 0.08em; }
+}

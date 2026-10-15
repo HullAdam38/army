@@ -63,6 +63,21 @@
     });
   });
 
+  /* ---------- Bounty form: show the total with the fee ---------- */
+  document.querySelectorAll('[data-bounty-form]').forEach((form) => {
+    const input = form.querySelector('input[name="amount"]');
+    const preview = form.querySelector('[data-bounty-preview]');
+    if (!input || !preview) return;
+    const rate = Number(form.dataset.fee || 0);
+    const initial = preview.textContent;
+    input.addEventListener('input', () => {
+      const n = Number(input.value.replace(/[$,\s]/g, ''));
+      if (!input.value.trim() || !Number.isInteger(n) || n <= 0) { preview.textContent = initial; return; }
+      const fee = Math.ceil(n * rate);
+      preview.textContent = `Costs $${(n + fee).toLocaleString('en-US')} in total ($${fee.toLocaleString('en-US')} fee).`;
+    });
+  });
+
   /* ---------- Forms that ask before doing something drastic ---------- */
   document.querySelectorAll('form[data-confirm]').forEach((form) => {
     form.addEventListener('submit', (event) => {
