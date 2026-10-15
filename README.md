@@ -98,6 +98,27 @@ There are six missions, unlocking at levels 1, 1, 3, 5, 8 and 12. Success chance
 
 Regeneration is calculated lazily from timestamps, so no background jobs are needed. All game rules live in `src/game.js` as pure functions.
 
+## Forward base
+
+From level 8, each player builds up their own base at `/base` (linked from the HQ service record). Facilities cost cash and take real time to build. Engineers work on one build at a time, builds finish while you're away (checked every minute, with a notification), and cancelling refunds half the cost. Payouts go through the ledger as `base` and `base-refund`.
+
+| Facility | Per level | Max |
+|---|---|---|
+| Barracks | +5 max energy | 5 (+25) |
+| Med Bay | health regenerates 10% faster | 5 (twice as fast) |
+| Vault | deposit fee −0.5 points | 3 (2% → 0.5%) |
+| Intel Room | scouting −10% | 5 (−50%) |
+| Firing Range | training sessions −5% | 5 (−25%) |
+| Comms Tower | daily order rewards +10% | 5 (+50%) |
+
+- **Costs:** a facility's base cost × 1 / 2.5 / 6 / 14 / 30 for levels 1–5. For example, the Barracks costs $4k up to $120k.
+- **Build times:** 1, 3, 6, 12 and 24 hours.
+- **Player level needed:** 8, 12, 16, 22 and 28.
+- **Rating and medal:** the base rating is the total of all facility levels (max 28), and the new **Architect** medal rewards it (5 / 15 / 28).
+- **Admin level changes:** setting a player's level keeps their Barracks energy.
+
+Rules live in `src/base.js`; building and completion are in `src/base-service.js`.
+
 ## Campaign 2: levels 15–35
 
 ### Missions
@@ -305,7 +326,7 @@ Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-servi
 
 ## Medals
 
-Eleven medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Twelve medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -319,6 +340,7 @@ Eleven medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once:
 | Commission | level | 10 / 20 / 35 |
 | War Hero | war points scored | 10 / 50 / 200 |
 | Bounty Hunter | bounties collected | 1 / 10 / 50 |
+| Architect | forward base rating | 5 / 15 / 28 |
 | Victory Medal | unit wars won (as a member from the start of the war) | 1 / 5 / 20 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
@@ -441,6 +463,9 @@ src/
   supplies.js        consumables: adrenaline, stims (pure)
   perks.js           officer rank perks (pure)
   events.js          world event types and effects (pure)
+  base.js            forward base facilities, costs, perks (pure)
+  base-service.js    builds: start, cancel, finish on time
+  routes/base.js     forward base page and actions
   event-service.js   event scheduling, live effects, announcements
   routes/events.js   events page and admin scheduling
   bbcode.js          safe BBCode → HTML renderer
@@ -492,6 +517,7 @@ test/                node:test suites
 - `/bounties`: the most wanted list, recent collections, your bounties and the posting form
 - `/account/profile`: edit your profile bio
 - `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
+- `/base`: your forward base
 - `/events`: live, upcoming and recent events; `/admin/events` to schedule them
 - `/medals`: your medal case, with progress, rarity and pins
 - `/wars`, `/wars/:id`: unit wars list and war room

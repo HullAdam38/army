@@ -43,9 +43,12 @@ function fmt(n) {
 }
 
 /** Cash for the next session when the stat is at `points`: $25, $30, $35… */
-function sessionCost(points) {
-  return 25 + 5 * points;
+/** Cash for the next session at `points`, less any Firing Range discount (0–0.25). */
+function sessionCost(points, discount = 0) {
+  return Math.round((25 + 5 * points) * (1 - discount));
 }
+
+const discountFor = (player) => require('./base').effectsOf(player).trainingDiscount;
 
 function statCap(level) {
   return POINTS_PER_LEVEL * level;
@@ -87,7 +90,7 @@ function train(current, stat, times = 1) {
     const points = player[def.column] || 0;
     if (points >= cap) break;
     if (player.energy < ENERGY_PER_SESSION) break;
-    const cost = sessionCost(points);
+    const cost = sessionCost(points, discountFor(current));
     if (player.cash < cost) break;
     if (player.energy >= player.max_energy) player.energy_updated_at = Date.now(); // regen clock starts now
     player.energy -= ENERGY_PER_SESSION;
@@ -114,8 +117,9 @@ function statView(player, stat) {
   const def = STATS[stat];
   const points = pointsOf(player)[stat];
   const cap = statCap(player.level);
-  const cost = sessionCost(points);
-  const fiveCost = [0, 1, 2, 3, 4].reduce((sum, i) => sum + (points + i < cap ? sessionCost(points + i) : 0), 0);
+  const discount = discountFor(player);
+  const cost = sessionCost(points, discount);
+  const fiveCost = [0, 1, 2, 3, 4].reduce((sum, i) => sum + (points + i < cap ? sessionCost(points + i, discount) : 0), 0);
   return {
     key: stat,
     label: def.label,

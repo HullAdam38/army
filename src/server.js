@@ -37,6 +37,8 @@ const { formatRoutes } = require('./routes/format');
 const { createOperationService } = require('./operation-service');
 const { createEventService } = require('./event-service');
 const { eventRoutes } = require('./routes/events');
+const { createBaseService } = require('./base-service');
+const { baseRoutes } = require('./routes/base');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -88,6 +90,8 @@ function createApp({
   const tutorialService = createTutorialService(db, players, { enabled: tutorial });
   const messageService = createMessageService(db, players);
   const operationService = createOperationService(db, players);
+  const baseService = createBaseService(db, players);
+  baseService.schedule();
   const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
@@ -162,6 +166,7 @@ function createApp({
   app.use(medalRoutes(players, medalService));
   app.use(bountyRoutes(players, bountyService, effects));
   app.use(formatRoutes(players));
+  app.use(baseRoutes(players, baseService));
   app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players));

@@ -43,7 +43,8 @@ function setLevel(player, levelInput, reasonInput) {
   const reason = cleanReason(reasonInput);
   if (level === null || level < 1 || level > MAX_LEVEL) return { error: `Level must be between 1 and ${MAX_LEVEL}.` };
   if (!reason) return { error: 'Give a reason; it goes in the audit log.' };
-  const maxEnergy = 50 + 5 * (level - 1);
+  // Keep the energy earned through the base's Barracks too.
+  const maxEnergy = 50 + 5 * (level - 1) + require('./base').effectsOf(player).maxEnergyBonus;
   // Keep the max health earned through Endurance training.
   const maxHealth = 100 + 10 * (level - 1) + MAX_HEALTH_PER_ENDURANCE * (player.stat_end || 0);
   const now = Date.now();

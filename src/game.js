@@ -4,6 +4,10 @@ const combat = require('./combat');
 const { modifiersFor } = require('./items');
 const training = require('./training');
 const perks = require('./perks');
+const base = require('./base');
+
+/** Health regen interval for a player: the Med Bay shortens it. */
+const healthRegenMs = (player) => Math.round(HEALTH_REGEN_MS * base.effectsOf(player).healthRegenFactor);
 
 /**
  * Pure game rules. Nothing here touches the database, so the whole loop can be
@@ -216,7 +220,7 @@ function applyRegen(player, now = Date.now()) {
 
 function regenTo(player, now) {
   const energy = regenResource(player.energy, player.max_energy, player.energy_updated_at, ENERGY_REGEN_MS, now);
-  const health = regenResource(player.health, player.max_health, player.health_updated_at, HEALTH_REGEN_MS, now);
+  const health = regenResource(player.health, player.max_health, player.health_updated_at, healthRegenMs(player), now);
   return {
     ...player,
     energy: energy.value,
@@ -406,8 +410,8 @@ function playerView(raw, now = Date.now()) {
     health: p.health,
     maxHealth: p.max_health,
     healthPct: Math.floor((p.health / p.max_health) * 100),
-    healthRegenSeconds: HEALTH_REGEN_MS / 1000,
-    nextHealthIn: secondsUntilNext(p.health, p.max_health, p.health_updated_at, HEALTH_REGEN_MS, now),
+    healthRegenSeconds: healthRegenMs(p) / 1000,
+    nextHealthIn: secondsUntilNext(p.health, p.max_health, p.health_updated_at, healthRegenMs(p), now),
     missionsCompleted: p.missions_completed,
     missionsFailed: p.missions_failed,
     successRate: total ? Math.round((p.missions_completed / total) * 100) : null,

@@ -14,8 +14,9 @@ const SCOUT_ENERGY = 3;
 const UPWARD_MULTIPLIER = 1.5; // intel on stronger players is harder to get
 
 function scoutCost(scout, target) {
-  const base = 50 + 25 * target.level;
-  return Math.round(target.level > scout.level ? base * UPWARD_MULTIPLIER : base);
+  const price = 50 + 25 * target.level;
+  const discount = require('./base').effectsOf(scout).scoutDiscount; // Intel Room
+  return Math.round((target.level > scout.level ? price * UPWARD_MULTIPLIER : price) * (1 - discount));
 }
 
 /** Why `scout` can't scout `target` right now, or null. */

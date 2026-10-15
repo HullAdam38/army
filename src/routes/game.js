@@ -17,6 +17,7 @@ const bounties = require('../bounties');
 const bbcode = require('../bbcode');
 const perks = require('../perks');
 const operations = require('../operations');
+const baseRules = require('../base');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
@@ -52,6 +53,11 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       training: tutorialService.view(req.player.id),
       nextRank: game.nextRankFor(req.player.level),
       nextPerk: perks.nextPerk(req.player.level),
+      base: (() => {
+        const p = req.player;
+        const building = p.base_build && p.base_build_until > Date.now() ? baseRules.FACILITIES_BY_ID.get(p.base_build) : null;
+        return { unlocked: p.level >= baseRules.UNLOCK_LEVEL, unlockLevel: baseRules.UNLOCK_LEVEL, rating: baseRules.baseRating(p), maxRating: baseRules.maxRating, building, until: p.base_build_until };
+      })(),
       upcomingEvents: eventService.upcoming(Date.now(), 3).filter((e) => e.starts_at - Date.now() < 7 * 24 * 3600 * 1000),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),

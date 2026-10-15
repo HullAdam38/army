@@ -1,6 +1,7 @@
 'use strict';
 
 const daily = require('./daily');
+const base = require('./base');
 const { NEUTRAL } = require('./events');
 const game = require('./game');
 const { announceLevels } = require('./notify');
@@ -106,7 +107,7 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
       if (order.progress < order.target) return { error: 'That order isn’t complete yet.' };
       if (!stmts.claim.run(now, user.id, day, slot).changes) return { error: 'Already claimed.' };
       stmts.countOrder.run(user.id); // career total, for the Order of Merit medal
-      const mult = effects(now).ordersMult; // Supply Surge event
+      const mult = effects(now).ordersMult * (1 + base.effectsOf(players.findById(user.id)).ordersBonus); // Supply Surge × Comms Tower
       const reward = { xp: Math.round(order.reward_xp * mult), cash: Math.round(order.reward_cash * mult) };
       const player = pay(user, reward, 'daily-order', `${day}:${slot}`);
       return { order: { ...order, reward_xp: reward.xp, reward_cash: reward.cash, text: daily.orderText(order) }, player };
@@ -118,9 +119,9 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
       const orders = ordersFor(user, now);
       if (!orders.every((o) => o.claimed_at)) return { error: 'Claim all three orders first.' };
       if (!stmts.claimBonus.run(user.id, day, now).changes) return { error: 'Today’s commendation is already claimed.' };
-      const base = daily.orderReward(user.level);
-      const mult = effects(now).ordersMult;
-      const reward = { xp: Math.round(base.xp * mult), cash: Math.round(base.cash * mult) };
+      const standard = daily.orderReward(user.level);
+      const mult = effects(now).ordersMult * (1 + base.effectsOf(players.findById(user.id)).ordersBonus);
+      const reward = { xp: Math.round(standard.xp * mult), cash: Math.round(standard.cash * mult) };
       return { reward, player: pay(user, reward, 'daily-bonus', day) };
     },
 

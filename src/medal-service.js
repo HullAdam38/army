@@ -12,7 +12,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
  */
 function createMedalService(db, players) {
   const stmts = {
-    user: db.prepare('SELECT level, missions_completed, stat_str, stat_agi, stat_end, streak_best, orders_completed, wars_won FROM users WHERE id = ?'),
+    user: db.prepare('SELECT level, missions_completed, stat_str, stat_agi, stat_end, streak_best, orders_completed, wars_won, base_barracks, base_medbay, base_vault, base_intel, base_range, base_comms FROM users WHERE id = ?'),
     // Only fights that paid XP count, and reversed (farmed) fights never do.
     battles: db.prepare(`
       SELECT
@@ -48,6 +48,7 @@ function createMedalService(db, players) {
       warPoints: stmts.warPoints.get(userId).n,
       warsWon: u.wars_won,
       bounties: stmts.bounties.get(userId).n,
+      base: require('./base').baseRating(u),
     };
   }
 

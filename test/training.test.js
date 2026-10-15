@@ -17,7 +17,8 @@ const soldier = (o = {}) => ({
 });
 
 test('training costs rise per point and stats are capped by level', () => {
-  assert.deepEqual([0, 1, 10].map(training.sessionCost), [25, 30, 75]);
+  assert.deepEqual([0, 1, 10].map((p) => training.sessionCost(p)), [25, 30, 75]);
+  assert.equal(training.sessionCost(10, 0.25), 56); // Firing Range level 5
   assert.equal(training.statCap(3), 30);
 
   const once = training.train(soldier(), 'strength');

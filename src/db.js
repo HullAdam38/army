@@ -420,6 +420,15 @@ const ADDED_COLUMNS = [
   ['users', 'bio_updated_at', 'INTEGER'],
   ['users', 'adrenaline_at', 'INTEGER'],
   ['users', 'stim_loaded', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'base_barracks', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'base_medbay', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'base_vault', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'base_intel', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'base_range', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'base_comms', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'base_build', 'TEXT'],
+  ['users', 'base_build_until', 'INTEGER'],
+  ['users', 'base_build_cost', 'INTEGER'],
 ];
 
 function migrate(db) {

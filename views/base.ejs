@@ -1,0 +1,75 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Your outpost</p>
+      <h1 class="page-head__title">Forward base</h1>
+      <p class="page-head__sub">Upgrade facilities with cash and time for permanent perks. Your engineers work on one build at a time; builds finish even while you’re away. Cancelling refunds half the cost.</p>
+    </div>
+    <div class="base-rating">
+      <span class="base-rating__value"><%= rating %><small>/<%= maxRating %></small></span>
+      <span class="base-rating__label">base rating</span>
+    </div>
+  </div>
+
+  <% if (!unlocked) { %>
+    <p class="card muted reveal" style="--i:1">Your forward base unlocks at level <%= unlockLevel %>. Keep running missions.</p>
+  <% } %>
+
+  <% if (building) { %>
+    <section class="base-build reveal" style="--i:1" aria-label="Under construction">
+      <span class="base-build__icon" aria-hidden="true"><svg><use href="#<%= building.icon %>"/></svg></span>
+      <div class="base-build__text">
+        <p class="base-build__title">Building <strong><%= building.name %> level <%= building.level %></strong></p>
+        <p class="base-build__meta">Ready in <strong data-until="<%= building.until %>" data-reload>soon</strong> · <%= building.effect(building.level) %></p>
+      </div>
+      <form method="post" action="/base/cancel" data-confirm="Cancel the <%= building.name %> build? You get <%= money(building.refund) %> back (half the cost).">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn--ghost btn--sm" type="submit">Cancel · refund <%= money(building.refund) %></button>
+      </form>
+    </section>
+  <% } %>
+
+  <ul class="base-grid">
+    <% facilities.forEach(function (f, i) { %>
+      <li class="card facility<%= f.isBuilding ? ' is-building' : '' %><%= !f.next ? ' is-max' : '' %> reveal" style="--i:<%= i + 2 %>">
+        <div class="facility__head">
+          <span class="facility__icon" aria-hidden="true"><svg><use href="#<%= f.icon %>"/></svg></span>
+          <div>
+            <h2 class="facility__name"><%= f.name %></h2>
+            <p class="facility__blurb"><%= f.blurb %></p>
+          </div>
+        </div>
+        <div class="facility__pips" role="img" aria-label="Level <%= f.level %> of <%= f.maxLevel %>">
+          <% for (let n = 1; n <= f.maxLevel; n += 1) { %><span class="pip<%= n <= f.level ? ' is-on' : '' %><%= f.isBuilding && n === f.level + 1 ? ' is-building' : '' %>"></span><% } %>
+          <span class="facility__lvl">Lv <%= f.level %>/<%= f.maxLevel %></span>
+        </div>
+        <p class="facility__now"><span>Now</span> <%= f.now %></p>
+        <% if (f.next) { %>
+          <p class="facility__next"><span>Level <%= f.next.level %></span> <%= f.next.effect %></p>
+          <dl class="facility__cost">
+            <div><dt>Cost</dt><dd><%= money(f.next.cost) %></dd></div>
+            <div><dt>Build time</dt><dd><%= f.next.hours %>h</dd></div>
+            <div><dt>Needs</dt><dd>Lv <%= f.next.requiredLevel %></dd></div>
+          </dl>
+          <% if (f.isBuilding) { %>
+            <p class="facility__status">Under construction…</p>
+          <% } else { %>
+            <form method="post" action="/base/build/<%= f.id %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn--primary btn--block" type="submit" <%- f.blocker ? 'disabled' : '' %>>Build level <%= f.next.level %></button>
+              <% if (f.blocker) { %><p class="mission__blocker"><%= f.blocker %></p><% } %>
+            </form>
+          <% } %>
+        <% } else { %>
+          <p class="facility__status facility__status--max">Fully upgraded</p>
+        <% } %>
+      </li>
+    <% }) %>
+  </ul>
+</main>
+
+<%- include('partials/foot') %>

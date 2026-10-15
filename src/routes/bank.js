@@ -15,7 +15,7 @@ function bankRoutes(players) {
     res.render('bank', {
       title: 'Bank',
       nav: 'bank',
-      feePct: Math.round(bank.DEPOSIT_FEE * 100),
+      feePct: Math.round(bank.feeRateFor(req.player) * 1000) / 10, // the Vault lowers it
       history: players.bankHistory(req.player.id).map((t) => ({ ...t, ago: presence.timeAgo(t.created_at, now) })),
     });
   });

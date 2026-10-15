@@ -20,17 +20,20 @@ function parseAmount(input, all) {
   return n > 0 ? n : null;
 }
 
-/** Fee for depositing `amount`: 2%, rounded up, at least $1. */
-function depositFee(amount) {
-  return Math.max(1, Math.ceil(amount * DEPOSIT_FEE));
+/** Fee for depositing `amount`: 2% (less with a Vault), rounded up, at least $1. */
+function depositFee(amount, rate = DEPOSIT_FEE) {
+  return Math.max(1, Math.ceil(amount * rate));
 }
+
+/** The deposit fee rate for a player, after their base's Vault. */
+const feeRateFor = (player) => require('./base').effectsOf(player).depositFeeRate;
 
 /** Moves cash into the bank. Returns { error } or { player, amount, fee, credited }. */
 function deposit(current, input) {
   const amount = parseAmount(input, current.cash);
   if (!amount) return { error: 'Enter an amount to deposit.' };
   if (amount > current.cash) return { error: `You only have $${current.cash.toLocaleString('en-US')} on hand.` };
-  const fee = depositFee(amount);
+  const fee = depositFee(amount, feeRateFor(current));
   if (amount <= fee) return { error: `Deposits must be more than the $${fee} fee.` };
   const credited = amount - fee;
   const player = { ...current, cash: current.cash - amount, bank_balance: current.bank_balance + credited };
@@ -46,4 +49,4 @@ function withdraw(current, input) {
   return { player, amount };
 }
 
-module.exports = { DEPOSIT_FEE, deposit, depositFee, parseAmount, withdraw };
+module.exports = { DEPOSIT_FEE, deposit, depositFee, feeRateFor, parseAmount, withdraw };
