@@ -1,0 +1,42 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Comms</p>
+      <h1 class="page-head__title">Messages</h1>
+      <p class="page-head__sub">Private conversations with other soldiers. Only you and the other player can read them. Moderators only see a message if one of you reports it.</p>
+    </div>
+    <div class="page-head__actions">
+      <a class="btn btn--ghost" href="/messages/blocked">Blocked players</a>
+      <a class="btn btn--primary" href="/messages/new"><svg class="btn__icon" aria-hidden="true"><use href="#i-mail"/></svg>New message</a>
+    </div>
+  </div>
+
+  <% if (conversations.length) { %>
+    <ol class="inbox reveal" style="--i:1">
+      <% conversations.forEach(function (c) { %>
+        <li class="inbox__item<%= c.unread ? ' is-unread' : '' %>">
+          <a class="inbox__row" href="/messages/<%= c.id %>">
+            <span class="inbox__who"><%= c.other || 'Former soldier' %><% if (c.unread) { %><span class="inbox__dot" aria-label="Unread"></span><% } %></span>
+            <span class="inbox__subject"><%= c.subject %> <span class="muted">· <%= c.count %></span></span>
+            <span class="inbox__snippet"><%= c.fromYou ? 'You: ' : '' %><%= c.snippet %></span>
+            <span class="inbox__time"><%= c.ago %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ol>
+    <% if (pages > 1) { %>
+      <nav class="pager" aria-label="Pages">
+        <% if (page > 1) { %><a class="btn btn--ghost btn--sm" href="/messages?page=<%= page - 1 %>" rel="prev">Newer</a><% } else { %><span></span><% } %>
+        <span class="pager__info">Page <%= page %> of <%= pages %></span>
+        <% if (page < pages) { %><a class="btn btn--ghost btn--sm" href="/messages?page=<%= page + 1 %>" rel="next">Older</a><% } else { %><span></span><% } %>
+      </nav>
+    <% } %>
+  <% } else { %>
+    <p class="card muted reveal" style="--i:1">No messages yet. Open a player’s profile and choose <strong>Message</strong>, or start a <a href="/messages/new">new message</a>.</p>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

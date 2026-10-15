@@ -136,6 +136,33 @@ A checklist at the top of HQ walks new players through the game. Each step ticks
 
 Rules live in `src/tutorial.js`; detection and payouts are in `src/tutorial-service.js`. `createApp({ tutorial: false })` turns tutorial rewards off, which tests of other systems use so their cash checks stay exact.
 
+## Private messages
+
+- **Conversations:** two-player threads with a subject. Start one from a player's profile (**Message**) or from `/messages/new`.
+- **Unread counts:** the envelope in the header shows unread conversations and updates live, with a pop-up when a new message arrives while you're elsewhere in the game.
+- **Formatting editor:** BBCode, with a toolbar that wraps the selected text.
+  - Bold, italic, underline and strike; a colour palette; text size; links; `@` player links; quote; lists; code; spoiler; centre; divider.
+  - **Shortcuts:** Ctrl+B, Ctrl+I and Ctrl+U for bold, italic and underline; Ctrl+Enter sends.
+  - The **Preview** tab is rendered by the server, so it's exactly what the recipient sees.
+  - **Quote** on any message drops it into your reply.
+  - Without JavaScript you get a plain text box with a formatting cheat-sheet.
+- **Supported tags:** `[b] [i] [u] [s] [color=red|#hex] [size=small|large|huge] [url] [url=…] [player] [quote] [quote=Name] [list] [list=1] [*] [code] [spoiler] [center] [hr]`.
+- **Safe by design (`src/bbcode.js`):**
+  - Player text is never treated as HTML. It's split into tags and text, all text is escaped, and only allowlisted tags produce markup.
+  - Colours, sizes and links are validated. Links must be http(s), open in a new tab, and are marked `nofollow`.
+  - Nesting is capped, and broken BBCode is shown as plain text.
+  - There's no `[img]`, so senders can't track recipients with images loaded from other sites.
+- **Anti-spam:**
+  - you need level 2 to start conversations (anyone can reply)
+  - 5 seconds between sends
+  - at most 20 new conversations a day
+  - 5,000 characters per message
+- **Blocking:** from a profile, a conversation or `/messages/blocked`. Blocked players can't message you, and they aren't told you blocked them.
+- **Reports:** go to **Admin → Reported messages** (`/admin/reports`) as a copy of the message, together with the reason given. Staff can't read private messages unless one is reported. Resolving a report is written to the admin audit log.
+- **Deleting:** deleting a conversation hides it from your inbox, and it reappears if a new message arrives. Once both players delete it, it's erased from the database.
+
+Rules live in `src/messages.js`; storage is in `src/message-service.js`; the parser is in `src/bbcode.js`.
+
 ## Daily orders and supply drops
 
 - **Daily orders:** three orders each UTC day, picked to fit your level. They might be "Complete 4 missions", "Complete Convoy Escort twice", "Earn $580 from missions", "Win a PvP fight", "Train 3 sessions" or "Scout another player". PvP and scouting orders only appear from level 3.
@@ -319,6 +346,10 @@ src/
   medals.js          medal list, tiers, progress (pure)
   bounties.js        bounty rules: amounts, fees, who can post/collect (pure)
   tutorial.js        basic training steps and rewards (pure)
+  bbcode.js          safe BBCode → HTML renderer
+  messages.js        private message rules (pure)
+  message-service.js conversations, blocks, reports
+  routes/messages.js inbox, compose, threads, preview, block, report
   tutorial-service.js detects steps, pays rewards, hide/show
   bounty-service.js  bounty storage, claiming in fights, expiry refunds
   routes/bounties.js bounty board and posting
@@ -361,6 +392,7 @@ test/                node:test suites
 - `/units`: every unit ranked by strength, with search, your applications and the form to found a unit
 - `/units/:id`: a unit's page showing its roster and upgrades, plus (for members) the treasury, board and unit log, and (for the Commander) settings and command
 - `/bounties`: the most wanted list, recent collections, your bounties and the posting form
+- `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
 - `/medals`: your medal case, with progress, rarity and pins
 - `/wars`, `/wars/:id`: unit wars list and war room
 - `/training`: train Strength, Agility and Endurance; see your true combat profile and which missions favour each stat

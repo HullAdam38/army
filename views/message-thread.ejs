@@ -1,0 +1,75 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/messages"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Messages</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Conversation with <% if (other) { %><a href="/profile/<%= encodeURIComponent(other.username) %>"><%= other.username %></a><% } else { %>a former soldier<% } %></p>
+      <h1 class="page-head__title thread__title"><%= conversation.subject %></h1>
+    </div>
+    <div class="page-head__actions">
+      <% if (other) { %>
+        <form method="post" action="/messages/<%= blocked ? 'unblock' : 'block' %>" <%- blocked ? '' : `data-confirm="Block ${other.username}? They won’t be able to message you."` %>>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="username" value="<%= other.username %>">
+          <input type="hidden" name="back" value="<%= backUrl %>">
+          <button class="btn btn--ghost btn--sm" type="submit"><%= blocked ? `Unblock ${other.username}` : 'Block' %></button>
+        </form>
+      <% } %>
+      <form method="post" action="/messages/<%= conversation.id %>/hide" data-confirm="Remove this conversation from your inbox?">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn--ghost btn--sm" type="submit">Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <ol class="thread reveal" style="--i:1">
+    <% messages.forEach(function (m, i) { %>
+      <li class="msg<%= m.mine ? ' msg--mine' : '' %><%= m.unread ? ' is-new' : '' %>" id="<%= i === messages.length - 1 ? 'latest' : `m${m.id}` %>">
+        <div class="msg__head">
+          <span class="msg__from"><% if (m.sender && !m.mine) { %><a href="/profile/<%= encodeURIComponent(m.sender) %>"><%= m.sender %></a><% } else { %><%= m.mine ? 'You' : (m.sender || 'Former soldier') %><% } %></span>
+          <time class="msg__time" datetime="<%= m.when %>"><%= m.ago %></time>
+          <span class="msg__actions">
+            <button type="button" class="msg__link" data-bb-quote="#body" data-author="<%= m.mine ? player.username : (m.sender || 'Soldier') %>" data-body="<%= m.body %>">Quote</button>
+            <% if (!m.mine) { %>
+              <details class="msg__report">
+                <summary class="msg__link">Report</summary>
+                <form method="post" action="/messages/report/<%= m.id %>" class="msg__report-form">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="back" value="<%= backUrl %>">
+                  <label class="visually-hidden" for="reason-<%= m.id %>">Why are you reporting this?</label>
+                  <input id="reason-<%= m.id %>" name="reason" maxlength="<%= limits.reason %>" placeholder="What’s wrong with it? (optional)">
+                  <button class="btn btn--danger btn--sm" type="submit">Send to moderators</button>
+                </form>
+              </details>
+            <% } %>
+          </span>
+        </div>
+        <div class="msg__body bb-content"><%- m.html %></div>
+      </li>
+    <% }) %>
+  </ol>
+
+  <section id="reply" class="card compose reveal" style="--i:2" aria-labelledby="reply-title">
+    <h2 id="reply-title" class="card__title">Reply</h2>
+    <% if (!other) { %>
+      <p class="muted">The other soldier’s account no longer exists, so you can’t reply.</p>
+    <% } else if (blocked) { %>
+      <p class="muted">You’ve blocked <%= other.username %>. Unblock them to reply.</p>
+    <% } else if (blockedYou) { %>
+      <p class="muted"><%= other.username %> isn’t accepting messages from you.</p>
+    <% } else { %>
+      <form method="post" action="/messages/<%= conversation.id %>/reply" class="compose__form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('partials/bb-editor', { id: 'body', value: draft, max: limits.body, rows: 6, placeholder: `Reply to ${other.username}…` }) %>
+        <div class="compose__actions">
+          <button class="btn btn--primary" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-mail"/></svg>Send reply</button>
+          <span class="muted compose__hint">Ctrl+Enter sends</span>
+        </div>
+      </form>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

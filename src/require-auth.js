@@ -44,6 +44,7 @@ function createRequireAuth(players) {
     res.locals.player = game.playerView(user);
     res.locals.isAdmin = Boolean(user.is_admin);
     res.locals.unreadCount = players.unreadCount(user.id);
+    res.locals.unreadMessages = players.unreadMessageCount(user.id);
     res.locals.latestNotificationId = players.latestNotificationId(user.id);
     next();
   };

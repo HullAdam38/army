@@ -1,0 +1,62 @@
+<%
+  const id = locals.id || 'body';
+  const colors = [['red', '#ff5a52'], ['orange', '#ff8a3d'], ['yellow', '#f2c230'], ['green', '#4ade80'], ['blue', '#60a5fa'], ['purple', '#c084fc'], ['gray', '#9aa59c']];
+%>
+<div class="bb-editor" data-bb-editor>
+  <div class="bb-editor__bar" role="toolbar" aria-label="Formatting" aria-controls="<%= id %>">
+    <div class="bb-tabs" role="tablist">
+      <button type="button" class="bb-tab" role="tab" data-bb-tab="write" aria-selected="true">Write</button>
+      <button type="button" class="bb-tab" role="tab" data-bb-tab="preview" aria-selected="false">Preview</button>
+    </div>
+    <div class="bb-tools">
+      <span class="bb-group">
+        <button type="button" class="bb-btn" data-bb="b" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>
+        <button type="button" class="bb-btn" data-bb="i" title="Italic (Ctrl+I)" aria-label="Italic"><i>I</i></button>
+        <button type="button" class="bb-btn" data-bb="u" title="Underline (Ctrl+U)" aria-label="Underline"><span class="bb-u">U</span></button>
+        <button type="button" class="bb-btn" data-bb="s" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
+      </span>
+      <span class="bb-group bb-colors" aria-label="Text colour">
+        <% colors.forEach(function ([name, hex]) { %><button type="button" class="bb-swatch" data-bb-color="<%= name %>" title="<%= name %>" aria-label="Colour: <%= name %>" style="background:<%= hex %>"></button><% }) %>
+      </span>
+      <span class="bb-group">
+        <label class="visually-hidden" for="<%= id %>-size">Text size</label>
+        <select id="<%= id %>-size" class="bb-select" data-bb-size>
+          <option value="">Size</option>
+          <option value="small">Small</option>
+          <option value="large">Large</option>
+          <option value="huge">Huge</option>
+        </select>
+      </span>
+      <span class="bb-group">
+        <button type="button" class="bb-btn" data-bb="url" title="Link" aria-label="Insert link">Link</button>
+        <button type="button" class="bb-btn" data-bb="player" title="Link a player’s profile" aria-label="Link a player">@</button>
+        <button type="button" class="bb-btn" data-bb="quote" title="Quote" aria-label="Quote">“ ”</button>
+        <button type="button" class="bb-btn" data-bb="list" title="Bulleted list (one item per selected line)" aria-label="List">• List</button>
+        <button type="button" class="bb-btn" data-bb="code" title="Code / monospace" aria-label="Code">&lt;/&gt;</button>
+        <button type="button" class="bb-btn" data-bb="spoiler" title="Spoiler (hidden until clicked)" aria-label="Spoiler">Spoiler</button>
+        <button type="button" class="bb-btn" data-bb="center" title="Centre" aria-label="Centre">≡</button>
+        <button type="button" class="bb-btn" data-bb="hr" title="Divider line" aria-label="Divider">—</button>
+      </span>
+    </div>
+  </div>
+  <label class="visually-hidden" for="<%= id %>"><%= locals.label || 'Message' %></label>
+  <textarea id="<%= id %>" name="<%= locals.name || 'body' %>" class="bb-editor__input" rows="<%= locals.rows || 8 %>" maxlength="<%= locals.max || 5000 %>" required placeholder="<%= locals.placeholder || 'Write your message…' %>"><%= locals.value || '' %></textarea>
+  <div class="bb-editor__preview bb-content" data-bb-preview aria-live="polite"></div>
+  <div class="bb-editor__foot">
+    <details class="bb-help">
+      <summary>Formatting help</summary>
+      <table>
+        <tr><td><code>[b]bold[/b]</code></td><td><strong>bold</strong></td></tr>
+        <tr><td><code>[i]italic[/i]</code> <code>[u]underline[/u]</code> <code>[s]strike[/s]</code></td><td><em>italic</em> <span class="bb-u">underline</span> <s>strike</s></td></tr>
+        <tr><td><code>[color=red]text[/color]</code> or <code>[color=#ff8800]</code></td><td>coloured text</td></tr>
+        <tr><td><code>[size=small|large|huge]text[/size]</code></td><td>text size</td></tr>
+        <tr><td><code>[url=https://…]text[/url]</code></td><td>a link (http/https only)</td></tr>
+        <tr><td><code>[player]Callsign[/player]</code></td><td>link to a player’s profile</td></tr>
+        <tr><td><code>[quote=Name]text[/quote]</code></td><td>a quote</td></tr>
+        <tr><td><code>[list][*]one[*]two[/list]</code> (<code>[list=1]</code> numbered)</td><td>a list</td></tr>
+        <tr><td><code>[code]…[/code]</code> <code>[spoiler]…[/spoiler]</code> <code>[center]…[/center]</code> <code>[hr]</code></td><td>code, spoiler, centred, divider</td></tr>
+      </table>
+    </details>
+    <span class="bb-count" data-bb-count></span>
+  </div>
+</div>

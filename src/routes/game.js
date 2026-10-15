@@ -259,6 +259,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         })(),
       },
       medals: medalService.rackFor(user.id),
+      blocked: isYou ? false : players.hasBlocked(req.player.id, user.id),
       bounty: {
         ...bountyService.totalOn(user.id, now),
         canPost: !isYou && user.level >= pvp.MIN_PVP_LEVEL && !user.banned_at,

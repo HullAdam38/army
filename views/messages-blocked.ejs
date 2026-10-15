@@ -1,0 +1,41 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/messages"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Messages</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Comms</p>
+      <h1 class="page-head__title">Blocked players</h1>
+      <p class="page-head__sub">Blocked players can’t send you messages, and you can’t message them. They aren’t told that you blocked them; they just see that you aren’t accepting messages.</p>
+    </div>
+  </div>
+
+  <section class="card reveal" style="--i:1">
+    <form method="post" action="/messages/block" class="blocked-add">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label class="visually-hidden" for="block-name">Callsign to block</label>
+      <input id="block-name" name="username" required maxlength="20" placeholder="Callsign" autocomplete="off">
+      <button class="btn btn--ghost" type="submit">Block</button>
+    </form>
+    <% if (blocked.length) { %>
+      <ul class="blocked-list">
+        <% blocked.forEach(function (b) { %>
+          <li>
+            <a href="/profile/<%= encodeURIComponent(b.username) %>"><%= b.username %></a>
+            <span class="muted">blocked <%= b.ago %></span>
+            <form method="post" action="/messages/unblock">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="username" value="<%= b.username %>">
+              <button class="btn btn--ghost btn--sm" type="submit">Unblock</button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">You haven’t blocked anyone.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

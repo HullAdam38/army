@@ -10,6 +10,7 @@
       <p class="page-head__sub">Every change you make here is recorded in the audit log below.</p>
     </div>
     <div class="admin-head-actions">
+      <a class="btn btn--ghost" href="/admin/reports">Reported messages<% if (openReports) { %> <span class="count-badge"><%= openReports %></span><% } %></a>
       <a class="btn btn--ghost" href="/admin/flags">Suspicious activity<% if (openFlags) { %> <span class="count-badge"><%= openFlags %></span><% } %></a>
       <a class="btn btn--primary" href="/admin/players">Find a player <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
     </div>

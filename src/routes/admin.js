@@ -12,7 +12,7 @@ const PAGE_SIZE = 25;
 const { RULES, SEVERITY } = require('../anticheat/rules');
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti) {
+function adminRoutes(players, adminRepo, anti, messages) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -44,6 +44,7 @@ function adminRoutes(players, adminRepo, anti) {
       actions: adminRepo.recentActions(15).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
       signups: adminRepo.searchUsers('', 8).rows.map((u) => ({ ...u, ago: presence.timeAgo(u.created_at, now) })),
       openFlags: anti.openFlagCount(),
+      openReports: messages.openReportCount(),
     });
   });
 
@@ -189,6 +190,31 @@ function adminRoutes(players, adminRepo, anti) {
     anti.resolveFlag(req.flag.id, req.player.id, status, resolution);
     adminRepo.log(req.player.id, req.flag.userIdList[0] || null, `flag-${status}`, `Flag #${req.flag.id} (${RULES[req.flag.rule] || req.flag.rule}): ${resolution}`);
   };
+
+  // Reported private messages. Admins only ever see messages someone reported.
+  router.get('/admin/reports', (req, res) => {
+    const now = Date.now();
+    const status = req.query.status === 'resolved' ? 'resolved' : 'open';
+    res.render('admin/reports', {
+      title: 'Admin · Reported messages',
+      nav: 'admin',
+      status,
+      reports: messages.reports(status).map((r) => ({ ...r, ago: presence.timeAgo(r.created_at, now), resolvedAgo: r.resolved_at ? presence.timeAgo(r.resolved_at, now) : null })),
+      openReports: messages.openReportCount(),
+    });
+  });
+
+  router.post('/admin/reports/:id/resolve', (req, res) => {
+    const report = messages.reportById(Number(req.params.id));
+    if (!report) return res.redirect('/admin/reports');
+    const resolution = req.body.resolution === 'actioned' ? 'actioned' : 'dismissed';
+    const note = String(req.body.note || '').trim().slice(0, 300);
+    if (messages.resolve(report.id, req.player.id, note ? `${resolution}: ${note}` : resolution)) {
+      adminRepo.log(req.player.id, report.sender_id, 'message-report', `Report #${report.id} ${resolution}${note ? `: ${note}` : ''}`);
+      req.flash('success', `Report #${report.id} ${resolution === 'actioned' ? 'marked as actioned' : 'dismissed'}.`);
+    }
+    res.redirect('/admin/reports');
+  });
 
   router.get('/admin/flags', (req, res) => {
     const now = Date.now();

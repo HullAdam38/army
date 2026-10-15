@@ -31,6 +31,8 @@ const { bountyRoutes } = require('./routes/bounties');
 const { createTutorialService } = require('./tutorial-service');
 const { termsRoutes } = require('./routes/terms');
 const { legalSettings } = require('./legal');
+const { createMessageService } = require('./message-service');
+const { messageRoutes } = require('./routes/messages');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -77,6 +79,7 @@ function createApp({
   const medalService = createMedalService(db, players);
   app.medals = medalService; // exposed for tests
   const tutorialService = createTutorialService(db, players, { enabled: tutorial });
+  const messageService = createMessageService(db, players);
   const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
@@ -95,7 +98,7 @@ function createApp({
     console.warn(`[eliteforces] The Terms of Service show placeholders until you set: ${app.locals.legal.missing.join(', ')}.`);
   }
   // Defaults so any template (including error pages) renders even if a middleware never ran.
-  Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, latestNotificationId: 0, isAdmin: false });
+  Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, unreadMessages: 0, latestNotificationId: 0, isAdmin: false });
 
   app.use(compression());
   app.use(createSecurityHeaders({ production }));
@@ -149,9 +152,10 @@ function createApp({
   app.use(dailyRoutes(players, daily));
   app.use(medalRoutes(players, medalService));
   app.use(bountyRoutes(players, bountyService));
+  app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players));
-  app.use(adminRoutes(players, adminRepo, anti));
+  app.use(adminRoutes(players, adminRepo, anti, messageService));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

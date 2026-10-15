@@ -35,6 +35,12 @@ function createPlayerRepo(db) {
     touchSeen: db.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?'),
     signOut: db.prepare('UPDATE users SET signed_out_at = ? WHERE id = ?'),
     acceptTerms: db.prepare('UPDATE users SET terms_version = ?, terms_accepted_at = ? WHERE id = ?'),
+    hasBlocked: db.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?'),
+    // Conversations with a message from someone else since you last read them.
+    unreadMessages: db.prepare(`
+      SELECT COUNT(*) AS n FROM conversation_members m JOIN conversations c ON c.id = m.conversation_id
+      WHERE m.user_id = ?1 AND (m.hidden_at IS NULL OR m.hidden_at < c.last_message_at) AND EXISTS (
+        SELECT 1 FROM messages x WHERE x.conversation_id = c.id AND x.created_at > m.last_read_at AND (x.sender_id IS NULL OR x.sender_id != ?1))`),
     byUsername: db.prepare('SELECT * FROM users WHERE username = ?'),
     online: db.prepare(`
       SELECT username, level, xp, last_seen_at, hospital_until
@@ -129,6 +135,8 @@ function createPlayerRepo(db) {
     },
     /** Records which version of the Terms of Service the player accepted, and when. */
     acceptTerms: (id, version, now = Date.now()) => stmts.acceptTerms.run(version, now, id),
+    unreadMessageCount: (id) => stmts.unreadMessages.get(id).n,
+    hasBlocked: (id, otherId) => Boolean(stmts.hasBlocked.get(id, otherId)),
 
     /**
      * Writes a player back. Any change to cash or bank balance is recorded in

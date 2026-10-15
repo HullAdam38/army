@@ -321,6 +321,131 @@
     });
   });
 
+  /* ---------- BBCode editor: toolbar, shortcuts, preview, counter ---------- */
+  document.querySelectorAll('[data-bb-editor]').forEach((editor) => {
+    const ta = editor.querySelector('textarea');
+    if (!ta || typeof ta.setRangeText !== 'function') return;
+    editor.classList.add('is-enhanced');
+    const counter = editor.querySelector('[data-bb-count]');
+    const previewPane = editor.querySelector('[data-bb-preview]');
+    const max = Number(ta.getAttribute('maxlength')) || 5000;
+    const changed = () => ta.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Wraps the selection in a tag pair; with nothing selected, inserts the
+    // pair around a placeholder and selects it so typing replaces it.
+    const wrap = (open, close, placeholder = '') => {
+      const { selectionStart: s, selectionEnd: e, value } = ta;
+      const selected = value.slice(s, e);
+      const inner = selected || placeholder;
+      ta.setRangeText(open + inner + close, s, e, 'end');
+      if (!selected) ta.setSelectionRange(s + open.length, s + open.length + inner.length);
+      ta.focus();
+      changed();
+    };
+    const insert = (text) => {
+      ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end');
+      ta.focus();
+      changed();
+    };
+
+    const actions = {
+      b: () => wrap('[b]', '[/b]', 'bold text'),
+      i: () => wrap('[i]', '[/i]', 'italic text'),
+      u: () => wrap('[u]', '[/u]', 'underlined text'),
+      s: () => wrap('[s]', '[/s]', 'struck text'),
+      center: () => wrap('[center]', '[/center]', 'centred text'),
+      quote: () => wrap('[quote]', '[/quote]', 'quoted text'),
+      code: () => wrap('[code]', '[/code]', 'code'),
+      spoiler: () => wrap('[spoiler]', '[/spoiler]', 'hidden text'),
+      hr: () => insert('\n[hr]\n'),
+      player: () => {
+        const name = window.prompt('Callsign of the player to link:', ta.value.slice(ta.selectionStart, ta.selectionEnd));
+        if (name) insert(`[player]${name.trim()}[/player]`);
+      },
+      url: () => {
+        const selected = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+        const href = window.prompt('Link address (must start with https:// or http://):', /^https?:\/\//.test(selected) ? selected : 'https://');
+        if (!href || href === 'https://') return;
+        if (selected && selected !== href) insert(`[url=${href.trim()}]${selected}[/url]`);
+        else insert(`[url]${href.trim()}[/url]`);
+      },
+      list: () => {
+        const { selectionStart: s, selectionEnd: e, value } = ta;
+        const lines = value.slice(s, e).split('\n').filter((l) => l.trim());
+        const items = (lines.length ? lines : ['First item', 'Second item']).map((l) => `[*]${l.trim()}`).join('\n');
+        ta.setRangeText(`[list]\n${items}\n[/list]`, s, e, 'end');
+        ta.focus();
+        changed();
+      },
+    };
+
+    editor.querySelectorAll('[data-bb]').forEach((btn) => {
+      btn.addEventListener('click', () => { const fn = actions[btn.dataset.bb]; if (fn) fn(); });
+    });
+    editor.querySelectorAll('[data-bb-color]').forEach((btn) => {
+      btn.addEventListener('click', () => wrap(`[color=${btn.dataset.bbColor}]`, '[/color]', 'coloured text'));
+    });
+    const size = editor.querySelector('[data-bb-size]');
+    if (size) size.addEventListener('change', () => { if (size.value) wrap(`[size=${size.value}]`, '[/size]', 'text'); size.value = ''; });
+
+    ta.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (['b', 'i', 'u'].includes(key)) { e.preventDefault(); actions[key](); }
+      if (key === 'enter' && ta.form) { e.preventDefault(); ta.form.requestSubmit(); }
+    });
+
+    const count = () => {
+      if (!counter) return;
+      const n = ta.value.length;
+      counter.textContent = `${n.toLocaleString('en-US')} / ${max.toLocaleString('en-US')}`;
+      counter.classList.toggle('is-over', n > max * 0.95);
+    };
+    ta.addEventListener('input', count);
+    count();
+
+    // Write / Preview tabs. The preview is rendered by the server, so it's
+    // exactly what the recipient will see.
+    const tabs = editor.querySelectorAll('[data-bb-tab]');
+    const show = async (which) => {
+      tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.bbTab === which)));
+      editor.classList.toggle('is-previewing', which === 'preview');
+      if (which !== 'preview' || !previewPane) { ta.focus(); return; }
+      previewPane.textContent = 'Loading preview…';
+      try {
+        const token = ta.form && ta.form.querySelector('input[name="_csrf"]');
+        const res = await fetch('/messages/preview', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': token ? token.value : '' },
+          body: JSON.stringify({ body: ta.value }),
+        });
+        const data = await res.json();
+        // The server returns HTML built only from escaped text and allowlisted tags.
+        previewPane.innerHTML = data.html || '<p class="muted">Nothing to preview yet.</p>';
+      } catch (err) {
+        previewPane.textContent = 'Couldn’t load the preview. Check your connection.';
+      }
+    };
+    tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.bbTab)));
+  });
+
+  // "Quote" on a message drops it into the reply box.
+  document.querySelectorAll('[data-bb-quote]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const ta = document.querySelector(btn.dataset.bbQuote);
+      if (!ta) return;
+      // Leave out quotes inside the quoted message so replies don't nest forever.
+      const body = btn.dataset.body.replace(/\[quote(=[^\]]*)?\][\s\S]*?\[\/quote\]\n?/gi, '').trim();
+      const text = `[quote=${btn.dataset.author}]${body}[/quote]\n`;
+      ta.value = ta.value ? `${ta.value.replace(/\s*$/, '')}\n${text}` : text;
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      ta.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  });
+
   /* ---------- Live notifications: poll, update the bell, pop up toasts ---------- */
   const bell = document.querySelector('[data-bell]');
   const toasts = document.querySelector('[data-toasts]');
@@ -329,6 +454,16 @@
     const MAX_TOASTS = 3;
     let latestId = Number(bell.dataset.latestId) || 0;
     let polling = false;
+    const mail = document.querySelector('[data-mail]');
+    let mailCount = mail ? Number(mail.dataset.count) || 0 : 0;
+
+    const setMail = (n) => {
+      if (!mail) return;
+      const badge = mail.querySelector('[data-mail-count]');
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.hidden = n === 0;
+      mail.setAttribute('aria-label', n ? `Messages, ${n} unread` : 'Messages');
+    };
 
     const setCount = (n) => {
       const badge = bell.querySelector('[data-bell-count]');
@@ -374,6 +509,13 @@
         if (!res.ok) return;
         const data = await res.json();
         setCount(data.unread);
+        if (typeof data.messages === 'number') {
+          if (data.messages > mailCount && !location.pathname.startsWith('/messages')) {
+            toast({ kind: 'message', message: data.messages === 1 ? 'You have a new private message.' : `You have ${data.messages} unread conversations.`, link: '/messages' });
+          }
+          mailCount = data.messages;
+          setMail(mailCount);
+        }
         if (data.items.length) {
           latestId = data.latestId;
           data.items.slice(-MAX_TOASTS).forEach(toast);

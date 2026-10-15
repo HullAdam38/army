@@ -1,0 +1,38 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/messages"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Messages</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Comms</p>
+      <h1 class="page-head__title">New message</h1>
+    </div>
+  </div>
+
+  <section class="card compose reveal" style="--i:1">
+    <% if (!canStart) { %>
+      <p class="notice notice--warn compose__notice">Reach level <%= minLevel %> to start new conversations. This keeps spam accounts out. You can still reply to messages you receive.</p>
+    <% } %>
+    <form method="post" action="/messages" class="form compose__form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field-row compose__row">
+        <div class="field">
+          <label for="to">To</label>
+          <input id="to" name="to" required maxlength="20" autocomplete="off" value="<%= draft.to %>" placeholder="Callsign">
+        </div>
+        <div class="field">
+          <label for="subject">Subject</label>
+          <input id="subject" name="subject" required maxlength="<%= limits.subject %>" value="<%= draft.subject %>">
+        </div>
+      </div>
+      <%- include('partials/bb-editor', { id: 'body', value: draft.body, max: limits.body, rows: 10 }) %>
+      <div class="compose__actions">
+        <button class="btn btn--primary" type="submit" <%- canStart ? '' : 'disabled' %>><svg class="btn__icon" aria-hidden="true"><use href="#i-mail"/></svg>Send</button>
+        <span class="muted compose__hint">Ctrl+Enter sends</span>
+      </div>
+    </form>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

@@ -35,6 +35,15 @@
         <p class="engage__note">
           <% if (attack.blocker) { %><%= attack.blocker %>.<% } else { %>Costs <%= attack.energy %> energy · your rating <strong><%= attack.yourRating %></strong> vs <strong><%= loadout.rating %></strong><% } %>
         </p>
+        <div class="engage__social">
+          <% if (!blocked) { %><a class="btn btn--ghost btn--sm" href="/messages/new?to=<%= encodeURIComponent(soldier.username) %>"><svg class="btn__icon" aria-hidden="true"><use href="#i-mail"/></svg>Message</a><% } %>
+          <form method="post" action="/messages/<%= blocked ? 'unblock' : 'block' %>" <%- blocked ? '' : `data-confirm="Block ${soldier.username}? They won’t be able to message you."` %>>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="username" value="<%= soldier.username %>">
+            <input type="hidden" name="back" value="/profile/<%= encodeURIComponent(soldier.username) %>">
+            <button class="btn btn--ghost btn--sm" type="submit"><%= blocked ? 'Unblock' : 'Block' %></button>
+          </form>
+        </div>
       </div>
     <% } %>
     <% if (bounty.total) { %>

@@ -295,6 +295,55 @@ const SCHEMA = `
     PRIMARY KEY (user_id, step)
   );
 
+  CREATE TABLE IF NOT EXISTS conversations (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject          TEXT    NOT NULL,
+    created_at       INTEGER NOT NULL,
+    last_message_at  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS conversation_members (
+    conversation_id  INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_read_at     INTEGER NOT NULL DEFAULT 0,
+    hidden_at        INTEGER,
+    PRIMARY KEY (conversation_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_conv_members_user ON conversation_members(user_id);
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id  INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    body             TEXT    NOT NULL,
+    created_at       INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, id);
+  CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS blocks (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    blocked_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, blocked_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS message_reports (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id   INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+    reporter_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sender_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    body         TEXT    NOT NULL,
+    reason       TEXT    NOT NULL DEFAULT '',
+    status       TEXT    NOT NULL DEFAULT 'open',
+    resolved_by  INTEGER REFERENCES users(id),
+    resolution   TEXT,
+    created_at   INTEGER NOT NULL,
+    resolved_at  INTEGER,
+    UNIQUE (message_id, reporter_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_reports_status ON message_reports(status, created_at DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
