@@ -7,7 +7,7 @@
     <div>
       <p class="eyebrow">Operations board</p>
       <h1 class="page-head__title">Missions</h1>
-      <p class="page-head__sub">Every deployment costs energy. Success pays XP and cash; failure costs health but you still learn something.</p>
+      <p class="page-head__sub">Every mission costs energy. Success pays XP and cash; failure costs health but you still learn something.</p>
     </div>
   </div>
 
@@ -48,7 +48,7 @@
             <% if (m.locked) { %>
               <button class="btn btn--locked btn--block" type="button" disabled><svg class="btn__icon" aria-hidden="true"><use href="#i-lock"/></svg>Unlocks at level <%= m.minLevel %></button>
             <% } else { %>
-              <button class="btn btn--primary btn--block" type="submit" <%- m.blocker ? 'disabled' : '' %>>Deploy</button>
+              <button class="btn btn--primary btn--block" type="submit" <%- m.blocker ? 'disabled' : '' %>>Launch</button>
               <p class="mission__blocker" data-blocker><%= m.blocker || '' %></p>
             <% } %>
           </form>
@@ -93,7 +93,7 @@
                   <p class="op__status">Stage <%= op.stage %>: <strong><%= op.next.name %></strong>. <%= op.next.brief %><br><%= op.next.chancePct %>% success · +<%= op.next.xp[0] %>–<%= op.next.xp[1] %> XP</p>
                   <form method="post" action="/operations/<%= op.id %>">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <button class="btn btn--primary btn--block" type="submit" <%- op.next.blocker ? 'disabled' : '' %>>Deploy · stage <%= op.stage %></button>
+                    <button class="btn btn--primary btn--block" type="submit" <%- op.next.blocker ? 'disabled' : '' %>>Launch · stage <%= op.stage %></button>
                     <% if (op.next.blocker) { %><p class="mission__blocker"><%= op.next.blocker %></p><% } %>
                   </form>
                 <% } %>

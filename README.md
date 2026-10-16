@@ -532,7 +532,7 @@ test/                node:test suites
 - `/terms`: Terms of Service (public); `/terms/accept` when a player must accept a new version
 - `/register`, `/login`: account forms (registration requires confirming you are 18+)
 - `/hq`: dashboard with basic training (for new players), service record, next mission, daily orders, supply drop streak, readiness (live regen timers), field hospital and radio log
-- `/missions`: operations board. Deploying uses `fetch` and updates stats in place, and falls back to a normal form post without JavaScript.
+- `/missions`: operations board. Launching a mission uses `fetch` and updates stats in place, and falls back to a normal form post without JavaScript.
 - `/players`: directory of all players. Search by callsign, filter to **Targets** (players you can attack right now) or **Online now**, and sort by level, PvP wins, newest or name, 25 per page. Each row shows rank, level, combat rating, PvP record and status, with an Attack button or the reason you can't attack.
 - `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.
 - `/profile/:username`: a player's public service record, showing rank, level, online status or last seen, enlistment date, mission stats and recent operations. Email, cash, energy, health and hospital visits stay private.

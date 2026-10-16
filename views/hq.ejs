@@ -98,13 +98,16 @@
         </ul>
         <form method="post" action="/missions/<%= nextMission.id %>">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="btn btn--primary btn--block" type="submit">Deploy now</button>
+          <button class="btn btn--primary btn--block" type="submit">Launch now</button>
         </form>
       <% } else if (player.hospitalized) { %>
         <p class="orders__brief">You're in hospital. Orders resume when you're discharged.</p>
         <a class="btn btn--ghost btn--block" href="/hospital">Go to the ward</a>
+      <% } else if (player.deployed) { %>
+        <p class="orders__brief">You're out on deployment. Missions resume when you're back in <span data-until="<%= player.deployedUntil %>" data-reload>soon</span>.</p>
+        <a class="btn btn--ghost btn--block" href="/deployments">View deployment</a>
       <% } else if (!player.canDeploy) { %>
-        <p class="orders__brief">You're too injured to deploy. Rest up or visit the field hospital.</p>
+        <p class="orders__brief">You're too injured for missions. Rest up or visit the field hospital.</p>
       <% } else { %>
         <p class="orders__brief">Energy is too low for any available mission.
           <% if (player.nextEnergyIn !== null) { %>Next energy point in <span data-countdown="energy"><%= player.nextEnergyIn %>s</span>.<% } %>

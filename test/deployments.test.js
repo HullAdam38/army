@@ -150,6 +150,7 @@ test('deployments page and flow through the app', async () => {
     assert.ok(until > Date.now());
     page = (await request('/hq')).text;
     assert.match(page, /You're on deployment/);
+    assert.match(page, /Missions resume when you're back/);
 
     // Missions and training are off while away.
     const cash = db.prepare('SELECT cash FROM users').get().cash;

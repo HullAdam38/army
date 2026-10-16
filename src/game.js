@@ -268,7 +268,7 @@ function missionBlocker(mission, player, now = Date.now()) {
   if (isDeployed(player, now)) return 'You’re away on deployment';
   if (player.level < mission.minLevel) return `Requires level ${mission.minLevel}`;
   if (player.energy < mission.energy) return 'Not enough energy';
-  if (player.health < MIN_DEPLOY_HEALTH) return 'Too injured to deploy';
+  if (player.health < MIN_DEPLOY_HEALTH) return 'Too injured for missions';
   return null;
 }
 

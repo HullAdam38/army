@@ -204,7 +204,7 @@
     });
   }
 
-  /* ---------- Missions: deploy without a full page reload ---------- */
+  /* ---------- Missions: launch without a full page reload ---------- */
   const resultBox = document.querySelector('[data-mission-result]');
   const missionData = new Map();
 
@@ -283,7 +283,7 @@
       btn.disabled = true;
       btn.setAttribute('aria-busy', 'true');
       const label = btn.textContent;
-      btn.textContent = 'Deploying…';
+      btn.textContent = 'Launching…';
 
       try {
         const res = await fetch(form.action, {

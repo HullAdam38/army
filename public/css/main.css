@@ -165,7 +165,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 }
 .btn--locked { --btn-bg: var(--bg-raised); --btn-fg: var(--text-faint); --btn-border: var(--line); }
 .btn:disabled { cursor: not-allowed; opacity: 0.55; }
-.btn--primary:disabled { --btn-bg: var(--olive-dim); --btn-border: var(--olive-dim); --btn-fg: var(--text-muted); opacity: 1; }
+.btn--primary:disabled { --btn-bg: var(--bg-raised); --btn-border: var(--line); --btn-fg: var(--text-faint); opacity: 1; box-shadow: none; }
+.btn:disabled .btn__icon { transform: none !important; }
 .btn--sm { min-height: 36px; padding: 6px 14px; font-size: 0.8rem; }
 .btn--lg { min-height: 54px; padding: 14px 28px; font-size: 1rem; }
 .btn--block { width: 100%; }
@@ -2455,6 +2456,13 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .site-header--game .site-header__bar { gap: 6px; }
   .site-header--game .bell { width: 34px; height: 34px; }
   .site-header--game .site-header__logout .btn { padding-inline: 10px; font-size: 0.72rem; }
+}
+/* The narrowest phones: keep logo, mail, bell and sign out on one line. */
+@media (max-width: 380px) {
+  .site-header--game .brand { gap: 6px; font-size: 1.05rem; }
+  .site-header--game .brand__crest { width: 22px; height: 22px; }
+  .site-header--game .bell { width: 32px; height: 32px; }
+  .site-header--game .site-header__logout .btn { padding-inline: 8px; letter-spacing: 0.06em; }
 }
 
 /* Admins have one more menu link: wrap a little sooner, and use two rows on tablets. */
