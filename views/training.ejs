@@ -37,13 +37,13 @@
           <div class="train-card__actions">
             <form method="post" action="/training/<%= s.key %>">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <button class="btn btn--primary btn--block" type="submit" <%- player.energy < energyPerSession || player.cash < s.cost || player.hospitalized ? 'disabled' : '' %>>Train · $<%= s.cost %></button>
+              <button class="btn btn--primary btn--block" type="submit" <%- player.energy < energyPerSession || player.cash < s.cost || player.hospitalized || player.deployed ? 'disabled' : '' %>>Train · $<%= s.cost %></button>
             </form>
             <% if (s.fiveSessions > 1) { %>
               <form method="post" action="/training/<%= s.key %>">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="hidden" name="times" value="5">
-                <button class="btn btn--ghost btn--block" type="submit" <%- player.energy < energyPerSession || player.cash < s.cost || player.hospitalized ? 'disabled' : '' %>>×<%= s.fiveSessions %> · $<%= s.fiveCost %></button>
+                <button class="btn btn--ghost btn--block" type="submit" <%- player.energy < energyPerSession || player.cash < s.cost || player.hospitalized || player.deployed ? 'disabled' : '' %>>×<%= s.fiveSessions %> · $<%= s.fiveCost %></button>
               </form>
             <% } %>
           </div>

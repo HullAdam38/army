@@ -27,7 +27,7 @@ Keep as plain text: callsigns, unit names and tags, search boxes, numbers, and s
 
 ### Front end
 - Strict CSP: no inline `<script>` or `on*=` handlers. JavaScript lives in `public/js/app.js` (progressive enhancement; every page works without it). Inline `style=` attributes are allowed.
-- Design tokens are in `:root` in `public/css/main.css`. Check new pages at 360, 390 and 1366 px with no horizontal scroll, for both regular and admin headers.
+- Design tokens are in `:root` in `public/css/main.css`. Check new pages at 320, 360, 390 and 1366 px with no horizontal scroll, for both regular and admin headers. Use `minmax(0, 1fr)` rather than `1fr` for grid columns that hold text, so they can shrink on small phones.
 
 ### Terms of Service
 Text is in `views/partials/terms-body.ejs`. When it changes in a way players should agree to, bump `TERMS_VERSION` in `src/legal.js`; everyone re-accepts on their next visit.
