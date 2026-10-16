@@ -1,0 +1,37 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const fmt = (n) => Number(n).toLocaleString('en-US');
+  const podium = (pos) => (pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : null);
+%>
+
+<main id="main" class="container game-main">
+  <%- include('partials/players-subnav', { active: 'seasons' }) %>
+  <a class="back-link reveal" style="--i:0" href="/seasons"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Current season</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Final standings · <%= season.startsLabel %> – <%= season.endsLabel %></p>
+      <h1 class="page-head__title">Season <%= season.number %> results</h1>
+      <p class="page-head__sub"><%= results.length ? `${fmt(results.length)} soldier${results.length === 1 ? '' : 's'} placed.` : 'Nobody placed this season.' %><% if (you) { %> You finished <strong>#<%= you.rank %></strong> in <%= you.division.name %> with <%= fmt(you.rating) %> rating and earned $<%= fmt(you.reward_cash) %> and <%= fmt(you.reward_xp) %> XP.<% } %></p>
+    </div>
+  </div>
+
+  <% if (results.length) { %>
+    <ol class="board reveal" style="--i:1">
+      <% results.forEach(function (r) { const m = podium(r.rank); const isYou = you && r.user_id === you.user_id; %>
+        <li class="board__row season-row<%= m ? ` board__row--${m}` : '' %><%= isYou ? ' board__row--you' : '' %>">
+          <span class="board__pos"><%= m ? '' : '#' %><%= r.rank %></span>
+          <span class="div-emblem div-emblem--sm div-emblem--<%= r.division.id %>" title="<%= r.division.name %>"><svg aria-hidden="true"><use href="#i-crest"/></svg><span class="visually-hidden"><%= r.division.name %></span></span>
+          <span class="board__who">
+            <span class="board__line"><a class="board__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a><% if (r.rank === 1) { %> <span class="tag tag--champion">Champion</span><% } %><% if (isYou) { %> <span class="tag">You</span><% } %></span>
+            <span class="board__rank"><%= r.division.name %> · <%= r.wins %>W–<%= r.losses %>L · peak <%= fmt(r.peak) %></span>
+          </span>
+          <span class="board__value"><span class="board__value-label">Final</span><%= fmt(r.rating) %></span>
+          <span class="board__detail">+$<%= fmt(r.reward_cash) %></span>
+        </li>
+      <% }) %>
+    </ol>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

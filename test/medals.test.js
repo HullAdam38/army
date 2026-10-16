@@ -115,12 +115,12 @@ test('medal case page, pins and profile rack', async () => {
     await request('/register', { method: 'POST', form: reg });
     const id = db.prepare("SELECT id FROM users WHERE username = 'Decorated'").get().id;
     let page = (await request('/medals')).text;
-    assert.match(page, /0<small>\/39<\/small>/);
+    assert.match(page, /0<small>\/42<\/small>/);
     assert.match(page, /Field Operator/);
 
     db.prepare('UPDATE users SET missions_completed = 30, stat_str = 40, streak_best = 8, orders_completed = 20 WHERE id = ?').run(id);
     page = (await request('/medals')).text; // viewing the case awards what's due
-    assert.match(page, /4<small>\/39<\/small>/);
+    assert.match(page, /4<small>\/42<\/small>/);
     assert.match((await request('/hq')).text, /4 medals earned/);
 
     const pins = new URLSearchParams({ _csrf: await csrf('/medals') });

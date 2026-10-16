@@ -119,6 +119,33 @@ From level 8, each player builds up their own base at `/base` (linked from the H
 
 Rules live in `src/base.js`; building and completion are in `src/base-service.js`.
 
+## PvP seasons
+
+Ranked PvP in four-week seasons, at `/seasons` (the **Season** tab under Players).
+
+- **Rating:** everyone starts at 1,000. Each ranked fight moves both players' rating with an Elo formula, so beating a stronger soldier earns more than beating a weaker one. The winner always gains at least 1 point. Attackers move up to ±32 a fight and defenders up to ±20, because defenders didn't pick the fight. Ratings never drop below 100.
+- **What's ranked:** only fights that paid full rewards to both sides. Fights between accounts that share a device or network, and repeat wins on the same soldier within 24 hours, never change ratings. When an admin reverses farmed fights from an anti-cheat flag, their rating changes are undone too (while the season is running).
+- **Placement:** 5 ranked fights, won or lost, put you in the standings. Only placed soldiers are ranked and rewarded.
+- **Divisions and rewards:** paid at the end through the ledger as `season-reward` (ref `season:<n>`).
+
+| Division | Rating | Reward |
+|---|---|---|
+| Elite | 1,350+ | $20,000 + 1,500 XP |
+| Gold | 1,200–1,349 | $8,000 + 600 XP |
+| Silver | 1,050–1,199 | $3,000 + 250 XP |
+| Bronze | under 1,050 | $1,000 + 100 XP |
+
+- **Top of the standings:** the top 3 also get $25,000, $15,000 and $10,000. The champion and the top 10 get badges on their profile ("S1 Champion", "S1 · Top 10 · Gold").
+- **Soft reset:** a new season starts you halfway between last season's final rating and 1,000.
+- **Rollover:** checked every minute. When a season ends, everyone is ranked and paid, gets a notification with their result, and the next season starts straight away. Admins can end a season early from the season page; it's recorded in the audit log.
+- **Where it shows:**
+  - The season page has your division, rating and progress, the standings, rewards and past seasons. `/seasons/:n` has the final results of a past season.
+  - Battle reports show both players' rating changes, and the defender's notification includes theirs.
+  - Profiles show the current season's division and rating, plus badges from past seasons. HQ's service record shows your standing.
+- **Medal:** the new **Contender** medal counts seasons finished in Gold or Elite (1 / 3 / 10).
+
+Rules live in `src/seasons.js`; storage, ranked fights, reversals and payouts are in `src/season-service.js`.
+
 ## Deployments
 
 At `/deployments` (linked from HQ) a player sends their soldier out on a timed patrol that pays out even when they're offline. Deployments cost no energy, but they come with limits:
@@ -351,7 +378,7 @@ Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-servi
 
 ## Medals
 
-Thirteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Fourteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -367,6 +394,7 @@ Thirteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays onc
 | Bounty Hunter | bounties collected | 1 / 10 / 50 |
 | Architect | forward base rating | 5 / 15 / 28 |
 | Ranger Tab | deployments completed (not recalled) | 10 / 50 / 200 |
+| Contender | PvP seasons finished in Gold or Elite | 1 / 3 / 10 |
 | Victory Medal | unit wars won (as a member from the start of the war) | 1 / 5 / 20 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
@@ -495,6 +523,9 @@ src/
   deployments.js     offline patrols: pay, cap, outcomes (pure)
   deployment-service.js start, recall, return on time
   routes/deployments.js deployments page and actions
+  seasons.js         PvP season rules: rating, divisions, rewards (pure)
+  season-service.js  seasons storage, ranked fights, payouts, rollover
+  routes/seasons.js  season page, past results, admin end
   event-service.js   event scheduling, live effects, announcements
   routes/events.js   events page and admin scheduling
   bbcode.js          safe BBCode → HTML renderer
@@ -558,6 +589,7 @@ The markup is in `views/partials/tabbar.ejs`.
 - `/account/profile`: edit your profile bio
 - `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
 - `/base`: your forward base
+- `/seasons`: the current PvP season (your division, standings, rewards, past seasons); `/seasons/:n` for a past season's final results
 - `/deployments`: send your soldier on patrol, recall early, read after-action reports
 - `/events`: live, upcoming and recent events; `/admin/events` to schedule them
 - `/medals`: your medal case, with progress, rarity and pins

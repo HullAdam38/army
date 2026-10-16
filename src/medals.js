@@ -27,6 +27,7 @@ const MEDALS = [
   { id: 'warhero', name: 'War Hero', icon: 'i-flag', metric: 'warPoints', unit: 'war points', thresholds: [10, 50, 200], blurb: 'Score points for your unit in wars.' },
   { id: 'hunter', name: 'Bounty Hunter', icon: 'i-cash', metric: 'bounties', unit: 'bounties collected', thresholds: [1, 10, 50], blurb: 'Beat wanted soldiers and collect the bounties on them.' },
   { id: 'ranger', name: 'Ranger Tab', icon: 'i-kit', metric: 'deployments', unit: 'deployments completed', thresholds: [10, 50, 200], blurb: 'Come back from deployments. Recalled ones don’t count.' },
+  { id: 'contender', name: 'Contender', icon: 'i-podium', metric: 'seasonsGold', unit: 'seasons finished Gold or higher', thresholds: [1, 3, 10], blurb: 'Finish a PvP season in the Gold or Elite division.' },
   { id: 'architect', name: 'Architect', icon: 'i-crest', metric: 'base', unit: 'base rating', thresholds: [5, 15, 28], blurb: 'Upgrade the facilities of your forward base.' },
   { id: 'victory', name: 'Victory Medal', icon: 'i-helmet', metric: 'warsWon', unit: 'wars won', thresholds: [1, 5, 20], blurb: 'Win unit wars. You must be in the unit when the war begins.' },
 ];

@@ -10,7 +10,9 @@ const supplies = require('../supplies');
 const { createRequireAuth } = require('../require-auth');
 const { announceLevels } = require('../notify');
 
-function pvpRoutes(players, anti, daily, warService, bountyService) {
+const signed = (n) => (n > 0 ? `+${n}` : `−${Math.abs(n)}`);
+
+function pvpRoutes(players, anti, daily, warService, bountyService, seasonService) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -18,6 +20,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
     const target = players.findByUsername(String(req.params.username));
     if (!target) return next();
     const profileUrl = `/profile/${encodeURIComponent(target.username)}`;
+    seasonService.rollover(); // settles a finished season before this fight counts
 
     const outcome = players.transaction(() => {
       const attacker = players.findById(req.player.id);
@@ -44,6 +47,9 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
       players.save(out.attacker, { reason: 'pvp', ref: `battle:${id}` });
       players.save(out.defender, { reason: 'pvp', ref: `battle:${id}` });
       const link = `/battles/${id}`;
+      // Season rating: only full-reward fights are ranked (see seasons.isRanked).
+      const season = seasonService.recordFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, linked: anti.linked(attacker.id, defender.id, now), now });
+      const defRating = season.ranked ? ` Season rating ${signed(season.defender.delta)} (${season.defender.rating}).` : '';
       const a = attacker.username;
       const d = defender.username;
       if (r.attackerWon) {
@@ -58,8 +64,8 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
         defender.id,
         r.attackerWon ? 'attacked-lost' : 'attacked-won',
         r.attackerWon
-          ? `${a} attacked you and won. You lost $${r.cashTaken}.${r.knockout ? ' You were knocked out and sent to hospital.' : ''}`
-          : `${a} attacked you and you held them off. +${r.xp.defender} XP.${r.knockout ? ' You knocked them out.' : ''}`,
+          ? `${a} attacked you and won. You lost $${r.cashTaken}.${r.knockout ? ' You were knocked out and sent to hospital.' : ''}${defRating}`
+          : `${a} attacked you and you held them off. +${r.xp.defender} XP.${r.knockout ? ' You knocked them out.' : ''}${defRating}`,
         link,
       );
       anti.afterBattle(attacker.id, defender.id, now);
@@ -85,7 +91,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
           players.log(p.id, 'promotion', `Promoted to level ${lvl} — ${rank.name} (${rank.grade}).`);
         }
       }
-      return { id, xp: r.xp.attacker, cash: r.cashTaken, bounty };
+      return { id, xp: r.xp.attacker, cash: r.cashTaken, bounty, season };
     });
 
     if (outcome.error) {
@@ -96,6 +102,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
     }
     res.locals.gains = { xp: outcome.xp, cash: outcome.cash }; // for anti-cheat
     if (outcome.bounty) req.flash('success', `Bounty collected: +$${outcome.bounty.total.toLocaleString('en-US')}.`);
+    if (outcome.season.ranked) req.flash('info', `Season ${outcome.season.number} rating ${signed(outcome.season.attacker.delta)} → ${outcome.season.attacker.rating}.`);
     res.redirect(`/battles/${outcome.id}`);
   });
 
@@ -125,6 +132,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
     const youAre = battle.attacker_id === req.player.id ? 'attacker' : battle.defender_id === req.player.id ? 'defender' : null;
     const warFight = warService.forBattle(battle.id);
     const bounty = bountyService.forBattle(battle.id);
+    const ranked = seasonService.forBattle(battle.id);
     res.render('battle', {
       title: `${battle.attacker_name} vs ${battle.defender_name}`,
       nav: null,
@@ -132,6 +140,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService) {
       r: battle.report,
       youAre,
       bounty,
+      ranked,
       warFight: warFight ? { id: warFight.id, side: warFight.side, points: warFight.points, tag: warFight.side === 'attacker' ? warFight.attacker_tag : warFight.defender_tag, title: `${warFight.attacker_tag} vs ${warFight.defender_tag}` } : null,
       ago: presence.timeAgo(battle.created_at),
     });

@@ -83,6 +83,7 @@
       <% } %>
       <a class="dossier__medals dossier__base" href="/base"><svg aria-hidden="true"><use href="#i-crest"/></svg><% if (!base.unlocked) { %>Forward base unlocks at level <%= base.unlockLevel %><% } else if (base.building) { %>Base: building <%= base.building.name %>, ready in <span data-until="<%= base.until %>">soon</span><% } else { %>Forward base · rating <%= base.rating %>/<%= base.maxRating %><%= base.rating < base.maxRating ? ' · engineers idle' : '' %><% } %></a>
       <a class="dossier__medals dossier__base" href="/deployments"><svg aria-hidden="true"><use href="#i-kit"/></svg><% if (player.deployed) { %>On deployment · back in <span data-until="<%= player.deployedUntil %>">soon</span><% } else { %>Deployments · earn while you’re away<% } %></a>
+      <% if (season) { %><a class="dossier__medals dossier__base" href="/seasons"><svg aria-hidden="true"><use href="#i-podium"/></svg>Season <%= season.number %> · <%= season.placed ? `${season.division.name} #${season.rank}` : `placement ${season.fights}/${season.placement}` %> · <%= season.rating.toLocaleString('en-US') %> rating</a><% } %>
       <a class="dossier__medals" href="/medals"><svg aria-hidden="true"><use href="#i-star"/></svg><%= medalCount ? `${medalCount} medal${medalCount === 1 ? '' : 's'} earned` : 'No medals yet' %> · Medal case</a>
     </section>
 

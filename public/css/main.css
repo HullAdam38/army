@@ -2119,6 +2119,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .war-pts { margin-left: 6px; font-family: var(--font-ui); font-size: 0.78rem; font-weight: 700; color: var(--accent); }
 .battle-hero__war { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 4px 12px; font-size: 0.92rem; background: rgb(255 90 82 / 0.1); border: 1px solid rgb(255 90 82 / 0.4); border-radius: var(--radius); }
 .battle-hero__war svg { width: 14px; height: 14px; color: var(--danger); }
+.battle-hero__ranked { flex-wrap: wrap; background: rgb(111 183 255 / 0.08); border-color: rgb(111 183 255 / 0.4); font-variant-numeric: tabular-nums; }
+.battle-hero__ranked svg { color: var(--xp); }
 
 @media (max-width: 960px) {
   .war-grid { grid-template-columns: 1fr; }
@@ -2157,6 +2159,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .medal--lg .medal__disc { width: 56px; height: 56px; }
 .medal--lg .medal__disc svg { width: 26px; height: 26px; }
 
+.profile-hero__seasons { flex-basis: 100%; }
 .medal-pins { display: flex; flex-wrap: wrap; gap: 8px 18px; flex-basis: 100%; padding: 0; list-style: none; }
 .medal-pins li { display: flex; align-items: center; gap: 8px; }
 .medal-pins__name { font-family: var(--font-ui); font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
@@ -2738,3 +2741,68 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .deploy-log__when { font-size: 0.8rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .deploy-log__pay { font-family: var(--font-ui); font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .deploy-log__report { font-size: 0.92rem; }
+
+/* ---------- PvP seasons ---------- */
+/* Division colours: bronze, silver, gold, elite. */
+.div-emblem { --div: #d08a4e; display: grid; place-items: center; flex: none; width: 64px; height: 64px; color: var(--div); background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--div) 22%, transparent), transparent 70%), var(--bg-raised); border: 1px solid color-mix(in srgb, var(--div) 55%, var(--line)); border-radius: 50%; }
+.div-emblem svg { width: 55%; height: 55%; }
+.div-emblem--sm { width: 34px; height: 34px; }
+.div-emblem--bronze { --div: #d08a4e; }
+.div-emblem--silver { --div: #c9d1d9; }
+.div-emblem--gold { --div: #f2c230; }
+.div-emblem--elite { --div: #b28cff; box-shadow: 0 0 18px rgb(178 140 255 / 0.4); }
+
+.season-me { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 22px; margin-bottom: 24px; border-top: 3px solid var(--div, #d08a4e); }
+.season-me--bronze { --div: #d08a4e; }
+.season-me--silver { --div: #c9d1d9; }
+.season-me--gold { --div: #f2c230; }
+.season-me--elite { --div: #b28cff; }
+.season-me__body { flex: 1 1 16rem; min-width: 0; display: grid; gap: 6px; }
+.season-me__title { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.1; color: var(--div); }
+.season-me__rating { font-family: var(--font-ui); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.season-me__rating strong { font-size: 1.2rem; color: var(--text); }
+.season-me__note { font-size: 0.92rem; color: var(--text-muted); }
+.season-me__cta { flex: none; }
+
+.season-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 22rem); gap: 24px; align-items: start; }
+.season-board .section-title { margin-top: 0; }
+.season-side { display: grid; gap: 16px; }
+.season-row { grid-template-columns: 3.4rem auto minmax(0, 1fr) 7rem 6rem; }
+
+.div-list { display: grid; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
+.div-list__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px 10px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.div-list__row.is-you { border-color: rgb(255 107 26 / 0.55); }
+.div-list__name, .div-list__reward { display: grid; font-family: var(--font-ui); font-weight: 700; font-variant-numeric: tabular-nums; }
+.div-list__reward { text-align: right; }
+.div-list__name small, .div-list__reward small { font-weight: 500; font-size: 0.78rem; color: var(--text-faint); }
+.div-list__podium { font-size: 0.88rem; color: var(--text-muted); }
+.season-rules { display: grid; gap: 8px; margin: 0; padding-left: 1.1rem; font-size: 0.92rem; color: var(--text-muted); }
+.season-admin { margin-top: 14px; }
+.season-past { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.season-past__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px 10px; color: var(--text); text-decoration: none; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.season-past__row:hover { border-color: var(--line-strong); }
+.season-past__num { font-family: var(--font-display); font-size: 1.3rem; color: var(--accent); }
+.season-past__champ { display: grid; font-family: var(--font-ui); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.season-past__champ small { font-weight: 500; font-size: 0.78rem; color: var(--text-faint); }
+.tag--champion { color: var(--accent-ink); background: #f2c230; }
+
+/* Season badges on profiles and the HQ dossier. */
+.season-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.season-badge { --div: #d08a4e; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 6px; font-family: var(--font-ui); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.06em; color: var(--text); background: color-mix(in srgb, var(--div) 12%, var(--bg-raised)); border: 1px solid color-mix(in srgb, var(--div) 50%, var(--line)); border-radius: 999px; text-decoration: none; }
+.profile-hero__meta .season-badge, .season-badge:hover { color: var(--text); }
+.season-badge svg { width: 14px; height: 14px; color: var(--div); }
+.season-badge--bronze { --div: #d08a4e; }
+.season-badge--silver { --div: #c9d1d9; }
+.season-badge--gold { --div: #f2c230; }
+.season-badge--elite { --div: #b28cff; }
+.season-badge--champion { box-shadow: 0 0 12px rgb(242 194 48 / 0.35); border-color: #f2c230; }
+
+@media (max-width: 960px) {
+  .season-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .season-row { grid-template-columns: 2.6rem auto minmax(0, 1fr) auto; }
+  .season-me { gap: 14px; }
+  .season-me .div-emblem { width: 52px; height: 52px; }
+  .season-me__cta { width: 100%; }
+}

@@ -383,6 +383,54 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_deployments_user ON deployments(user_id, started_at DESC);
   CREATE INDEX IF NOT EXISTS idx_deployments_due ON deployments(status, ends_at);
 
+  -- PvP seasons (src/seasons.js, src/season-service.js).
+  CREATE TABLE IF NOT EXISTS seasons (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    number     INTEGER NOT NULL UNIQUE,
+    starts_at  INTEGER NOT NULL,
+    ends_at    INTEGER NOT NULL,
+    status     TEXT    NOT NULL DEFAULT 'active', -- 'active' | 'ended'
+    ended_at   INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_seasons_status ON seasons(status, ends_at);
+  CREATE TABLE IF NOT EXISTS season_players (
+    season_id      INTEGER NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating         INTEGER NOT NULL,
+    peak           INTEGER NOT NULL,
+    wins           INTEGER NOT NULL DEFAULT 0,
+    losses         INTEGER NOT NULL DEFAULT 0,
+    fights         INTEGER NOT NULL DEFAULT 0,
+    last_fight_at  INTEGER,
+    PRIMARY KEY (season_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_season_players_rank ON season_players(season_id, rating DESC);
+  CREATE TABLE IF NOT EXISTS season_battles (
+    battle_id       INTEGER PRIMARY KEY REFERENCES battles(id) ON DELETE CASCADE,
+    season_id       INTEGER NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+    attacker_id     INTEGER NOT NULL,
+    defender_id     INTEGER NOT NULL,
+    attacker_delta  INTEGER NOT NULL,
+    defender_delta  INTEGER NOT NULL,
+    attacker_after  INTEGER NOT NULL,
+    defender_after  INTEGER NOT NULL,
+    reversed_at     INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS season_results (
+    season_id    INTEGER NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rank         INTEGER NOT NULL,
+    rating       INTEGER NOT NULL,
+    peak         INTEGER NOT NULL,
+    division     TEXT    NOT NULL,
+    wins         INTEGER NOT NULL,
+    losses       INTEGER NOT NULL,
+    reward_cash  INTEGER NOT NULL,
+    reward_xp    INTEGER NOT NULL,
+    PRIMARY KEY (season_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_season_results_user ON season_results(user_id, season_id DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,

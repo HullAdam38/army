@@ -105,7 +105,7 @@
     select.addEventListener('change', () => select.form && select.form.submit());
   });
 
-  /* ---------- Countdowns to a timestamp (hospital release) ---------- */
+  /* ---------- Countdowns to a timestamp (hospital release, builds, seasons) ---------- */
   const untils = document.querySelectorAll('[data-until]');
   if (untils.length) {
     let reloading = false;
@@ -115,6 +115,7 @@
         const left = Math.max(0, Math.ceil((Number(el.dataset.until) - now) / 1000));
         const pad = (n) => String(n).padStart(2, '0');
         el.textContent = left <= 0 ? 'now'
+          : left >= 86400 ? `${Math.floor(left / 86400)}d ${Math.floor(left / 3600) % 24}h` // days away: "27d 23h"
           : left >= 3600 ? `${Math.floor(left / 3600)}:${pad(Math.floor(left / 60) % 60)}:${pad(left % 60)}`
           : `${Math.floor(left / 60)}:${pad(left % 60)}`;
         if (left === 0 && el.hasAttribute('data-reload') && !reloading) {

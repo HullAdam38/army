@@ -1,0 +1,122 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const fmt = (n) => Number(n).toLocaleString('en-US');
+  const money = (n) => '$' + fmt(n);
+  const podium = (pos) => (pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : null);
+%>
+
+<main id="main" class="container game-main">
+  <%- include('partials/players-subnav', { active: 'seasons' }) %>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Ranked PvP</p>
+      <h1 class="page-head__title">Season <%= season.number %></h1>
+      <p class="page-head__sub">Climb the ranks by winning PvP fights. Beating stronger soldiers earns more rating. Ends in <strong data-until="<%= season.ends_at %>">soon</strong> (<%= season.endsLabel %>); then everyone placed is paid by division and the next season begins.</p>
+    </div>
+    <% if (me && me.placed) { %>
+      <a class="standing" href="#you">
+        <span class="standing__label">Your rank</span>
+        <span class="standing__pos">#<%= me.rank %></span>
+      </a>
+    <% } %>
+  </div>
+
+  <section class="card season-me season-me--<%= me.division.id %> reveal" style="--i:1" aria-labelledby="season-me-title">
+    <span class="div-emblem div-emblem--<%= me.division.id %>" aria-hidden="true"><svg><use href="#i-crest"/></svg></span>
+    <div class="season-me__body">
+      <h2 class="season-me__title" id="season-me-title">
+        <% if (me.placed) { %><%= me.division.name %> division<% } else { %>Unranked<% } %>
+      </h2>
+      <p class="season-me__rating"><strong><%= fmt(me.rating) %></strong> rating · <%= me.wins %>W–<%= me.losses %>L<% if (me.peak > me.rating) { %> · peak <%= fmt(me.peak) %><% } %></p>
+      <% if (!me.placed) { %>
+        <p class="season-me__note">Placement: <strong><%= me.fights %>/<%= rules.placement %></strong> ranked fights. Win or lose, every ranked fight counts toward placing you.</p>
+        <div class="meter meter--xp" role="img" aria-label="<%= me.fights %> of <%= rules.placement %> placement fights"><span class="meter__fill" style="width:<%= Math.round(me.fights / rules.placement * 100) %>%"></span></div>
+      <% } else if (me.progress) { %>
+        <p class="season-me__note"><%= fmt(me.progress.needed) %> rating to <strong><%= me.progress.next.name %></strong></p>
+        <div class="meter meter--xp" role="img" aria-label="<%= me.progress.pct %>% of the way to <%= me.progress.next.name %>"><span class="meter__fill" style="width:<%= me.progress.pct %>%"></span></div>
+      <% } else { %>
+        <p class="season-me__note">Top division. Hold your rating to the end.</p>
+      <% } %>
+    </div>
+    <a class="btn btn--primary season-me__cta" href="/players?filter=targets">Find a fight</a>
+  </section>
+
+  <div class="season-grid">
+    <section class="season-board reveal" style="--i:2" aria-labelledby="standings-title">
+      <h2 class="section-title" id="standings-title">Standings <span class="muted">· <%= fmt(placedCount) %> placed</span></h2>
+      <% if (standings.length) { %>
+        <ol class="board">
+          <% const rows = [...standings]; if (!youListed && me.placed) rows.push({ ...me, username: player.username, level: player.level, outside: true }); %>
+          <% rows.forEach(function (r) { const m = podium(r.rank); const isYou = r.user_id === me.user_id; %>
+            <% if (r.outside) { %><li class="board__gap" aria-hidden="true">⋯</li><% } %>
+            <li class="board__row season-row<%= m ? ` board__row--${m}` : '' %><%= isYou ? ' board__row--you' : '' %>" <%- isYou ? 'id="you"' : '' %>>
+              <span class="board__pos"><%= m ? '' : '#' %><%= r.rank %></span>
+              <span class="div-emblem div-emblem--sm div-emblem--<%= r.division.id %>" title="<%= r.division.name %>"><svg aria-hidden="true"><use href="#i-crest"/></svg><span class="visually-hidden"><%= r.division.name %></span></span>
+              <span class="board__who">
+                <span class="board__line"><a class="board__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a><% if (isYou) { %> <span class="tag">You</span><% } %></span>
+                <span class="board__rank"><%= r.division.name %> · Lv <%= r.level %></span>
+              </span>
+              <span class="board__value"><span class="board__value-label">Rating</span><%= fmt(r.rating) %></span>
+              <span class="board__detail"><%= r.wins %>W–<%= r.losses %>L</span>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="card muted">Nobody has placed yet. <%= rules.placement %> ranked fights puts you on the board.</p>
+      <% } %>
+    </section>
+
+    <aside class="season-side">
+      <section class="card reveal" style="--i:3" aria-labelledby="rewards-title">
+        <h2 class="card__title" id="rewards-title">End-of-season rewards</h2>
+        <ul class="div-list">
+          <% [...rules.divisions].reverse().forEach(function (d) { %>
+            <li class="div-list__row<%= d.id === me.division.id ? ' is-you' : '' %>">
+              <span class="div-emblem div-emblem--sm div-emblem--<%= d.id %>" aria-hidden="true"><svg><use href="#i-crest"/></svg></span>
+              <span class="div-list__name"><%= d.name %><small><%= d.min ? `${fmt(d.min)}+` : `under ${fmt(rules.divisions[1].min)}` %></small></span>
+              <span class="div-list__reward"><%= money(d.cash) %><small>+<%= fmt(d.xp) %> XP</small></span>
+            </li>
+          <% }) %>
+        </ul>
+        <p class="div-list__podium">Top 3 also earn <%= rules.podium.map(money).join(' / ') %>. The top 10 get a badge on their profile.</p>
+      </section>
+
+      <section class="card reveal" style="--i:4" aria-labelledby="season-rules-title">
+        <h2 class="card__title" id="season-rules-title">How it works</h2>
+        <ul class="season-rules">
+          <li>Every season starts at <%= fmt(rules.start) %> rating, or halfway back toward it from where you finished last season.</li>
+          <li>Win to gain rating, lose to drop. Upsets are worth more. Defending moves your rating a little less than attacking.</li>
+          <li>Only full-reward fights are ranked: fights between linked accounts and repeat wins on the same soldier don’t count.</li>
+          <li>Play <%= rules.placement %> ranked fights to place. Only placed soldiers are ranked and rewarded.</li>
+          <li>Seasons last <%= rules.days %> days.</li>
+        </ul>
+        <% if (isAdmin) { %>
+          <form method="post" action="/admin/seasons/end" class="season-admin" data-confirm="End season <%= season.number %> now? Everyone placed is paid and season <%= season.number + 1 %> starts immediately. This can't be undone.">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn--ghost btn--danger btn--sm" type="submit">Admin: end season now</button>
+          </form>
+        <% } %>
+      </section>
+
+      <% if (past.length) { %>
+        <section class="card reveal" style="--i:5" aria-labelledby="past-title">
+          <h2 class="card__title" id="past-title">Past seasons</h2>
+          <ul class="season-past">
+            <% past.forEach(function (s) { %>
+              <li>
+                <a class="season-past__row" href="/seasons/<%= s.number %>">
+                  <span class="season-past__num">S<%= s.number %></span>
+                  <span class="season-past__champ"><%= s.champion ? `Champion: ${s.champion}` : 'No one placed' %><small><%= fmt(s.placed) %> placed</small></span>
+                  <% if (s.you) { %><span class="tag">You: #<%= s.you.rank %></span><% } %>
+                </a>
+              </li>
+            <% }) %>
+          </ul>
+        </section>
+      <% } %>
+    </aside>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

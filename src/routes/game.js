@@ -18,11 +18,12 @@ const bbcode = require('../bbcode');
 const perks = require('../perks');
 const operations = require('../operations');
 const baseRules = require('../base');
+const seasonRules = require('../seasons');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -57,6 +58,10 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         const p = req.player;
         const building = p.base_build && p.base_build_until > Date.now() ? baseRules.FACILITIES_BY_ID.get(p.base_build) : null;
         return { unlocked: p.level >= baseRules.UNLOCK_LEVEL, unlockLevel: baseRules.UNLOCK_LEVEL, rating: baseRules.baseRating(p), maxRating: baseRules.maxRating, building, until: p.base_build_until };
+      })(),
+      season: (() => {
+        const s = seasonService.current();
+        return s ? { number: s.number, placement: seasonRules.PLACEMENT_FIGHTS, ...seasonService.standing(s, req.player.id) } : null;
       })(),
       upcomingEvents: eventService.upcoming(Date.now(), 3).filter((e) => e.starts_at - Date.now() < 7 * 24 * 3600 * 1000),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
@@ -320,6 +325,12 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         })(),
       },
       medals: medalService.rackFor(user.id),
+      season: (() => {
+        const s = seasonService.current();
+        const st = s && seasonService.standing(s, user.id);
+        return st && st.fights ? { number: s.number, ...st } : null;
+      })(),
+      seasonBadges: seasonService.badgesFor(user.id, 8),
       bioHtml: user.bio ? bbcode.render(user.bio) : '',
       blocked: isYou ? false : players.hasBlocked(req.player.id, user.id),
       bounty: {

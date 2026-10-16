@@ -13,7 +13,7 @@ const PAGE_SIZE = 25;
 const { RULES, SEVERITY } = require('../anticheat/rules');
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -289,8 +289,12 @@ function adminRoutes(players, adminRepo, anti, messages) {
       req.flash('error', 'Only PvP farming flags can be reversed.');
       return backToFlag(req, res);
     }
-    const { reversed, total } = players.transaction(() => anti.reverseBattles(req.flag.evidence.battleIds || []));
-    resolve(req, 'actioned', `Reversed ${reversed} battle(s), returning $${total} to ${req.flag.evidence.defender.name}.`);
+    const ids = req.flag.evidence.battleIds || [];
+    const { reversed, total, ratings } = players.transaction(() => ({
+      ...anti.reverseBattles(ids),
+      ratings: seasonService.reverseBattles(ids), // farmed fights don't keep their season rating either
+    }));
+    resolve(req, 'actioned', `Reversed ${reversed} battle(s), returning $${total} to ${req.flag.evidence.defender.name}.${ratings ? ` Undid the season rating from ${ratings} fight(s).` : ''}`);
     req.flash('success', `Returned $${total} from ${reversed} battle(s) to ${req.flag.evidence.defender.name}.`);
     backToFlag(req, res);
   });

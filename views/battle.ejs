@@ -31,6 +31,13 @@
     <% if (bounty) { %>
       <p class="battle-hero__war battle-hero__bounty"><svg aria-hidden="true"><use href="#i-cash"/></svg><%= battle.attacker_name %> collected <%= bounty.count === 1 ? 'a bounty' : `${bounty.count} bounties` %> worth $<%= bounty.total.toLocaleString('en-US') %> on <%= battle.defender_name %>.</p>
     <% } %>
+    <% if (ranked) { %>
+      <% const sg = (n) => (n > 0 ? '+' + n : '−' + Math.abs(n)); %>
+      <p class="battle-hero__war battle-hero__ranked"><svg aria-hidden="true"><use href="#i-podium"/></svg>
+        <a href="/seasons/<%= ranked.number %>">Season <%= ranked.number %></a> ranked fight<% if (ranked.reversed_at) { %>, reversed by an admin<% } else { %>:
+        <%= battle.attacker_name %> <%= sg(ranked.attacker_delta) %> (<%= ranked.attacker_after %>) · <%= battle.defender_name %> <%= sg(ranked.defender_delta) %> (<%= ranked.defender_after %>)<% } %>
+      </p>
+    <% } %>
     <% if (warFight) { %>
       <p class="battle-hero__war"><svg aria-hidden="true"><use href="#i-flag"/></svg>War fight: +<%= warFight.points %> point<%= warFight.points === 1 ? '' : 's' %> for [<%= warFight.tag %>] in <a href="/wars/<%= warFight.id %>"><%= warFight.title %></a></p>
     <% } %>

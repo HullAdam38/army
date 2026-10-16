@@ -23,6 +23,7 @@
           <% } %>
         </li>
         <% if (soldier.unit) { %><li><a class="unit-badge" href="/units/<%= soldier.unit.id %>"><svg aria-hidden="true"><use href="#i-flag"/></svg><span class="unit-tag">[<%= soldier.unit.tag %>]</span> <%= soldier.unit.name %></a> · <%= soldier.unit.role %></li><% } %>
+        <% if (season) { %><li><a class="season-badge season-badge--<%= season.division.id %>" href="/seasons"><svg aria-hidden="true"><use href="#i-podium"/></svg>Season <%= season.number %> · <%= season.placed ? `${season.division.name} · #${season.rank}` : 'Placing' %> · <%= season.rating.toLocaleString('en-US') %></a></li><% } %>
         <li>Enlisted <time datetime="<%= soldier.enlistedIso %>"><%= soldier.enlisted %></time></li>
       </ul>
     </div>
@@ -55,6 +56,13 @@
       <ul class="medal-pins" aria-label="Featured medals">
         <% medals.slice(0, 3).forEach(function (m) { %>
           <li><%- include('partials/medal', { m, size: 'sm' }) %><span class="medal-pins__name"><%= m.tierLabel %> <%= m.name %></span></li>
+        <% }) %>
+      </ul>
+    <% } %>
+    <% if (seasonBadges.length) { %>
+      <ul class="season-badges profile-hero__seasons" aria-label="Past PvP seasons">
+        <% seasonBadges.forEach(function (b) { %>
+          <li><a class="season-badge season-badge--<%= b.division %><%= b.tier === 'champion' ? ' season-badge--champion' : '' %>" href="/seasons/<%= b.number %>" title="Finished #<%= b.rank %> with <%= b.rating %> rating"><svg aria-hidden="true"><use href="#<%= b.tier === 'champion' ? 'i-star' : 'i-crest' %>"/></svg><%= b.label %></a></li>
         <% }) %>
       </ul>
     <% } %>

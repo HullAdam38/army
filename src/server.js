@@ -41,6 +41,8 @@ const { createBaseService } = require('./base-service');
 const { baseRoutes } = require('./routes/base');
 const { createDeploymentService } = require('./deployment-service');
 const { deploymentRoutes } = require('./routes/deployments');
+const { createSeasonService } = require('./season-service');
+const { seasonRoutes } = require('./routes/seasons');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -97,6 +99,9 @@ function createApp({
   const deploymentService = createDeploymentService(db, players, { effects });
   deploymentService.schedule();
   app.deployments = deploymentService; // exposed for tests
+  const seasonService = createSeasonService(db, players);
+  seasonService.schedule();
+  app.seasons = seasonService; // exposed for tests
   const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
@@ -159,10 +164,10 @@ function createApp({
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
-  app.use(pvpRoutes(players, anti, daily, warService, bountyService));
+  app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService));
   app.use(notificationRoutes(players));
   app.use(bankRoutes(players));
   app.use(trainingRoutes(players, daily));
@@ -173,11 +178,12 @@ function createApp({
   app.use(formatRoutes(players));
   app.use(baseRoutes(players, baseService));
   app.use(deploymentRoutes(players, deploymentService));
+  app.use(seasonRoutes(players, seasonService, adminRepo));
   app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players));
   app.use(eventRoutes(players, eventService, adminRepo));
-  app.use(adminRoutes(players, adminRepo, anti, messageService));
+  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });
