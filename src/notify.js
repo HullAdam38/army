@@ -22,6 +22,11 @@ function unlocksAt(level) {
   if (supplyNames.length) unlocks.push({ kind: 'unlock', message: `New supplies in the Armory: ${supplyNames.join(', ')}.`, link: '/armory#supplies' });
   for (const p of perks.perksAt(level)) unlocks.push({ kind: 'unlock', message: `Rank perk unlocked (${p.rank}): ${p.text}.`, link: '/missions' });
   if (level === 15) unlocks.push({ kind: 'unlock', message: 'Campaign 2 is open: Forward operations. Bigger missions, bigger pay.', link: '/missions#campaign-2' });
+  const campaignOpens = { 51: [4, 'The shadow war'], 66: [5, 'Iron horizon'], 81: [6, 'Endgame'] };
+  if (campaignOpens[level]) {
+    const [n, name] = campaignOpens[level];
+    unlocks.push({ kind: 'unlock', message: `Campaign ${n} is open: ${name}.`, link: `/missions#campaign-${n}` });
+  }
   if (level === 35) unlocks.push({ kind: 'unlock', message: 'Campaign 3 is open: Global war. The toughest missions in the game, for the high command.', link: '/missions#campaign-3' });
   if (level === units.CREATE_LEVEL) {
     unlocks.push({ kind: 'unlock', message: `You can now found your own unit for $${units.CREATE_COST.toLocaleString('en-US')}.`, link: '/units' });

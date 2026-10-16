@@ -19,15 +19,18 @@ test('xpToNext grows with level', () => {
   assert.ok(game.xpToNext(5) > game.xpToNext(4));
 });
 
-test('rankFor maps levels to ranks and caps at Commander-in-Chief', () => {
+test('rankFor maps levels to ranks and caps at Grand Marshal X', () => {
   assert.equal(game.rankFor(1).name, 'Recruit');
   assert.equal(game.rankFor(3).name, 'Private');
   assert.equal(game.rankFor(35).name, 'General');
   assert.equal(game.rankFor(37).name, 'General of the Army');
-  assert.equal(game.rankFor(999).name, 'Commander-in-Chief');
+  assert.equal(game.rankFor(54).name, 'Commander-in-Chief');
+  assert.equal(game.rankFor(55).name, 'Grand Marshal I');
+  assert.equal(game.rankFor(999).name, 'Grand Marshal X');
   assert.deepEqual(game.nextRankFor(1), { name: 'Private', grade: 'E-2', level: 3 });
   assert.deepEqual(game.nextRankFor(40), { name: 'Field Marshal', grade: 'O-13', level: 41 });
-  assert.equal(game.nextRankFor(49), null);
+  assert.deepEqual(game.nextRankFor(49), { name: 'Grand Marshal I', grade: 'GM-1', level: 55 });
+  assert.equal(game.nextRankFor(100), null);
 });
 
 test('energy regenerates over time and keeps partial progress', () => {

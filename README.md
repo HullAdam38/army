@@ -110,7 +110,7 @@ Nothing is banned automatically. See [SECURITY.md](SECURITY.md#anti-cheat) for t
 | **Energy** | Starts at 50. +1 every 2 minutes. Each mission costs energy. |
 | **Health** | Starts at 100. +1 every minute. Failed missions deal damage, and you can't deploy below 15 HP. |
 | **XP / Level** | Level *n* needs `100 × n^1.6` XP. Each level-up adds +5 max energy and +10 max health and refills both. |
-| **Rank** | Changes every 2 levels, from Recruit (E-1) through General (O-10, level 35) to Commander-in-Chief (O-17, level 49). |
+| **Rank** | Changes every 2 levels from Recruit (E-1) through General (O-10, level 35) to Commander-in-Chief (O-17, level 49), then every 5 levels through the honour ranks Grand Marshal I–X (GM-1 at 55 to GM-10 at 100). |
 | **Cash** | Earned from successful missions. Spend it in the Armory or at the field hospital ($2 per HP). Only cash on hand can be taken in PvP. |
 | **Bank** | Money in the bank is safe from attacks. Deposits cost 2% (minimum $1); withdrawals are free. There's deliberately **no interest**, so the bank never creates money. Balances are private. |
 | **Gear** | Four slots (weapon, body armour, helmet, tactical kit). Gear raises your combat rating, which adds up to +15% mission success, and armour reduces failure damage. |
@@ -248,12 +248,14 @@ Officer ranks bring permanent economic perks, never combat ones, so PvP balance 
 | Field Marshal | 41 | another +5% pay |
 | Theatre Commander | 45 | another +5% XP |
 | Commander-in-Chief | 49 | supply drops pay double |
+| Grand Marshal I, III, V, VII, IX | 55, 65, 75, 85, 95 | +3% pay each |
+| Grand Marshal II, IV, VI, VIII, X | 60, 70, 80, 90, 100 | +3% XP each |
 
 Pay and XP perks also apply to operations. The Missions page lists your perks, and HQ shows the next one. Anti-cheat's "impossible payout" limit includes the perk bonus.
 
 ## Campaign 3: levels 35–50
 
-**Global war** opens at level 35 with a notification. It continues every curve past where Campaign 2 stops, so the game has room to grow. Levels have no cap: XP keeps counting past 50, and Commander-in-Chief stays the top rank.
+**Global war** opens at level 35 with a notification. It continues every curve past where Campaign 2 stops, and campaigns 4–6 carry on to level 100 (below).
 
 ### Ranks
 
@@ -295,6 +297,39 @@ The best combat rating climbs from about 850 to about 1,770. Armour has steep di
 - **Title:** **Living Legend**, for reaching level 50.
 
 Rules live in `src/game.js` (missions), `src/operations.js`, `src/items.js`, `src/supplies.js` and `src/perks.js`.
+
+## Campaigns 4–6: levels 51–100
+
+Three more campaigns take the game to level 100. Each opens with a notification:
+- **Campaign 4, The shadow war (51–65):** Deep Cover, Hold the Great Dam, Hunt the Silent Sub, Skyhook, Crack the Black Vault, Cut the Strings.
+- **Campaign 5, Iron horizon (66–80):** Take the Space Elevator, Ride the Storm Front, Clear the Ghost City, Break the Iron Sea, Shut Down the Mind Forge, Hold the Horizon Gate.
+- **Campaign 6, Endgame (81–100):** Red Moon, Stop the World Engine, The Last Parliament, Eclipse, The Final Front, and Peace Through Strength at level 100.
+
+**Operations:**
+
+| Operation | Level | Completion bonus |
+|---|---|---|
+| Glass Dagger | 55 | $68,000 + 9,600 XP |
+| Deep Winter | 62 | $91,000 + 11,800 XP |
+| Iron Tempest | 70 | $123,000 + 14,400 XP |
+| Longest Night | 77 | $155,000 + 16,900 XP |
+| Starfall | 85 | $198,000 + 20,000 XP |
+| Endgame | 95 | $261,000 + 24,100 XP |
+
+**Gear:** 24 new items, four per slot type, for levels 52–98. Prices run from $550k to $2.7M. Health only grows steadily with level, so the new gear's attack grows gently. That keeps PvP fights between equals at about 3.5 hits all the way to level 100, and a test enforces at least 3 hits.
+
+**Ranks, perks and titles:**
+- Ten honour ranks, Grand Marshal I–X, one every 5 levels from 55. Each brings +3% pay or XP.
+- New titles: **Immortal** (level 75) and **Centurion** (level 100).
+
+**How the numbers were made:** they come from formulas that continue the existing curves from Zero Hour (level 50):
+- Pay grows with level^2.5, XP with level^1.7 (to keep pace with the levelling curve) and energy with level^0.8.
+- Tests check that every mission pays more cash and XP per energy than the one before, all the way to 100.
+- At level 100 a mission pays about $85k–108k, and a level takes about 158k XP.
+
+**Missions page:** campaigns you've reached and the next one show in full. Later ones collapse to a one-line teaser, and only operations you can run (plus the next to unlock) are listed, so new players aren't faced with 36 locked missions.
+
+Levels have no hard cap. XP keeps counting past 100, and Grand Marshal X stays the top rank. Admins can set any level up to 120 for testing.
 
 ## Training and scouting
 
@@ -488,7 +523,7 @@ Players earn **titles** and can show one under their callsign, on their profile 
 | Architect | forward base rating 15 |
 | War Hero | 100 war points |
 | Warlord | 5 unit wars won |
-| Veteran / The General / Living Legend | level 20 / 35 / 50 |
+| Veteran / The General / Living Legend / Immortal / Centurion | level 20 / 35 / 50 / 75 / 100 |
 | Contender | a PvP season finished in Gold or Elite |
 | Top Ten / Season Champion | a PvP season finished in the top 10 / first |
 

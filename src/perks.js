@@ -17,6 +17,10 @@ const PERKS = [
   { level: 41, rank: 'Field Marshal', key: 'missionCash', value: 0.05, text: 'another +5% mission pay' },
   { level: 45, rank: 'Theatre Commander', key: 'missionXp', value: 0.05, text: 'another +5% mission XP' },
   { level: 49, rank: 'Commander-in-Chief', key: 'supplyDrop', value: 0.5, text: 'supply drops pay double' },
+  // Honour ranks: a small boost at each Grand Marshal rank, alternating pay and XP.
+  ...['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'].map((n, i) => (i % 2 === 0
+    ? { level: 55 + 5 * i, rank: `Grand Marshal ${n}`, key: 'missionCash', value: 0.03, text: '+3% mission pay' }
+    : { level: 55 + 5 * i, rank: `Grand Marshal ${n}`, key: 'missionXp', value: 0.03, text: '+3% mission XP' })),
 ];
 
 const MAX_CASH_BONUS = PERKS.filter((p) => p.key === 'missionCash').reduce((n, p) => n + p.value, 0);

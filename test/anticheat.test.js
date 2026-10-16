@@ -95,7 +95,7 @@ test('every money change is in the ledger and the audit catches tampering', asyn
   assert.equal(flag.severity, 3);
   assert.match(flag.summary, /Banker's balances don't match/);
 
-  db.prepare("INSERT INTO ledger (user_id, delta_cash, reason, created_at) VALUES (?, 50000, 'mission', ?)").run(id, Date.now());
+  db.prepare("INSERT INTO ledger (user_id, delta_cash, reason, created_at) VALUES (?, 5000000, 'mission', ?)").run(id, Date.now()); // far beyond the best mission at any level
   anti.runScan();
   assert.match(flagsFor(db, 'impossible-payout')[0].summary, /larger than the game allows/);
 });

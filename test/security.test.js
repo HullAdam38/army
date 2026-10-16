@@ -70,7 +70,7 @@ test('admin change rules validate input', () => {
   assert.equal(admin.adjustCash(p, '-100', 'refund').player.cash, 0);
   assert.equal(admin.adjustCash(p, '$1,000', 'gift').player.cash, 1100);
   assert.match(admin.setLevel(p, '0', 'x').error, /between 1/);
-  assert.match(admin.setLevel(p, '61', 'x').error, /between 1/);
+  assert.match(admin.setLevel(p, String(admin.MAX_LEVEL + 1), 'x').error, /between 1/);
   const lv = admin.setLevel(p, '10', 'testing').player;
   assert.deepEqual([lv.level, lv.xp, lv.max_energy, lv.energy, lv.max_health, lv.health], [10, 0, 95, 95, 190, 190]);
 });

@@ -51,7 +51,7 @@ test('titles and chat unread through the app', async () => {
 
     // ----- Titles -----
     let page = (await ace.request('/account/profile')).text;
-    assert.match(page, /0 of 17 earned/);
+    assert.match(page, /0 of 19 earned/);
     assert.match(page, /Come back from 50 deployments/);
     // Can't pick a title you haven't earned.
     await ace.post('/account/title', { title: 'ghost' });
@@ -60,7 +60,7 @@ test('titles and chat unread through the app', async () => {
     const ins = db.prepare("INSERT INTO deployments (user_id, kind, started_at, ends_at, status) VALUES (?, 'patrol', 0, 1, 'returned')");
     for (let i = 0; i < 50; i += 1) ins.run(id('Ace'));
     page = (await ace.request('/account/profile')).text;
-    assert.match(page, /1 of 17 earned/);
+    assert.match(page, /1 of 19 earned/);
     assert.match(db.prepare("SELECT message FROM notifications WHERE kind = 'title' AND user_id = ?").get(id('Ace')).message, /New title unlocked: “Ghost”/);
     assert.equal((await ace.post('/account/title', { title: 'ghost' })).location, '/account/profile#title');
     assert.match((await rook.request('/profile/Ace')).text, /class="profile-hero__title callsign-title">“Ghost”/);

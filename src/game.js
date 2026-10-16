@@ -54,7 +54,11 @@ const RANKS = [
   { name: 'Theatre Commander', grade: 'O-15' },
   { name: 'Supreme Commander', grade: 'O-16' },
   { name: 'Commander-in-Chief', grade: 'O-17' },
+  // Honour ranks for campaigns 4–6: one every 5 levels from 55 to 100.
+  ...['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'].map((n, i) => ({ name: `Grand Marshal ${n}`, grade: `GM-${i + 1}`, level: 55 + 5 * i })),
 ];
+// Up to Commander-in-Chief a new rank comes every 2 levels; honour ranks set their own.
+RANKS.forEach((r, i) => { if (r.level == null) r.level = i * 2 + 1; });
 
 const MISSIONS = [
   {
@@ -223,6 +227,172 @@ const MISSIONS = [
     campaign: 3, minLevel: 50, energy: 85, chance: 0.36,
     xp: [1650, 1880], cash: [15000, 19000], damage: [75, 100],
   },
+
+  // Campaign 4: The Shadow War (levels 51–65), 5: Iron Horizon (66–80), 6: Endgame (81–100).
+  {
+    id: 'deep-cover',
+    favours: 'agility',
+    name: 'Deep Cover',
+    theatre: 'Neutral Capital',
+    brief: 'Live a lie for a month, then take the spymaster in a single night.',
+    campaign: 4, minLevel: 52, energy: 90, chance: 0.36,
+    xp: [1760, 2010], cash: [16500, 21000], damage: [75, 100],
+  },
+  {
+    id: 'great-dam',
+    favours: 'endurance',
+    name: 'Hold the Great Dam',
+    theatre: 'River Valley',
+    brief: 'Seize the dam before they blow it and flood half a country.',
+    campaign: 4, minLevel: 54, energy: 90, chance: 0.36,
+    xp: [1880, 2140], cash: [18100, 23100], damage: [80, 105],
+  },
+  {
+    id: 'silent-sub',
+    favours: 'agility',
+    name: 'Hunt the Silent Sub',
+    theatre: 'Northern Sea',
+    brief: 'Track the missile submarine under the ice and board it when it surfaces.',
+    campaign: 4, minLevel: 57, energy: 95, chance: 0.36,
+    xp: [2060, 2350], cash: [20800, 26400], damage: [80, 110],
+  },
+  {
+    id: 'skyhook',
+    favours: 'endurance',
+    name: 'Skyhook',
+    theatre: 'Stratosphere',
+    brief: 'A high-altitude jump onto the enemy’s airborne command post.',
+    campaign: 4, minLevel: 60, energy: 100, chance: 0.36,
+    xp: [2250, 2560], cash: [23600, 30000], damage: [85, 110],
+  },
+  {
+    id: 'black-vault',
+    favours: 'strength',
+    name: 'Crack the Black Vault',
+    theatre: 'Mountain Bunker',
+    brief: 'Their war chest and launch codes sit under a mountain. Take both.',
+    campaign: 4, minLevel: 62, energy: 100, chance: 0.35,
+    xp: [2380, 2710], cash: [25600, 32600], damage: [85, 115],
+  },
+  {
+    id: 'cut-the-strings',
+    favours: 'agility',
+    name: 'Cut the Strings',
+    theatre: 'Glass Tower',
+    brief: 'The man running both sides of this war lives on the top floor. Go up.',
+    campaign: 4, minLevel: 65, energy: 105, chance: 0.35,
+    xp: [2580, 2940], cash: [28800, 36700], damage: [90, 115],
+  },
+
+  {
+    id: 'space-elevator',
+    favours: 'endurance',
+    name: 'Take the Space Elevator',
+    theatre: 'Equatorial Spire',
+    brief: 'Climb the tether and take the station at the top.',
+    campaign: 5, minLevel: 67, energy: 105, chance: 0.35,
+    xp: [2710, 3090], cash: [31100, 39600], damage: [90, 120],
+  },
+  {
+    id: 'storm-front',
+    favours: 'strength',
+    name: 'Ride the Storm Front',
+    theatre: 'Hurricane Coast',
+    brief: 'Land in the eye of a hurricane while their defences are blind.',
+    campaign: 5, minLevel: 69, energy: 110, chance: 0.35,
+    xp: [2850, 3250], cash: [33500, 42600], damage: [90, 120],
+  },
+  {
+    id: 'ghost-city',
+    favours: 'agility',
+    name: 'Clear the Ghost City',
+    theatre: 'Abandoned Megacity',
+    brief: 'Ten million empty rooms, and an army hiding in them.',
+    campaign: 5, minLevel: 72, energy: 115, chance: 0.35,
+    xp: [3070, 3490], cash: [37200, 47400], damage: [95, 125],
+  },
+  {
+    id: 'iron-sea',
+    favours: 'strength',
+    name: 'Break the Iron Sea',
+    theatre: 'Fleet Anchorage',
+    brief: 'Sink the largest fleet ever assembled while it sits in port.',
+    campaign: 5, minLevel: 75, energy: 120, chance: 0.34,
+    xp: [3290, 3740], cash: [41200, 52500], damage: [100, 130],
+  },
+  {
+    id: 'mind-forge',
+    favours: 'endurance',
+    name: 'Shut Down the Mind Forge',
+    theatre: 'Research Arcology',
+    brief: 'Their soldiers are being made, not trained. Stop the factory.',
+    campaign: 5, minLevel: 77, energy: 120, chance: 0.34,
+    xp: [3440, 3920], cash: [44000, 56000], damage: [100, 130],
+  },
+  {
+    id: 'horizon-gate',
+    favours: 'strength',
+    name: 'Hold the Horizon Gate',
+    theatre: 'Continental Wall',
+    brief: 'The last gate in the wall. Nothing gets through tonight.',
+    campaign: 5, minLevel: 80, energy: 125, chance: 0.34,
+    xp: [3670, 4180], cash: [48400, 61700], damage: [100, 135],
+  },
+
+  {
+    id: 'red-moon',
+    favours: 'endurance',
+    name: 'Red Moon',
+    theatre: 'Lunar Base',
+    brief: 'They built a base on the far side of the moon. You’re going there.',
+    campaign: 6, minLevel: 83, energy: 125, chance: 0.34,
+    xp: [3910, 4450], cash: [53100, 67600], damage: [105, 135],
+  },
+  {
+    id: 'world-engine',
+    favours: 'strength',
+    name: 'Stop the World Engine',
+    theatre: 'Deep Drill Site',
+    brief: 'A drill to the mantle that threatens every coastline. Shut it down.',
+    campaign: 6, minLevel: 86, energy: 130, chance: 0.33,
+    xp: [4150, 4730], cash: [58000, 73900], damage: [105, 140],
+  },
+  {
+    id: 'last-parliament',
+    favours: 'endurance',
+    name: 'The Last Parliament',
+    theatre: 'Enemy Senate',
+    brief: 'Escort the peace delegation through a city that doesn’t want peace.',
+    campaign: 6, minLevel: 89, energy: 135, chance: 0.33,
+    xp: [4400, 5010], cash: [63200, 80500], damage: [110, 145],
+  },
+  {
+    id: 'eclipse',
+    favours: 'agility',
+    name: 'Eclipse',
+    theatre: 'Orbital Mirror Array',
+    brief: 'Their sun-mirror can burn a city. Turn it off before noon.',
+    campaign: 6, minLevel: 92, energy: 140, chance: 0.33,
+    xp: [4650, 5300], cash: [68700, 87400], damage: [115, 145],
+  },
+  {
+    id: 'final-front',
+    favours: 'strength',
+    name: 'The Final Front',
+    theatre: 'Every Front at Once',
+    brief: 'Coordinate every allied army in one push across the world.',
+    campaign: 6, minLevel: 96, energy: 145, chance: 0.33,
+    xp: [5000, 5700], cash: [76400, 97300], damage: [115, 150],
+  },
+  {
+    id: 'peace-through-strength',
+    favours: 'agility',
+    name: 'Peace Through Strength',
+    theatre: 'The World',
+    brief: 'The war ends tonight, on your terms.',
+    campaign: 6, minLevel: 100, energy: 150, chance: 0.32,
+    xp: [5360, 6110], cash: [84600, 107700], damage: [120, 155],
+  },
 ];
 
 const MISSIONS_BY_ID = new Map(MISSIONS.map((m) => [m.id, m]));
@@ -231,24 +401,26 @@ const CAMPAIGNS = [
   { id: 1, name: 'Home front', blurb: 'Patrols, escorts and raids close to home. Levels 1–14.' },
   { id: 2, name: 'Forward operations', blurb: 'Deep behind the line, for seasoned soldiers. Levels 15–34.' },
   { id: 3, name: 'Global war', blurb: 'The war goes worldwide, and only the high command can end it. Levels 35–50.' },
+  { id: 4, name: 'The shadow war', blurb: 'Spies, sabotage and the people pulling the strings. Levels 51–65.' },
+  { id: 5, name: 'Iron horizon', blurb: 'Megacities, space elevators and the biggest battles ever fought. Levels 66–80.' },
+  { id: 6, name: 'Endgame', blurb: 'From the far side of the moon to the enemy capital: end the war. Levels 81–100.' },
 ];
 
 function xpToNext(level) {
   return Math.round(100 * Math.pow(level, 1.6));
 }
 
+/** The rank a player holds at `level`: the highest one they've reached. */
 function rankFor(level) {
-  return RANKS[Math.min(Math.floor((level - 1) / 2), RANKS.length - 1)];
+  let rank = RANKS[0];
+  for (const r of RANKS) if (r.level <= level) rank = r;
+  return rank;
 }
 
 /** The next rank up and the level it arrives at, or null at the top. */
 function nextRankFor(level) {
-  const current = rankFor(level);
-  for (let l = level + 1; l <= RANKS.length * 2; l += 1) {
-    const rank = rankFor(l);
-    if (rank !== current) return { ...rank, level: l };
-  }
-  return null;
+  const next = RANKS.find((r) => r.level > level);
+  return next ? { ...next } : null;
 }
 
 function randInt([min, max], rng) {

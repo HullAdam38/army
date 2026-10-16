@@ -22,6 +22,14 @@
   <% } %>
 
   <% campaigns.forEach(function (c) { %>
+    <% if (c.state === 'teaser') { %>
+      <section class="campaign campaign--teaser" aria-labelledby="campaign-<%= c.id %>">
+        <div class="campaign__head">
+          <h2 id="campaign-<%= c.id %>" class="section-title"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg>Campaign <%= c.id %>: <%= c.name %></h2>
+          <p class="campaign__blurb"><%= c.blurb %> <strong>First mission at level <%= c.opensAt %>.</strong></p>
+        </div>
+      </section>
+      <% return; } %>
     <section class="campaign" aria-labelledby="campaign-<%= c.id %>">
       <div class="campaign__head">
         <h2 id="campaign-<%= c.id %>" class="section-title">Campaign <%= c.id %>: <%= c.name %></h2>
@@ -101,6 +109,7 @@
             </li>
           <% }) %>
         </ol>
+        <% if (laterOps > 0) { %><p class="muted campaign__more"><%= laterOps %> more operation<%= laterOps === 1 ? '' : 's' %> unlock at higher levels.</p><% } %>
       </section>
     <% } %>
   <% }) %>

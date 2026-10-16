@@ -9,7 +9,7 @@ const crypto = require('node:crypto');
 const game = require('./game');
 const { MAX_HEALTH_PER_ENDURANCE } = require('./training');
 
-const MAX_LEVEL = 60;
+const MAX_LEVEL = 120;
 const MAX_CASH_CHANGE = 10_000_000;
 
 function cleanReason(input) {

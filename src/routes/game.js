@@ -89,9 +89,20 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     res.render('missions', {
       title: 'Missions',
       nav: 'missions',
-      campaigns: game.CAMPAIGNS.map((c) => ({ ...c, missions: missions.filter((m) => m.campaign === c.id) })),
+      // Campaigns you've reached and the next one show in full; later ones collapse to a teaser.
+      campaigns: (() => {
+        let nextShown = false;
+        return game.CAMPAIGNS.map((c) => {
+          const list = missions.filter((m) => m.campaign === c.id);
+          const opensAt = Math.min(...list.map((m) => m.minLevel));
+          let state = 'open';
+          if (opensAt > me.level) { state = nextShown ? 'teaser' : 'next'; nextShown = true; }
+          return { ...c, missions: list, opensAt, state };
+        });
+      })(),
       missions,
-      operations: operations.OPERATIONS.map((op) => {
+      laterOps: operations.OPERATIONS.filter((op) => op.minLevel > me.level).length - (operations.OPERATIONS.some((op) => op.minLevel > me.level) ? 1 : 0),
+      operations: operations.OPERATIONS.filter((op, i, all) => op.minLevel <= me.level || all.findIndex((o) => o.minLevel > me.level) === i).map((op) => {
         const pr = progress.get(op.id);
         const stage = pr.stage ? op.stages[pr.stage - 1] : null;
         return {

@@ -17,7 +17,7 @@ test('campaign 3: missions, ranks and perks continue the curve to level 50', () 
   const c3 = game.MISSIONS.filter((m) => m.campaign === 3);
   assert.equal(c3.length, 6);
   assert.ok(c3.every((m) => m.minLevel >= 35 && m.minLevel <= 50));
-  assert.equal(game.CAMPAIGNS.at(-1).id, 3);
+  assert.equal(game.CAMPAIGNS[2].id, 3);
   // Expected pay per energy keeps rising across every mission in the game.
   const ev = (m) => (m.chance * (m.cash[0] + m.cash[1])) / 2 / m.energy;
   const sorted = [...game.MISSIONS].sort((a, b) => a.minLevel - b.minLevel);
@@ -60,7 +60,7 @@ test('campaign 3 gear and operations', () => {
     last = rating;
     assert.ok(combat.mitigation(stats.armor) < 0.7, `armour reduction stays under the cap at level ${level}`);
   }
-  assert.equal(ITEMS.filter((i) => i.minLevel > 35).length, 8);
+  assert.equal(ITEMS.filter((i) => i.minLevel > 35 && i.minLevel <= 50).length, 8);
 
   const tide = ops.OPERATIONS_BY_ID.get('black-tide');
   const crown = ops.OPERATIONS_BY_ID.get('iron-crown');
@@ -91,10 +91,12 @@ test('the missions page shows campaign 3 and its operations', async () => {
   try {
     await request('/register', { method: 'POST', form: { _csrf: await csrf('/login'), username: 'Marshal', email: 'm@x.com', password: 'password123', confirm: 'password123', adult: 'on', terms: 'on' } });
     let page = (await request('/missions')).text;
-    assert.match(page, /Campaign 3: Global war/);
-    assert.match(page, /Zero Hour/);
+    // Far-off campaigns are a one-line teaser for a new player.
+    assert.match(page, /Campaign 3: Global war<\/h2>[\s\S]*First mission at level 36/);
+    assert.doesNotMatch(page, /Zero Hour/);
     db.prepare('UPDATE users SET level = 41, max_energy = 300, energy = 300, max_health = 500, health = 500').run();
     page = (await request('/missions')).text;
+    assert.match(page, /Zero Hour/);
     assert.match(page, /Operation Black Tide/);
     assert.match((await request('/hq')).text, /Field Marshal/);
     // Run the first stage of Black Tide.

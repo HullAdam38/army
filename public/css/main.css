@@ -2965,3 +2965,9 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .callsign-title { font-family: var(--font-ui); font-weight: 600; font-style: italic; letter-spacing: 0.04em; color: var(--energy); }
 .profile-hero__title { margin-top: 2px; font-size: 1rem; }
 .chat-msg__title { font-size: 0.72rem; }
+
+/* Campaigns further ahead collapse to a one-line teaser on the missions page. */
+.campaign--teaser .campaign__head { padding: 14px 16px; background: var(--bg-raised); border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.campaign--teaser .section-title { display: flex; align-items: center; gap: 8px; color: var(--text-faint); }
+.campaign--teaser .inline-icon { width: 14px; height: 14px; }
+.campaign__more { margin-top: 12px; }
