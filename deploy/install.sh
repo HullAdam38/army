@@ -9,7 +9,8 @@
 #   REPO       the GitHub repository to pull          (default: git@github.com:HullAdam38/army.git)
 #   BRANCH     the branch to run                      (default: claude/determined-keller-i7bgjo)
 #   EMAIL      for Let's Encrypt expiry notices       (asked for if not set)
-#   DEPLOY_USER the Linux user who runs git pull      (default: whoever ran sudo)
+#   DEPLOY_USER the Linux user who owns the code      (default: whoever ran sudo; run as root and
+#               it creates 'eliteadmin' and gives it root's GitHub deploy key)
 #
 # What it does: installs Node.js 22, nginx, certbot and sqlite3; pulls the code
 # into APP_DIR; keeps the database in /var/lib/eliteforces and secrets in
@@ -34,8 +35,28 @@ say() { printf '\n\033[1;33m==> %s\033[0m\n' "$*"; }
 die() { printf '\n\033[1;31m%s\033[0m\n' "$*" >&2; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || die "Run with sudo: sudo bash deploy/install.sh"
-[ -n "$DEPLOY_USER" ] && [ "$DEPLOY_USER" != root ] || die "Run this with sudo from your normal user account (not as root directly), or set DEPLOY_USER."
 command -v apt-get >/dev/null || die "This script is for Ubuntu/Debian."
+
+# The code shouldn't belong to root. Logged in as root? Use (or create) a normal
+# user for it, and give that user the GitHub deploy key root made, if it has none.
+if [ -z "$DEPLOY_USER" ] || [ "$DEPLOY_USER" = root ]; then
+  DEPLOY_USER=eliteadmin
+  say "Running as root: the code will belong to a normal user, '$DEPLOY_USER'"
+  if ! id "$DEPLOY_USER" >/dev/null 2>&1; then
+    useradd --create-home --shell /bin/bash "$DEPLOY_USER"
+    echo "Created user '$DEPLOY_USER'."
+  fi
+fi
+id "$DEPLOY_USER" >/dev/null 2>&1 || die "User '$DEPLOY_USER' doesn't exist."
+DEPLOY_HOME="$(getent passwd "$DEPLOY_USER" | cut -d: -f6)"
+install -d -o "$DEPLOY_USER" -g "$DEPLOY_USER" -m 700 "$DEPLOY_HOME/.ssh"
+if ! ls "$DEPLOY_HOME"/.ssh/id_* >/dev/null 2>&1 && [ -f /root/.ssh/id_ed25519 ]; then
+  cp /root/.ssh/id_ed25519 /root/.ssh/id_ed25519.pub "$DEPLOY_HOME/.ssh/"
+  [ -f /root/.ssh/known_hosts ] && cp /root/.ssh/known_hosts "$DEPLOY_HOME/.ssh/"
+  chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$DEPLOY_HOME/.ssh"
+  chmod 600 "$DEPLOY_HOME/.ssh/id_ed25519"
+  echo "Gave '$DEPLOY_USER' the GitHub deploy key from /root/.ssh."
+fi
 
 # nginx needs ports 80 and 443. Don't silently break an existing Apache site.
 if systemctl is-active --quiet apache2 2>/dev/null; then
@@ -70,7 +91,8 @@ install -d -o root -g "$SERVICE_USER" -m 750 "$ENV_DIR"
 install -d -o root -g root -m 700 "$BACKUP_DIR"
 
 say "Getting the code into $APP_DIR (branch $BRANCH)"
-as_deployer() { sudo -u "$DEPLOY_USER" -H "$@"; }
+# Accept GitHub's host key the first time instead of stopping to ask.
+as_deployer() { sudo -u "$DEPLOY_USER" -H env GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new' "$@"; }
 if [ -d "$APP_DIR/.git" ]; then
   as_deployer git -C "$APP_DIR" fetch origin "$BRANCH"
   as_deployer git -C "$APP_DIR" checkout "$BRANCH"
@@ -169,7 +191,7 @@ cat <<DONE
          sudo bash $APP_DIR/deploy/admin.sh grant YourCallsign
     2. Fill in your details for the Terms of Service:
          sudo nano $ENV_FILE        then: sudo systemctl restart eliteforces
-    3. To update later (as $DEPLOY_USER):
+    3. To update later (as root, or as a user who can use sudo):
          bash $APP_DIR/deploy/update.sh
 
   Useful:

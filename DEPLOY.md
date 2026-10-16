@@ -13,7 +13,7 @@ Step by step for **Ubuntu 22.04** and **eliteforces.com**, with the code in **`/
 
 ## Before you start
 
-1. **A server** running Ubuntu 22.04 with at least 1 GB of RAM, and a user account that can use `sudo`. Log in as that user, not as root.
+1. **A server** running Ubuntu 22.04 with at least 1 GB of RAM. You can log in as `root` or as a user who can use `sudo`. Logged in as root, the installer creates a normal user, `eliteadmin`, to own the code (so `git pull` never runs as root) and gives it the deploy key you make in step 2.
 2. **DNS:** at your domain registrar, point both names at the server's IP address:
 
    | Type | Name | Value |
@@ -101,7 +101,7 @@ sudo systemctl restart eliteforces
 
 ## Updating the game
 
-When there's new code on GitHub, run this as the same user:
+When there's new code on GitHub, run this as root or as a user who can use sudo:
 
 ```bash
 bash /var/www/html/deploy/update.sh
@@ -152,7 +152,7 @@ Backups stay on the same server. For real safety, copy `/var/backups/eliteforces
 
 | Path | What |
 |---|---|
-| `/var/www/html` | the code (a git checkout, owned by your user) |
+| `/var/www/html` | the code (a git checkout, owned by your user, or `eliteadmin` if you installed as root) |
 | `/var/lib/eliteforces/eliteforces.db` | the database (owned by the `eliteforces` system user) |
 | `/etc/eliteforces/eliteforces.env` | settings and secrets, including the session secret |
 | `/etc/systemd/system/eliteforces.service` | the service |
