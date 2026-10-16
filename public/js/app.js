@@ -554,4 +554,127 @@
     setInterval(poll, POLL_MS);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
   }
+  /* ---------- Chat: live updates, send without reloading, Enter to send ---------- */
+  const chatBox = document.querySelector('[data-chat]');
+  if (chatBox) {
+    const win = chatBox.querySelector('.chat__window');
+    const list = chatBox.querySelector('[data-chat-list]');
+    const empty = chatBox.querySelector('[data-chat-empty]');
+    const form = chatBox.querySelector('[data-chat-form]');
+    const errorEl = chatBox.querySelector('[data-chat-error]');
+    const paused = list.hasAttribute('data-chat-paused'); // reading older history: no live updates
+    const token = (form || document).querySelector('input[name="_csrf"]');
+
+    const localTimes = (root) => root.querySelectorAll('[data-local-time]').forEach((el) => {
+      const d = new Date(el.getAttribute('datetime'));
+      if (!Number.isNaN(d.getTime())) el.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    });
+    const nearBottom = () => win.scrollHeight - win.scrollTop - win.clientHeight < 90;
+    const toBottom = () => { win.scrollTop = win.scrollHeight; };
+    const lastId = () => { const items = list.querySelectorAll('.chat-msg'); return items.length ? Number(items[items.length - 1].dataset.id) : 0; };
+    const syncEmpty = () => { if (empty) empty.hidden = list.children.length > 0; };
+    const add = (rows) => {
+      const stick = nearBottom();
+      for (const r of rows) {
+        if (document.getElementById(`m-${r.id}`)) continue;
+        // Server-rendered partial: escaped text plus allowlisted BBCode tags only.
+        list.insertAdjacentHTML('beforeend', r.html);
+        localTimes(list.lastElementChild);
+      }
+      syncEmpty();
+      if (stick) toBottom();
+    };
+
+    localTimes(list);
+    const target = location.hash.startsWith('#m-') && document.getElementById(location.hash.slice(1));
+    if (target) {
+      target.classList.add('is-target');
+      win.scrollTop = target.offsetTop - win.offsetTop - 40;
+    } else if (!paused) toBottom();
+
+    let busy = false;
+    const poll = async () => {
+      if (busy || paused) return;
+      busy = true;
+      try {
+        const res = await fetch(`${chatBox.dataset.pollUrl}?after=${lastId()}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+        if (res.ok) {
+          const data = await res.json();
+          add(data.messages || []);
+          for (const id of data.deleted || []) { const el = document.getElementById(`m-${id}`); if (el) el.remove(); }
+          syncEmpty();
+        }
+      } catch (err) {
+        /* offline: try again next tick */
+      } finally {
+        busy = false;
+      }
+    };
+    let timer = null;
+    const schedule = () => { clearInterval(timer); timer = setInterval(poll, document.hidden ? 20000 : 4000); };
+    schedule();
+    document.addEventListener('visibilitychange', () => { schedule(); if (!document.hidden) poll(); });
+
+    if (form) {
+      const ta = form.querySelector('textarea');
+      const showError = (msg) => { errorEl.textContent = msg || ''; errorEl.hidden = !msg; };
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!ta.value.trim()) return;
+        const btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(new FormData(form)),
+            credentials: 'same-origin',
+          });
+          if (res.status === 401) { window.location.href = '/login'; return; }
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.ok) { showError(data.error || 'Couldn’t send. Try again.'); return; }
+          showError('');
+          ta.value = '';
+          ta.dispatchEvent(new Event('input', { bubbles: true })); // refresh the character count
+          add([data]);
+          toBottom();
+        } catch (err) {
+          showError('Couldn’t reach the server. Check your connection.');
+        } finally {
+          btn.disabled = false;
+          ta.focus();
+        }
+      });
+      // Enter sends; Shift+Enter adds a new line.
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing) {
+          e.preventDefault();
+          form.requestSubmit();
+        }
+      });
+    }
+
+    // Deleting a message takes it off the screen straight away.
+    list.addEventListener('submit', async (e) => {
+      const del = e.target.closest('[data-chat-delete]');
+      if (!del) return;
+      e.preventDefault();
+      const item = del.closest('.chat-msg');
+      try {
+        const res = await fetch(del.action, {
+          method: 'POST',
+          headers: { Accept: 'application/json', 'X-CSRF-Token': token ? token.value : '' },
+          body: new URLSearchParams(new FormData(del)),
+          credentials: 'same-origin',
+        });
+        if (res.ok && item) item.remove();
+        syncEmpty();
+      } catch (err) { del.submit(); }
+    });
+
+    // One message menu open at a time; a tap elsewhere closes it.
+    document.addEventListener('click', (e) => {
+      for (const d of chatBox.querySelectorAll('.chat-msg__menu[open]')) if (!d.contains(e.target)) d.open = false;
+    });
+  }
 })();

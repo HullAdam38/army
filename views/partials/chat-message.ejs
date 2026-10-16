@@ -1,0 +1,43 @@
+<%# One chat message. Used by the chat page and by live updates (rendered server-side). %>
+<% const at = new Date(m.created_at); %>
+<li class="chat-msg<%= m.mine ? ' chat-msg--mine' : '' %><%= m.mentionsMe ? ' chat-msg--mention' : '' %><%= m.is_admin ? ' chat-msg--admin' : '' %>" id="m-<%= m.id %>" data-id="<%= m.id %>">
+  <div class="chat-msg__head">
+    <a class="chat-msg__name" href="/profile/<%= encodeURIComponent(m.username) %>"><% if (m.unit_tag) { %><span class="unit-tag">[<%= m.unit_tag %>]</span> <% } %><%= m.username %></a>
+    <% if (m.is_admin) { %><span class="tag tag--admin">Admin</span><% } %>
+    <span class="chat-msg__lvl">Lv <%= m.level %></span>
+    <time class="chat-msg__time" datetime="<%= at.toISOString() %>" data-local-time title="<%= at.toISOString().slice(0, 16).replace('T', ' ') %> UTC"><%= at.toISOString().slice(11, 16) %></time>
+    <details class="chat-msg__menu">
+      <summary aria-label="Message options"><span aria-hidden="true">⋯</span></summary>
+      <div class="chat-menu">
+        <% if (m.mine || isAdmin) { %>
+          <form method="post" action="/chat/messages/<%= m.id %>/delete" data-chat-delete>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="chat-menu__item" type="submit">Delete message</button>
+          </form>
+        <% } %>
+        <% if (!m.mine) { %>
+          <form method="post" action="/chat/messages/<%= m.id %>/report" class="chat-menu__form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="visually-hidden" for="why-<%= m.id %>">Reason for reporting</label>
+            <input id="why-<%= m.id %>" name="reason" maxlength="200" placeholder="Why? (optional)">
+            <button class="chat-menu__item chat-menu__item--warn" type="submit">Report to admins</button>
+          </form>
+        <% } %>
+        <% if (isAdmin && !m.mine) { %>
+          <form method="post" action="/chat/messages/<%= m.id %>/mute" class="chat-menu__form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="visually-hidden" for="mute-<%= m.id %>">Mute for</label>
+            <select id="mute-<%= m.id %>" name="duration">
+              <% Object.entries(mutes).forEach(function ([key, v]) { %><option value="<%= key %>"><%= v.label %></option><% }) %>
+            </select>
+            <label class="visually-hidden" for="mute-why-<%= m.id %>">Mute reason</label>
+            <input id="mute-why-<%= m.id %>" name="reason" maxlength="120" placeholder="Reason (shown to them)">
+            <label class="chat-menu__check"><input type="checkbox" name="delete" value="1" checked> Delete this message</label>
+            <button class="chat-menu__item chat-menu__item--admin" type="submit">Admin: mute <%= m.username %></button>
+          </form>
+        <% } %>
+      </div>
+    </details>
+</div>
+  <div class="chat-msg__body bb-content"><%- m.html %></div>
+</li>

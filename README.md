@@ -267,6 +267,33 @@ A checklist at the top of HQ walks new players through the game. Each step ticks
 
 Rules live in `src/tutorial.js`; detection and payouts are in `src/tutorial-service.js`. `createApp({ tutorial: false })` turns tutorial rewards off, which tests of other systems use so their cash checks stay exact.
 
+## Chat
+
+Live game chat at `/chat`, from the chat icon in the header on every page.
+
+- **Channels:** **Global** for every player, plus a private channel for your unit (`/chat/unit`), which only members can read.
+- **Live:**
+  - New messages appear every few seconds without reloading (it slows to every 20 seconds while the tab is hidden).
+  - Enter sends and Shift+Enter adds a new line.
+  - Times show in the player's own time zone.
+  - Without JavaScript, the page still works with normal form posts, and a failed post keeps your draft.
+- **Formatting:** BBCode through the shared editor, as everywhere else players write. On phones the chat toolbar keeps the essentials. Text sizes are toned down inside chat so one message can't take over the channel.
+- **@mentions:** `@callsign` links the player's profile, highlights the message for them and sends a notification. Notifications go out for up to 3 mentions per message, never to someone who has blocked you, and never to someone who can't read that channel.
+- **Limits:**
+  - Messages are up to 500 characters and 8 lines.
+  - You need level 2 to post (new accounts can still read).
+  - There's a 3-second cooldown, and the same message twice within a minute is refused.
+  - Messages are deleted after 30 days.
+- **Blocking:** messages from players you've blocked are hidden from you.
+- **Moderation:**
+  - Anyone can delete their own messages or report someone else's (with an optional reason) from the **⋯** menu.
+  - Admins can delete any message and mute the author (10 minutes to 7 days, with a reason shown to them) straight from that menu.
+  - **Admin › Chat** (`/admin/chat`) lists reported messages, each with a copy taken at the time, and offers Dismiss, Delete message, or Delete + mute. It also lists who is muted, with Unmute.
+  - Every action goes in the audit log.
+- **Terms:** sections 5 and 8 of the Terms of Service cover chat. The terms version was bumped, so players accept them again on their next visit.
+
+Rules live in `src/chat.js`; storage, history, polling, reports and mutes are in `src/chat-service.js`; routes are in `src/routes/chat.js`.
+
 ## Private messages
 
 - **Conversations:** two-player threads with a subject. Start one from a player's profile (**Message**) or from `/messages/new`.
@@ -523,6 +550,9 @@ src/
   deployments.js     offline patrols: pay, cap, outcomes (pure)
   deployment-service.js start, recall, return on time
   routes/deployments.js deployments page and actions
+  chat.js            chat rules: channels, limits, mentions, mutes (pure)
+  chat-service.js    chat storage, history, live polling, reports, mutes
+  routes/chat.js     chat pages, posting, polling, admin moderation
   seasons.js         PvP season rules: rating, divisions, rewards (pure)
   season-service.js  seasons storage, ranked fights, payouts, rollover
   routes/seasons.js  season page, past results, admin end
@@ -589,6 +619,7 @@ The markup is in `views/partials/tabbar.ejs`.
 - `/account/profile`: edit your profile bio
 - `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
 - `/base`: your forward base
+- `/chat`: live game chat (Global, plus your unit's channel); `/admin/chat` for reports and mutes
 - `/seasons`: the current PvP season (your division, standings, rewards, past seasons); `/seasons/:n` for a past season's final results
 - `/deployments`: send your soldier on patrol, recall early, read after-action reports
 - `/events`: live, upcoming and recent events; `/admin/events` to schedule them

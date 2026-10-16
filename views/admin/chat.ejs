@@ -1,0 +1,75 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Moderation</p>
+      <h1 class="page-head__title">Chat</h1>
+      <p class="page-head__sub">Chat messages players have reported, and who is muted. Each report keeps a copy of the message as it was. Deleting or muting from a report resolves every report on that message. Everything here is in the audit log.</p>
+    </div>
+  </div>
+
+  <nav class="tabs flag-tabs" aria-label="Report status">
+    <a class="tabs__tab" href="/admin/chat" <%- status === 'open' ? 'aria-current="page"' : '' %>>Open (<%= openReports %>)</a>
+    <a class="tabs__tab" href="/admin/chat?status=resolved" <%- status === 'resolved' ? 'aria-current="page"' : '' %>>Resolved</a>
+  </nav>
+
+  <% if (reports.length) { %>
+    <ol class="report-list">
+      <% reports.forEach(function (r) { %>
+        <li class="card report">
+          <div class="report__head">
+            <span>#<%= r.id %> · <strong><%= r.reporter %></strong> reported
+              <% if (r.author_id) { %><a href="/admin/players/<%= r.author_id %>"><strong><%= r.author %></strong></a><% } else { %>a deleted account<% } %>
+              in <%= r.where %><% if (r.times_reported > 1) { %> · reported <%= r.times_reported %> times<% } %><% if (r.mutedNow) { %> · <span class="tag tag--hospital">Muted</span><% } %><% if (r.message_deleted) { %> · <span class="tag">Deleted</span><% } %></span>
+            <span class="feed__time"><%= r.ago %></span>
+          </div>
+          <% if (r.reason) { %><p class="report__reason">Reason: “<%= r.reason %>”</p><% } %>
+          <div class="report__body bb-content"><%- r.html %></div>
+          <% if (status === 'open') { %>
+            <form method="post" action="/admin/chat/reports/<%= r.id %>" class="report__actions">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label class="visually-hidden" for="note-<%= r.id %>">Note</label>
+              <input id="note-<%= r.id %>" name="note" maxlength="200" placeholder="Note (audit log; shown to them if muted)">
+              <label class="visually-hidden" for="dur-<%= r.id %>">Mute for</label>
+              <select id="dur-<%= r.id %>" name="duration">
+                <% Object.entries(mutes).forEach(function ([key, v]) { %><option value="<%= key %>" <%- key === '1h' ? 'selected' : '' %>><%= v.label %></option><% }) %>
+              </select>
+              <button class="btn btn--ghost btn--sm" type="submit" name="action" value="dismiss">Dismiss</button>
+              <button class="btn btn--ghost btn--sm" type="submit" name="action" value="delete">Delete message</button>
+              <button class="btn btn--primary btn--sm" type="submit" name="action" value="mute">Delete + mute</button>
+            </form>
+          <% } else { %>
+            <p class="muted report__resolved">Resolved by <%= r.resolver || 'an admin' %> <%= r.resolvedAgo %>: <%= r.resolution %></p>
+          <% } %>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted"><%= status === 'open' ? 'No open chat reports.' : 'No resolved chat reports yet.' %></p>
+  <% } %>
+
+  <section class="card chat-muted" aria-labelledby="muted-title">
+    <h2 class="card__title" id="muted-title">Muted players</h2>
+    <% if (muted.length) { %>
+      <ul class="chat-muted__list">
+        <% muted.forEach(function (u) { %>
+          <li>
+            <a href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a>
+            <span class="muted">· <%= u.left %> left<%= u.chat_mute_reason ? ` · ${u.chat_mute_reason}` : '' %></span>
+            <form method="post" action="/admin/chat/unmute/<%= u.id %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn--ghost btn--sm" type="submit">Unmute</button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">Nobody is muted.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

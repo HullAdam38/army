@@ -1,0 +1,51 @@
+<%- include('partials/head', { bodyClass: 'page-game page-chat' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <section class="chat" data-chat data-poll-url="/chat/<%= channel.slug %>/poll" aria-labelledby="chat-title">
+    <header class="chat__head">
+      <div>
+        <p class="eyebrow">Comms</p>
+        <h1 class="chat__title" id="chat-title"><%= channel.slug === 'global' ? 'Global chat' : channel.name %></h1>
+      </div>
+      <% if (channels.length > 1) { %>
+        <nav class="tabs chat__tabs" aria-label="Channels">
+          <% channels.forEach(function (c) { %>
+            <a class="tabs__tab" href="/chat/<%= c.slug %>" <%- c.slug === channel.slug ? 'aria-current="page"' : '' %>><%= c.name %></a>
+          <% }) %>
+        </nav>
+      <% } else { %>
+        <a class="chat__hint" href="/units">Join a unit for a private unit channel</a>
+      <% } %>
+    </header>
+
+    <div class="chat__window">
+      <% if (older) { %>
+        <a class="chat__older" href="/chat/<%= channel.slug %>?before=<%= older %>">Load older messages</a>
+      <% } %>
+      <% if (viewingOlder) { %>
+        <a class="chat__older" href="/chat/<%= channel.slug %>">Back to the latest</a>
+      <% } %>
+      <ol class="chat-list" data-chat-list <%- viewingOlder ? 'data-chat-paused' : '' %> aria-live="polite" aria-relevant="additions">
+        <% messages.forEach(function (m) { %><%- include('partials/chat-message', { m, mutes }) %><% }) %>
+      </ol>
+      <p class="chat__empty muted" data-chat-empty <%- messages.length ? 'hidden' : '' %>><%= channel.slug === 'global' ? 'No messages yet. Say hello to the regiment.' : 'No messages yet. Rally your unit.' %></p>
+    </div>
+
+    <% if (blocker) { %>
+      <p class="chat__blocked"><svg aria-hidden="true"><use href="#i-lock"/></svg><%= blocker %></p>
+    <% } else { %>
+      <form method="post" action="/chat/<%= channel.slug %>" class="chat-composer" id="composer" data-chat-form>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('partials/bb-editor', { id: 'chat-body', name: 'body', value: draft, max: limits.max, rows: 2, compact: true, label: 'Message', placeholder: `Message ${channel.slug === 'global' ? 'Global' : 'your unit'}… Enter sends, Shift+Enter for a new line` }) %>
+        <div class="chat-composer__foot">
+          <p class="chat-composer__error" data-chat-error role="alert" hidden></p>
+          <button class="btn btn--primary btn--sm" type="submit">Send</button>
+        </div>
+      </form>
+    <% } %>
+    <p class="chat__rules muted">Be decent: no harassment, hate or spam. Use <strong>⋯</strong> on a message to report it. Players you’ve blocked are hidden. Type <strong>@callsign</strong> to mention someone.</p>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

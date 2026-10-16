@@ -431,6 +431,35 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_season_results_user ON season_results(user_id, season_id DESC);
 
+  -- Game chat (src/chat.js, src/chat-service.js). channel: 'global' or 'unit:<id>'.
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel     TEXT    NOT NULL,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    body        TEXT    NOT NULL,
+    created_at  INTEGER NOT NULL,
+    deleted_at  INTEGER,
+    deleted_by  INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_chat_channel ON chat_messages(channel, id);
+  CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_messages(user_id, id DESC);
+  CREATE TABLE IF NOT EXISTS chat_reports (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id   INTEGER NOT NULL,
+    channel      TEXT    NOT NULL,
+    reporter_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    body         TEXT    NOT NULL, -- a copy, kept even if the message is deleted
+    reason       TEXT,
+    status       TEXT    NOT NULL DEFAULT 'open',
+    resolution   TEXT,
+    resolved_by  INTEGER,
+    resolved_at  INTEGER,
+    created_at   INTEGER NOT NULL,
+    UNIQUE (message_id, reporter_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_chat_reports_status ON chat_reports(status, id DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -493,6 +522,8 @@ const ADDED_COLUMNS = [
   ['users', 'base_build_until', 'INTEGER'],
   ['users', 'base_build_cost', 'INTEGER'],
   ['users', 'deploy_until', 'INTEGER'],
+  ['users', 'chat_muted_until', 'INTEGER'],
+  ['users', 'chat_mute_reason', 'TEXT'],
 ];
 
 function migrate(db) {

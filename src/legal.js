@@ -12,7 +12,7 @@
 
 const rules = require('./anticheat/rules');
 
-const TERMS_VERSION = '2026-10-15.2'; // .2: private messages added to sections 5 and 8
+const TERMS_VERSION = '2026-10-16.1'; // chat added to sections 5 and 8
 const EFFECTIVE_DATE = '15 October 2026';
 const MIN_AGE = 18;
 

@@ -43,6 +43,8 @@ const { createDeploymentService } = require('./deployment-service');
 const { deploymentRoutes } = require('./routes/deployments');
 const { createSeasonService } = require('./season-service');
 const { seasonRoutes } = require('./routes/seasons');
+const { createChatService } = require('./chat-service');
+const { chatRoutes } = require('./routes/chat');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -102,6 +104,8 @@ function createApp({
   const seasonService = createSeasonService(db, players);
   seasonService.schedule();
   app.seasons = seasonService; // exposed for tests
+  const chatService = createChatService(db, players);
+  chatService.schedule();
   const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
@@ -179,11 +183,12 @@ function createApp({
   app.use(baseRoutes(players, baseService));
   app.use(deploymentRoutes(players, deploymentService));
   app.use(seasonRoutes(players, seasonService, adminRepo));
+  app.use(chatRoutes(players, chatService, unitRepo, adminRepo));
   app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players));
   app.use(eventRoutes(players, eventService, adminRepo));
-  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService));
+  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });
