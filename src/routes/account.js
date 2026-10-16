@@ -8,7 +8,7 @@ const { createRequireAuth } = require('../require-auth');
 
 const MAX_BIO = 2000; // BBCode source, tags included
 
-function accountRoutes(players) {
+function accountRoutes(players, medalService) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   // Guessing the current password from a hijacked session gets throttled too.
@@ -59,7 +59,19 @@ function accountRoutes(players) {
   router.get('/account/profile', requireAuth, (req, res) => {
     const draft = req.session.bioDraft;
     delete req.session.bioDraft;
-    res.render('account-profile', { title: 'Edit profile', nav: 'profile', bio: draft === undefined ? req.player.bio : draft, maxBio: MAX_BIO });
+    medalService.checkTitles(req.player.id); // catch anything earned while away
+    res.render('account-profile', {
+      title: 'Edit profile', nav: 'profile', bio: draft === undefined ? req.player.bio : draft, maxBio: MAX_BIO,
+      titles: medalService.titlesFor(req.player.id),
+      currentTitle: players.findById(req.player.id).title || '',
+    });
+  });
+
+  // Pick which earned title shows under your callsign (or none).
+  router.post('/account/title', requireAuth, (req, res) => {
+    const out = medalService.setTitle(req.player.id, String(req.body.title || ''));
+    req.flash(out.error ? 'error' : 'success', out.error || (out.title ? `Your title is now “${out.title.name}”.` : 'Title removed.'));
+    res.redirect('/account/profile#title');
   });
 
   router.post('/account/profile', requireAuth, (req, res) => {

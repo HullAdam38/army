@@ -20,6 +20,7 @@ const operations = require('../operations');
 const baseRules = require('../base');
 const seasonRules = require('../seasons');
 const tuning = require('../tuning');
+const titles = require('../titles');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
@@ -290,6 +291,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       nav: user.id === req.player.id ? 'profile' : null,
       soldier: {
         username: user.username,
+        title: titles.nameOf(user.title),
         level: user.level,
         rank: rank.name,
         grade: rank.grade,

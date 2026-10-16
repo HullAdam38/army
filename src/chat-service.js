@@ -1,6 +1,7 @@
 'use strict';
 
 const chat = require('./chat');
+const titles = require('./titles');
 const bbcode = require('./bbcode');
 
 /**
@@ -11,7 +12,7 @@ const bbcode = require('./bbcode');
 function createChatService(db, players) {
   const MESSAGE_COLUMNS = `
     m.id, m.channel, m.user_id, m.body, m.created_at,
-    u.username, u.level, u.is_admin, un.tag AS unit_tag`;
+    u.username, u.level, u.is_admin, u.title, un.tag AS unit_tag`;
   const FROM = `
     FROM chat_messages m JOIN users u ON u.id = m.user_id LEFT JOIN units un ON un.id = u.unit_id
     WHERE m.channel = ?1 AND m.deleted_at IS NULL AND u.banned_at IS NULL
@@ -31,6 +32,9 @@ function createChatService(db, players) {
     blocked: db.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?'),
     // Mention notifications are links back to chat; the latest one from this author tells us if they're pinging too often.
     lastMention: db.prepare("SELECT MAX(created_at) AS at FROM notifications WHERE user_id = ? AND kind = 'chat' AND message LIKE ? ESCAPE '\\'"),
+    markRead: db.prepare(`INSERT INTO chat_reads (user_id, channel, last_id) VALUES (?, ?, ?)
+                          ON CONFLICT(user_id, channel) DO UPDATE SET last_id = MAX(last_id, excluded.last_id)`),
+    latestId: db.prepare('SELECT MAX(id) AS id FROM chat_messages WHERE channel = ?'),
     reportsSince: db.prepare('SELECT COUNT(*) AS n FROM chat_reports WHERE reporter_id = ? AND created_at >= ?'),
 
     report: db.prepare(`INSERT OR IGNORE INTO chat_reports (message_id, channel, reporter_id, author_id, body, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`),
@@ -63,6 +67,7 @@ function createChatService(db, players) {
       const html = chat.linkMentions(bbcode.render(r.body), spelled, me ? me.username : null);
       return {
         ...r,
+        titleName: titles.nameOf(r.title),
         html,
         mine: Boolean(me && r.user_id === me.id),
         mentionsMe: Boolean(me && r.user_id !== me.id && html.includes('chat-mention--you')),
@@ -72,6 +77,12 @@ function createChatService(db, players) {
 
   return {
     view,
+
+    /** Marks a channel read up to `lastId` (default: its newest message). */
+    markRead(userId, channel, lastId = null) {
+      const id = lastId ?? stmts.latestId.get(channel).id;
+      if (id) stmts.markRead.run(userId, channel, id);
+    },
 
     /** The latest page of a channel (oldest first), or the page before message `before`. */
     history(channel, me, { before = null, limit = chat.PAGE_SIZE } = {}) {

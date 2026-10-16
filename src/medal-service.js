@@ -1,6 +1,7 @@
 'use strict';
 
 const medals = require('./medals');
+const titles = require('./titles');
 const game = require('./game');
 const { announceLevels } = require('./notify');
 
@@ -21,6 +22,10 @@ function createMedalService(db, players) {
         COALESCE(SUM(defender_id = ?1 AND attacker_won = 0 AND defender_xp > 0), 0) AS defenses
       FROM battles WHERE (attacker_id = ?1 OR defender_id = ?1) AND reversed_at IS NULL`),
     warPoints: db.prepare('SELECT COALESCE(SUM(points), 0) AS n FROM unit_war_battles WHERE user_id = ?'),
+    seasonBest: db.prepare('SELECT MIN(rank) AS r FROM season_results WHERE user_id = ?'),
+    titles: db.prepare('SELECT title_id, earned_at FROM user_titles WHERE user_id = ?'),
+    awardTitle: db.prepare('INSERT OR IGNORE INTO user_titles (user_id, title_id, earned_at) VALUES (?, ?, ?)'),
+    setTitle: db.prepare('UPDATE users SET title = ? WHERE id = ?'),
     seasonsGold: db.prepare("SELECT COUNT(*) AS n FROM season_results WHERE user_id = ? AND division IN ('gold', 'elite')"),
     deployments: db.prepare("SELECT COUNT(*) AS n FROM deployments WHERE user_id = ? AND status = 'returned'"),
     bounties: db.prepare("SELECT COUNT(DISTINCT battle_id) AS n FROM bounties WHERE claimer_id = ? AND status = 'claimed'"),
@@ -52,6 +57,7 @@ function createMedalService(db, players) {
       bounties: stmts.bounties.get(userId).n,
       deployments: stmts.deployments.get(userId).n,
       seasonsGold: stmts.seasonsGold.get(userId).n,
+      seasonBestRank: stmts.seasonBest.get(userId).r || 0,
       base: require('./base').baseRating(u),
     };
   }
@@ -96,7 +102,35 @@ function createMedalService(db, players) {
         if (!found.length) break;
         awarded.push(...found);
       }
+      this.checkTitles(userId, now);
       return awarded;
+    },
+
+    /** Records titles the player has newly earned and tells them. Returns the new titles. */
+    checkTitles(userId, now = Date.now()) {
+      const m = metrics(userId);
+      if (!m) return [];
+      const owned = new Set(stmts.titles.all(userId).map((r) => r.title_id));
+      const fresh = titles.newlyEarned(m, owned).filter((t) => stmts.awardTitle.run(userId, t.id, now).changes);
+      for (const t of fresh) {
+        players.notify(userId, 'title', `New title unlocked: “${t.name}”. Show it under your callsign from your profile settings.`, '/account/profile#title');
+      }
+      return fresh;
+    },
+
+    /** Every title with whether (and when) the player earned it. */
+    titlesFor(userId) {
+      const owned = new Map(stmts.titles.all(userId).map((r) => [r.title_id, r.earned_at]));
+      return titles.TITLES.map((t) => ({ id: t.id, name: t.name, how: t.how, earned: owned.has(t.id), earnedAt: owned.get(t.id) || null }));
+    },
+
+    /** Shows a title under the player's callsign ('' for none). Only earned titles. */
+    setTitle(userId, id) {
+      if (!id) { stmts.setTitle.run(null, userId); return { title: null }; }
+      const owned = new Set(stmts.titles.all(userId).map((r) => r.title_id));
+      if (!titles.TITLES_BY_ID.has(id) || !owned.has(id)) return { error: 'You haven’t earned that title yet.' };
+      stmts.setTitle.run(id, userId);
+      return { title: titles.TITLES_BY_ID.get(id) };
     },
 
     /** The full medal case for a player: every medal with progress, plus pins. */

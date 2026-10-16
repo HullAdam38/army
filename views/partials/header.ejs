@@ -17,8 +17,12 @@
         <a href="/profile/<%= encodeURIComponent(player.username) %>" class="game-nav__link" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>Profile</a>
         <% if (isAdmin) { %><a href="/admin" class="game-nav__link game-nav__link--admin" <%- nav === 'admin' ? 'aria-current="page"' : '' %>>Admin</a><% } %>
       </nav>
-      <a class="bell bell--chat" href="/chat" aria-label="Chat" <%- nav === 'chat' ? 'aria-current="page"' : '' %>>
+      <% const cu = chatUnread || { unit: 0, global: false }; %>
+      <a class="bell bell--chat" href="<%= cu.unit ? '/chat/unit' : '/chat' %>" data-chat-bell
+         aria-label="Chat<%= cu.unit ? `, ${cu.unit} new in your unit channel` : cu.global ? ', new messages' : '' %>" <%- nav === 'chat' ? 'aria-current="page"' : '' %>>
         <svg aria-hidden="true"><use href="#i-chat"/></svg>
+        <span class="bell__count" data-chat-count <%- cu.unit ? '' : 'hidden' %>><%= cu.unit > 99 ? '99+' : cu.unit %></span>
+        <span class="bell__dot" data-chat-dot <%- !cu.unit && cu.global ? '' : 'hidden' %>></span>
       </a>
       <a class="bell bell--mail" href="/messages" data-mail data-count="<%= unreadMessages %>"
          aria-label="Messages<%= unreadMessages ? `, ${unreadMessages} unread` : '' %>" <%- nav === 'messages' ? 'aria-current="page"' : '' %>>

@@ -22,6 +22,34 @@
       </div>
     </form>
   </section>
+
+  <section class="card title-picker reveal" style="--i:2" id="title" aria-labelledby="title-heading">
+    <h2 class="card__title" id="title-heading">Title</h2>
+    <% const earned = titles.filter((t) => t.earned); %>
+    <p class="muted">Pick a title to show under your callsign on your profile and in chat. You earn titles by playing; locked ones show how.</p>
+    <form method="post" action="/account/title">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <fieldset class="title-grid">
+        <legend class="visually-hidden">Choose a title</legend>
+        <label class="title-opt<%= !currentTitle ? ' is-current' : '' %>">
+          <input type="radio" name="title" value="" <%- !currentTitle ? 'checked' : '' %>>
+          <span class="title-opt__name">No title</span>
+          <span class="title-opt__how">Just your rank.</span>
+        </label>
+        <% titles.forEach(function (t) { %>
+          <label class="title-opt<%= t.earned ? '' : ' is-locked' %><%= currentTitle === t.id ? ' is-current' : '' %>">
+            <input type="radio" name="title" value="<%= t.id %>" <%- currentTitle === t.id ? 'checked' : '' %> <%- t.earned ? '' : 'disabled' %>>
+            <span class="title-opt__name"><% if (!t.earned) { %><svg aria-hidden="true"><use href="#i-lock"/></svg><% } %><%= t.name %></span>
+            <span class="title-opt__how"><%= t.earned ? 'Earned' : t.how %></span>
+          </label>
+        <% }) %>
+      </fieldset>
+      <div class="compose__actions">
+        <button class="btn btn--primary" type="submit" <%- earned.length ? '' : 'disabled' %>>Save title</button>
+        <span class="muted compose__hint"><%= earned.length %> of <%= titles.length %> earned</span>
+      </div>
+    </form>
+  </section>
 </main>
 
 <%- include('partials/foot') %>

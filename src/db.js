@@ -477,6 +477,21 @@ const SCHEMA = `
     UNIQUE (message_id, reporter_id)
   );
   CREATE INDEX IF NOT EXISTS idx_chat_reports_status ON chat_reports(status, id DESC);
+  -- The last chat message each player has seen per channel (for unread counts).
+  CREATE TABLE IF NOT EXISTS chat_reads (
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    channel  TEXT    NOT NULL,
+    last_id  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, channel)
+  );
+
+  -- Titles (src/titles.js): which ones a player has earned.
+  CREATE TABLE IF NOT EXISTS user_titles (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title_id   TEXT    NOT NULL,
+    earned_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, title_id)
+  );
 
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
@@ -542,6 +557,7 @@ const ADDED_COLUMNS = [
   ['users', 'deploy_until', 'INTEGER'],
   ['users', 'chat_muted_until', 'INTEGER'],
   ['users', 'chat_mute_reason', 'TEXT'],
+  ['users', 'title', 'TEXT'],
 ];
 
 function migrate(db) {

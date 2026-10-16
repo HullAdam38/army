@@ -2943,3 +2943,25 @@ section[id], li[id] { scroll-margin-top: 190px; }
   .setting__control { justify-items: start; grid-auto-flow: column; align-items: center; justify-content: start; gap: 10px; }
   .settings-save .btn { width: 100%; }
 }
+
+/* Chat unread: a count for your unit channel, a dot for new Global messages. */
+.bell--chat .bell__count { background: var(--health); color: #07140b; }
+.bell__dot { position: absolute; top: 7px; right: 6px; width: 8px; height: 8px; background: var(--xp); border-radius: 50%; box-shadow: 0 0 0 2px var(--bg); }
+.bell__dot[hidden], .bell__count[hidden] { display: none; }
+.chat__unread { display: inline-block; margin-left: 4px; padding: 0 6px; font-size: 0.66rem; line-height: 1.5; color: #07140b; background: var(--health); border-radius: 999px; }
+
+/* ---------- Titles ---------- */
+.title-picker { margin-top: 16px; }
+.title-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 8px; margin: 14px 0; padding: 0; border: 0; }
+.title-opt { position: relative; display: grid; gap: 2px; padding: 10px 12px 10px 36px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; transition: border-color 0.2s; }
+.title-opt:hover { border-color: var(--line-strong); }
+.title-opt input { position: absolute; left: 12px; top: 13px; accent-color: var(--accent); }
+.title-opt.is-current, .title-opt:has(input:checked) { border-color: rgb(255 107 26 / 0.6); background: linear-gradient(180deg, rgb(255 107 26 / 0.08), transparent), var(--bg-raised); }
+.title-opt.is-locked { cursor: not-allowed; opacity: 0.6; }
+.title-opt__name { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-ui); font-weight: 700; }
+.title-opt__name svg { width: 13px; height: 13px; color: var(--text-faint); }
+.title-opt__how { font-size: 0.82rem; color: var(--text-muted); }
+/* Shown under callsigns. */
+.callsign-title { font-family: var(--font-ui); font-weight: 600; font-style: italic; letter-spacing: 0.04em; color: var(--energy); }
+.profile-hero__title { margin-top: 2px; font-size: 1rem; }
+.chat-msg__title { font-size: 0.72rem; }

@@ -44,13 +44,19 @@ function chatRoutes(players, chatService, unitRepo, adminRepo) {
     const before = Number(req.query.before) || null;
     const messages = chatService.history(channel.key, me, { before });
     const unit = me.unit_id ? unitRepo.findById(me.unit_id) : null;
+    // Opening the latest page reads the channel; refresh the header's unread marks to match.
+    if (!before) {
+      chatService.markRead(me.id, channel.key);
+      res.locals.chatUnread = players.chatUnread(me);
+    }
+    const unread = res.locals.chatUnread;
     const draft = req.session.chatDraft && req.session.chatDraft.channel === channel.key ? req.session.chatDraft.body : '';
     delete req.session.chatDraft;
     res.render('chat', {
       title: `${channel.slug === 'global' ? 'Global' : 'Unit'} chat`,
       nav: 'chat',
       channel,
-      channels: [{ slug: 'global', name: 'Global' }, ...(unit ? [{ slug: 'unit', name: `[${unit.tag}] Unit` }] : [])],
+      channels: [{ slug: 'global', name: 'Global', unread: unread.global ? 1 : 0, dot: true }, ...(unit ? [{ slug: 'unit', name: `[${unit.tag}] Unit`, unread: unread.unit }] : [])],
       messages,
       older: messages.length === chat.PAGE_SIZE ? messages[0].id : null,
       viewingOlder: Boolean(before),
@@ -83,6 +89,8 @@ function chatRoutes(players, chatService, unitRepo, adminRepo) {
     if (!channel) return res.status(404).json({ ok: false });
     try {
       const out = chatService.poll(channel.key, req.player, Number(req.query.after) || 0);
+      // The page is open, so whatever arrives has been seen.
+      if (out.messages.length) chatService.markRead(req.player.id, channel.key, out.messages.at(-1).id);
       res.json({ ok: true, messages: await renderRows(req, res, out.messages), deleted: out.deleted });
     } catch (err) { next(err); }
   });

@@ -306,6 +306,7 @@ Live game chat at `/chat`, from the chat icon in the header on every page.
   - There's a 3-second cooldown, and the same message twice within a minute is refused.
   - Messages are deleted after 30 days.
 - **Blocking:** messages from players you've blocked are hidden from you.
+- **Unread:** the chat icon shows a green count of new messages in your unit channel, linking straight to it, and a blue dot when Global has new messages. Channel tabs show the same counts. Both update live with the rest of the header, and opening a channel marks it read. Your own messages, deleted messages and those from blocked or suspended players never count.
 - **Moderation:**
   - Anyone can delete their own messages or report someone else's (with an optional reason) from the **⋯** menu.
   - Admins can delete any message and mute the author (10 minutes to 7 days, with a reason shown to them) straight from that menu.
@@ -423,6 +424,29 @@ Rules live in `src/units.js`; data access is in `src/units-repo.js`.
   - battle reports note the points a fight scored
 
 Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-service.js`.
+
+## Titles
+
+Players earn **titles** and can show one under their callsign, on their profile and next to their name in chat. Pick one (or none) under **Edit profile › Title**. Locked titles show how to earn them. Titles use the same career numbers as medals, so they're checked after every action, and each new one arrives as a notification.
+
+| Title | Earned by |
+|---|---|
+| Field Operator | 100 missions won |
+| Ghost | 50 deployments completed |
+| Brawler | 50 PvP wins as attacker |
+| Enforcer | 25 knockouts |
+| The Wall | 50 attacks held off |
+| Headhunter | 10 bounties collected |
+| Drill Sergeant | 150 training points |
+| Ever-Present | a 30-day supply drop streak |
+| Architect | forward base rating 15 |
+| War Hero | 100 war points |
+| Warlord | 5 unit wars won |
+| Veteran / The General | level 20 / level 35 |
+| Contender | a PvP season finished in Gold or Elite |
+| Top Ten / Season Champion | a PvP season finished in the top 10 / first |
+
+The rules are in `src/titles.js`. Earning and choosing titles is handled in `src/medal-service.js`.
 
 ## Medals
 
@@ -574,6 +598,7 @@ src/
   tuning.js          admin game settings: registry, defaults, live values
   settings-service.js game settings storage, history, anti-cheat window
   routes/settings.js Admin › Game settings page
+  titles.js          earnable titles shown under callsigns (pure)
   chat.js            chat rules: channels, limits, mentions, mutes (pure)
   chat-service.js    chat storage, history, live polling, reports, mutes
   routes/chat.js     chat pages, posting, polling, admin moderation

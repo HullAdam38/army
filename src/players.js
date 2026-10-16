@@ -38,6 +38,13 @@ function createPlayerRepo(db) {
     acceptTerms: db.prepare('UPDATE users SET terms_version = ?, terms_accepted_at = ? WHERE id = ?'),
     hasBlocked: db.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?'),
     setBio: db.prepare('UPDATE users SET bio = ?, bio_updated_at = ? WHERE id = ?'),
+    // Chat messages from others since the player last looked at the channel (deleted, suspended and blocked authors don't count).
+    chatUnread: db.prepare(`
+      SELECT COUNT(*) AS n FROM (SELECT m.id FROM chat_messages m JOIN users u ON u.id = m.user_id
+        WHERE m.channel = ?1 AND m.id > COALESCE((SELECT last_id FROM chat_reads WHERE user_id = ?2 AND channel = ?1), 0)
+          AND m.user_id != ?2 AND m.deleted_at IS NULL AND u.banned_at IS NULL
+          AND m.user_id NOT IN (SELECT blocked_id FROM blocks WHERE user_id = ?2)
+        LIMIT 100)`),
     // Conversations with a message from someone else since you last read them.
     unreadMessages: db.prepare(`
       SELECT COUNT(*) AS n FROM conversation_members m JOIN conversations c ON c.id = m.conversation_id
@@ -138,6 +145,11 @@ function createPlayerRepo(db) {
     /** Records which version of the Terms of Service the player accepted, and when. */
     acceptTerms: (id, version, now = Date.now()) => stmts.acceptTerms.run(version, now, id),
     unreadMessageCount: (id) => stmts.unreadMessages.get(id).n,
+    /** Unread chat for the header: a count for the unit channel, and whether Global has anything new. */
+    chatUnread: (user) => ({
+      unit: user.unit_id ? stmts.chatUnread.get(`unit:${user.unit_id}`, user.id).n : 0,
+      global: stmts.chatUnread.get('global', user.id).n > 0,
+    }),
     hasBlocked: (id, otherId) => Boolean(stmts.hasBlocked.get(id, otherId)),
     /** Saves a player's profile bio (BBCode source; render with bbcode.render). */
     setBio: (id, bio, now = Date.now()) => stmts.setBio.run(bio, now, id),

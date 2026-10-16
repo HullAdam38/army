@@ -9,6 +9,7 @@
     <div class="profile-hero__body">
       <p class="eyebrow">Service record</p>
       <h1 id="profile-name" class="profile-hero__name"><%= soldier.username %></h1>
+      <% if (soldier.title) { %><p class="profile-hero__title callsign-title">“<%= soldier.title %>”</p><% } %>
       <p class="profile-hero__rank"><%= soldier.rank %> · Level <%= soldier.level %></p>
       <ul class="profile-hero__meta">
         <li>

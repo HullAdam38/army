@@ -26,6 +26,7 @@ function notificationRoutes(players) {
     res.json({
       unread: res.locals.unreadCount,
       messages: res.locals.unreadMessages,
+      chat: res.locals.chatUnread,
       latestId: items.length ? items.at(-1).id : after,
       items: items.map(({ id, kind, message, link }) => ({ id, kind, message, link })),
       player: game.playerView(req.player),

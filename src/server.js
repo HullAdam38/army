@@ -129,7 +129,7 @@ function createApp({
     console.warn(`[eliteforces] The Terms of Service show placeholders until you set: ${app.locals.legal.missing.join(', ')}.`);
   }
   // Defaults so any template (including error pages) renders even if a middleware never ran.
-  Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, unreadMessages: 0, liveEvents: [], latestNotificationId: 0, isAdmin: false });
+  Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, unreadMessages: 0, chatUnread: { unit: 0, global: false }, liveEvents: [], latestNotificationId: 0, isAdmin: false });
 
   app.use(compression());
   app.use(createSecurityHeaders({ production }));
@@ -192,7 +192,7 @@ function createApp({
   app.use(settingsRoutes(players, settingsService, adminRepo));
   app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
-  app.use(accountRoutes(players));
+  app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService));
 

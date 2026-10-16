@@ -481,6 +481,19 @@
       mail.setAttribute('aria-label', n ? `Messages, ${n} unread` : 'Messages');
     };
 
+    // Chat icon: a count for your unit channel, a dot when Global has news. The chat page keeps itself read.
+    const chatBell = document.querySelector('[data-chat-bell]');
+    const setChat = (c) => {
+      if (!chatBell || !c) return;
+      const count = chatBell.querySelector('[data-chat-count]');
+      const dot = chatBell.querySelector('[data-chat-dot]');
+      count.textContent = c.unit > 99 ? '99+' : String(c.unit);
+      count.hidden = !c.unit;
+      dot.hidden = Boolean(c.unit) || !c.global;
+      chatBell.setAttribute('href', c.unit ? '/chat/unit' : '/chat');
+      chatBell.setAttribute('aria-label', c.unit ? `Chat, ${c.unit} new in your unit channel` : c.global ? 'Chat, new messages' : 'Chat');
+    };
+
     const setCount = (n) => {
       const badge = bell.querySelector('[data-bell-count]');
       badge.textContent = n > 99 ? '99+' : String(n);
@@ -525,6 +538,7 @@
         if (!res.ok) return;
         const data = await res.json();
         setCount(data.unread);
+        if (!location.pathname.startsWith('/chat')) setChat(data.chat);
         if (typeof data.messages === 'number') {
           if (data.messages > mailCount && !location.pathname.startsWith('/messages')) {
             toast({ kind: 'message', message: data.messages === 1 ? 'You have a new private message.' : `You have ${data.messages} unread conversations.`, link: '/messages' });
