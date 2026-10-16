@@ -90,6 +90,7 @@ At **Admin › Game settings** (`/admin/settings`) you can tune the game without
 - **History:** every change goes in the audit log and the page's change history. **Reset all to defaults** puts everything back.
 - **Anti-cheat:** its earnings limits use the *most generous* mission pay and energy speed from the last 24 hours, so lowering them mid-day never flags honest players for earlier income.
 - **Where it's stored:** values are kept in the database (`game_settings`, with `game_settings_history`) and loaded at startup.
+- **Balance check:** `npm run balance` plays three kinds of player (grinder, regular, casual) for 30 days with the real rules. It shows how fast they level and where their money and XP come from, which helps you choose values here.
 - **Where it's defined:** the registry, with defaults, limits and help text, is in `src/tuning.js`. The page and the service are in `src/routes/settings.js` and `src/settings-service.js`.
 
 ### Anti-cheat
@@ -179,7 +180,7 @@ At `/deployments` (linked from HQ) a player sends their soldier out on a timed p
 | Long-range patrol | 8h | 80% | level 5 |
 | Extended deployment | 12h | 70% | level 15 |
 
-- **Pay:** per hour, $60 + $30 × level and 8 + 3 × level XP, times the pay rate. That is well below active play. Officer rank perks (mission pay and XP) and live Double XP and Payday events apply.
+- **Pay:** per hour, $25 + $14 × level and 5 + 2 × level XP, times the pay rate: about a third of what an hour of missions pays, and a quarter of the XP. Officer rank perks (mission pay and XP), live Double XP and Payday events, and the admin deployment-pay setting all apply.
 - **Random events:**
   - 25% chance of a supply cache worth an extra 50% of the pay.
   - 10% chance of an ambush on the way back, costing 20% of max health.

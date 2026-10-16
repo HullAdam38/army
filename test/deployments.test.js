@@ -18,13 +18,13 @@ const { HOUR, KINDS_BY_ID } = deployments;
 const seq = (...xs) => { let i = 0; return () => xs[i++ % xs.length]; };
 
 test('deployment pay, the daily cap and who can deploy', () => {
-  assert.deepEqual(deployments.hourlyRate(10), { cash: 360, xp: 38 });
+  assert.deepEqual(deployments.hourlyRate(10), { cash: 165, xp: 25 });
   // Longer patrols pay less per hour.
   const patrol = deployments.rewardFor(KINDS_BY_ID.get('patrol'), 10);
   const extended = deployments.rewardFor(KINDS_BY_ID.get('extended'), 10);
-  assert.deepEqual(patrol, { cash: 360, xp: 38 });
+  assert.deepEqual(patrol, { cash: 165, xp: 25 });
   assert.ok(extended.cash / 12 < patrol.cash);
-  assert.deepEqual(deployments.rewardFor(KINDS_BY_ID.get('patrol'), 10, { cashMult: 1.5, xpMult: 2 }), { cash: 540, xp: 76 });
+  assert.deepEqual(deployments.rewardFor(KINDS_BY_ID.get('patrol'), 10, { cashMult: 1.5, xpMult: 2 }), { cash: 248, xp: 50 });
 
   const now = Date.now();
   // Rolling 24 hours: recalled deployments count until they were recalled; older time drops out.
@@ -49,10 +49,10 @@ test('deployment pay, the daily cap and who can deploy', () => {
 
   // Finds and ambushes.
   const quiet = deployments.resolve(recon, p, { rng: seq(0, 0.9, 0.9) });
-  assert.deepEqual([quiet.cash, quiet.find, quiet.injury], [1296, null, 0]);
+  assert.deepEqual([quiet.cash, quiet.find, quiet.injury], [594, null, 0]);
   const eventful = deployments.resolve(recon, p, { rng: seq(0, 0.1, 0.05) });
-  assert.deepEqual([eventful.cash, eventful.injury], [1296 + 648, 20]);
-  assert.match(eventful.find, /\$648/);
+  assert.deepEqual([eventful.cash, eventful.injury], [594 + 297, 20]);
+  assert.match(eventful.find, /\$297/);
 });
 
 test('a deployed soldier can’t act and can’t be attacked', () => {
@@ -86,12 +86,12 @@ test('deployment service: start, cap, recall, return through the ledger', () => 
   // Nothing comes back early; then it returns once, paid through the ledger.
   assert.deepEqual(svc.completeDue(now + HOUR), []);
   const [done] = svc.completeDue(now + 4 * HOUR, null, seq(0, 0.9, 0.9));
-  assert.deepEqual([done.cash, done.xp], [1296, 137]);
+  assert.deepEqual([done.cash, done.xp], [594, 90]);
   assert.deepEqual(svc.completeDue(now + 5 * HOUR), []);
   let u = players.findById(id);
-  assert.deepEqual([u.cash, u.deploy_until], [1296, null]);
+  assert.deepEqual([u.cash, u.deploy_until], [594, null]);
   assert.deepEqual({ ...db.prepare("SELECT reason, delta_cash, ref FROM ledger WHERE user_id = ? AND reason = 'deployment'").get(id) },
-    { reason: 'deployment', delta_cash: 1296, ref: `deployment:${done.id}` });
+    { reason: 'deployment', delta_cash: 594, ref: `deployment:${done.id}` });
   assert.match(db.prepare("SELECT message FROM notifications WHERE kind = 'deployment'").get().message, /recon sweep/);
   assert.equal(svc.history(id)[0].status, 'returned');
 
@@ -114,9 +114,9 @@ test('deployment service: start, cap, recall, return through the ledger', () => 
   const cashBefore = players.findById(id).cash;
   players.transaction(() => svc.start(id, 'patrol', t2));
   const [boosted] = svc.completeDue(t2 + HOUR, id, seq(0, 0.9, 0.01));
-  assert.equal(boosted.cash, 540);
+  assert.equal(boosted.cash, 248);
   u = players.findById(id);
-  assert.equal(u.cash, cashBefore + 540);
+  assert.equal(u.cash, cashBefore + 248);
   assert.ok(u.health < u.max_health);
   assert.match(svc.history(id)[0].report, /ambush/);
 });

@@ -39,7 +39,8 @@ const STORIES = [
 ];
 
 /** Base pay per hour for a level, before perks and events. */
-const hourlyRate = (level) => ({ cash: 60 + 30 * level, xp: 8 + 3 * level });
+// About a third of what an hour of missions pays (and a quarter of the XP): a top-up, not a replacement.
+const hourlyRate = (level) => ({ cash: 25 + 14 * level, xp: 5 + 2 * level });
 
 /** Expected reward for a deployment kind (no random finds). */
 function rewardFor(kind, level, { cashMult = 1, xpMult = 1 } = {}) {

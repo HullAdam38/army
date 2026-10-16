@@ -10,7 +10,8 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
     "pretest": "node scripts/check-node.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
-    "admin": "node --disable-warning=ExperimentalWarning scripts/admin.js"
+    "admin": "node --disable-warning=ExperimentalWarning scripts/admin.js",
+    "balance": "node --disable-warning=ExperimentalWarning scripts/balance.js"
   },
   "repository": {
     "type": "git",
