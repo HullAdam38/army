@@ -21,9 +21,9 @@ function deploymentRoutes(players, deploymentService) {
       nav: 'deployments',
       // The header was built before completeDue ran; refresh it if someone just came back.
       player: returned.length ? game.playerView(me, now) : res.locals.player,
-      cap: deployments.DAILY_CAP_HOURS,
+      cap: deployments.dailyCapHours(),
       used: Math.round(used * 10) / 10,
-      left: Math.max(0, Math.floor((deployments.DAILY_CAP_HOURS - used) * 10) / 10),
+      left: Math.max(0, Math.floor((deployments.dailyCapHours() - used) * 10) / 10),
       boosted: mult.cashMult > 1 || mult.xpMult > 1,
       active: active ? { ...active, kind: deployments.KINDS_BY_ID.get(active.kind) } : null,
       kinds: deployments.KINDS.map((k) => ({

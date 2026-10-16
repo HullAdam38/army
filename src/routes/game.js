@@ -19,6 +19,7 @@ const perks = require('../perks');
 const operations = require('../operations');
 const baseRules = require('../base');
 const seasonRules = require('../seasons');
+const tuning = require('../tuning');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
@@ -33,9 +34,10 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     const unit = user.unit_id ? unitRepo.findById(user.unit_id) : null;
     const p = perks.perksFor(user.level);
     const e = eventService.effects(); // Double XP / Payday multiply everything else
+    // …and so do the admin pay and XP settings.
     return {
-      xpBonus: (1 + units.xpBonus(unit) + p.missionXp) * e.xpMult - 1,
-      cashBonus: (1 + p.missionCash) * e.cashMult - 1,
+      xpBonus: (1 + units.xpBonus(unit) + p.missionXp) * e.xpMult * tuning.get('missionXpMult') - 1,
+      cashBonus: (1 + p.missionCash) * e.cashMult * tuning.get('missionCashMult') - 1,
     };
   };
 
@@ -61,7 +63,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       })(),
       season: (() => {
         const s = seasonService.current();
-        return s ? { number: s.number, placement: seasonRules.PLACEMENT_FIGHTS, ...seasonService.standing(s, req.player.id) } : null;
+        return s ? { number: s.number, placement: seasonRules.placementFights(), ...seasonService.standing(s, req.player.id) } : null;
       })(),
       upcomingEvents: eventService.upcoming(Date.now(), 3).filter((e) => e.starts_at - Date.now() < 7 * 24 * 3600 * 1000),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),

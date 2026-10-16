@@ -72,6 +72,26 @@ Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. F
 
 Every change is recorded in the audit log with a reason.
 
+### Game settings
+
+At **Admin › Game settings** (`/admin/settings`) you can tune the game without a restart. Changes apply to every player as soon as you save.
+
+| Group | Settings (default) |
+|---|---|
+| Economy | Mission & operation pay (×1), mission & operation XP (×1), deployment pay & XP (×1), daily orders & supply drops (×1), PvP season rewards (×1), unit war prizes (×1), bank deposit fee (2%; each Vault level still takes 0.5 points off) |
+| Pace | Energy regeneration (2 min per point), hospital stay after a knockout (10 min), deployment hours per day (16) |
+| PvP seasons | Placement fights (5), season length (28 days; new seasons only) |
+| Chat | Cooldown between messages (3 s; raise it for slow mode), level needed to chat (2) |
+| Access | New sign-ups (on). Turn it off to close registration during maintenance or a spam wave; existing players can still sign in. |
+
+- **Stacking:** multipliers stack with everything else: base × (1 + unit and rank-perk bonuses) × live event × the admin setting.
+- **Validation:** each setting has limits. A bad value saves nothing, and the page shows what to fix.
+- **Change notes:** you can add a note explaining a change ("Launch weekend boost").
+- **History:** every change goes in the audit log and the page's change history. **Reset all to defaults** puts everything back.
+- **Anti-cheat:** its earnings limits use the *most generous* mission pay and energy speed from the last 24 hours, so lowering them mid-day never flags honest players for earlier income.
+- **Where it's stored:** values are kept in the database (`game_settings`, with `game_settings_history`) and loaded at startup.
+- **Where it's defined:** the registry, with defaults, limits and help text, is in `src/tuning.js`. The page and the service are in `src/routes/settings.js` and `src/settings-service.js`.
+
 ### Anti-cheat
 
 - **Accounts used on the same device get no PvP rewards from each other.**
@@ -550,6 +570,9 @@ src/
   deployments.js     offline patrols: pay, cap, outcomes (pure)
   deployment-service.js start, recall, return on time
   routes/deployments.js deployments page and actions
+  tuning.js          admin game settings: registry, defaults, live values
+  settings-service.js game settings storage, history, anti-cheat window
+  routes/settings.js Admin › Game settings page
   chat.js            chat rules: channels, limits, mentions, mutes (pure)
   chat-service.js    chat storage, history, live polling, reports, mutes
   routes/chat.js     chat pages, posting, polling, admin moderation

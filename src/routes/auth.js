@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const tuning = require('../tuning');
 const { TERMS_VERSION } = require('../legal');
 const bcrypt = require('bcryptjs');
 const { createFailureTracker, rateLimit, safeRedirectPath } = require('../middleware');
@@ -57,11 +58,15 @@ function authRoutes(players, anti) {
     });
   }
 
+  // Admins can close sign-ups (Admin › Game settings › New sign-ups).
+  const closed = () => !tuning.get('registrationOpen');
+
   router.get('/register', guestOnly, (req, res) => {
-    res.render('register', { title: 'Enlist', values: {}, errors: {} });
+    res.render('register', { title: 'Enlist', values: {}, errors: {}, closed: closed() });
   });
 
   router.post('/register', guestOnly, limiter, async (req, res, next) => {
+    if (closed()) return res.status(403).render('register', { title: 'Enlist', values: {}, errors: {}, closed: true });
     try {
       const values = {
         username: String(req.body.username || '').trim(),

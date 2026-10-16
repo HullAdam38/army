@@ -80,14 +80,14 @@ function createSeasonService(db, players) {
 
   function startSeason(now) {
     const number = stmts.lastNumber.get().n + 1;
-    stmts.insertSeason.run(number, now, now + seasons.SEASON_DAYS * seasons.DAY);
+    stmts.insertSeason.run(number, now, now + seasons.seasonDays() * seasons.DAY);
     return stmts.byNumber.get(number);
   }
 
   /** Ranks the season, pays rewards, notifies everyone who took part. */
   function finishSeason(season, now) {
     if (!stmts.endSeason.run(now, season.id).changes) return null;
-    const placed = stmts.standings.all(season.id, seasons.PLACEMENT_FIGHTS, 1e9);
+    const placed = stmts.standings.all(season.id, seasons.placementFights(), 1e9);
     const link = `/seasons/${season.number}`;
     placed.forEach((row, i) => {
       const rank = i + 1;
@@ -107,19 +107,19 @@ function createSeasonService(db, players) {
       }
       announceLevels(players, p.id, levels);
     });
-    for (const u of stmts.unplaced.all(season.id, seasons.PLACEMENT_FIGHTS)) {
-      players.notify(u.user_id, 'season', `Season ${season.number} is over. You had ${u.fights} ranked fight${u.fights === 1 ? '' : 's'}; ${seasons.PLACEMENT_FIGHTS} are needed to place and earn a reward.`, link);
+    for (const u of stmts.unplaced.all(season.id, seasons.placementFights())) {
+      players.notify(u.user_id, 'season', `Season ${season.number} is over. You had ${u.fights} ranked fight${u.fights === 1 ? '' : 's'}; ${seasons.placementFights()} are needed to place and earn a reward.`, link);
     }
     return { season, placed: placed.length };
   }
 
   const withRank = (season, row) => {
     if (!row) return null;
-    const placed = row.fights >= seasons.PLACEMENT_FIGHTS;
+    const placed = row.fights >= seasons.placementFights();
     return {
       ...row,
       placed,
-      rank: placed ? stmts.rankOf.get(season.id, seasons.PLACEMENT_FIGHTS, row.user_id, row.rating, row.wins, row.last_fight_at ?? 0).rank : null,
+      rank: placed ? stmts.rankOf.get(season.id, seasons.placementFights(), row.user_id, row.rating, row.wins, row.last_fight_at ?? 0).rank : null,
       division: seasons.divisionFor(row.rating),
       progress: seasons.progressFor(row.rating),
     };
@@ -215,9 +215,9 @@ function createSeasonService(db, players) {
       return withRank(season, { season_id: season.id, user_id: userId, rating, peak: rating, wins: 0, losses: 0, fights: 0, last_fight_at: null });
     },
 
-    standings: (season, limit = 50) => (season ? stmts.standings.all(season.id, seasons.PLACEMENT_FIGHTS, limit) : [])
+    standings: (season, limit = 50) => (season ? stmts.standings.all(season.id, seasons.placementFights(), limit) : [])
       .map((r, i) => ({ ...r, rank: i + 1, division: seasons.divisionFor(r.rating) })),
-    placedCount: (season) => (season ? stmts.placedCount.get(season.id, seasons.PLACEMENT_FIGHTS).n : 0),
+    placedCount: (season) => (season ? stmts.placedCount.get(season.id, seasons.placementFights()).n : 0),
     past: (limit = 12) => stmts.past.all(limit),
     results: (season, limit = 100) => stmts.results.all(season.id, limit).map((r) => ({ ...r, division: seasons.DIVISIONS_BY_ID.get(r.division) })),
     resultFor: (season, userId) => stmts.resultFor.get(season.id, userId) || null,

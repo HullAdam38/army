@@ -17,10 +17,11 @@ function seasonRoutes(players, seasonService, adminRepo) {
   };
 
   const rules = {
-    divisions: seasons.DIVISIONS,
-    podium: seasons.PODIUM,
-    placement: seasons.PLACEMENT_FIGHTS,
-    days: seasons.SEASON_DAYS,
+    // Rewards as they'll actually be paid, after the admin season-rewards setting.
+    get divisions() { return seasons.DIVISIONS.map((d) => ({ ...d, cash: seasons.rewardFor(d.min, 99).cash, xp: seasons.rewardFor(d.min, 99).xp })); },
+    get podium() { return seasons.PODIUM.map((bonus, i) => seasons.rewardFor(0, i + 1).cash - seasons.rewardFor(0, 99).cash); },
+    get placement() { return seasons.placementFights(); },
+    get days() { return seasons.seasonDays(); },
     start: seasons.START_RATING,
     carry: seasons.CARRY_OVER,
   };

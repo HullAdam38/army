@@ -431,6 +431,24 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_season_results_user ON season_results(user_id, season_id DESC);
 
+  -- Admin game settings (src/tuning.js, src/settings-service.js). Values are JSON.
+  CREATE TABLE IF NOT EXISTS game_settings (
+    key         TEXT PRIMARY KEY,
+    value       TEXT    NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    updated_by  INTEGER REFERENCES users(id) ON DELETE SET NULL
+  );
+  CREATE TABLE IF NOT EXISTS game_settings_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    key         TEXT    NOT NULL,
+    old_value   TEXT,
+    new_value   TEXT    NOT NULL,
+    changed_at  INTEGER NOT NULL,
+    changed_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    note        TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_settings_history ON game_settings_history(key, changed_at DESC);
+
   -- Game chat (src/chat.js, src/chat-service.js). channel: 'global' or 'unit:<id>'.
   CREATE TABLE IF NOT EXISTS chat_messages (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

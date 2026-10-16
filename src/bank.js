@@ -20,9 +20,9 @@ function parseAmount(input, all) {
   return n > 0 ? n : null;
 }
 
-/** Fee for depositing `amount`: 2% (less with a Vault), rounded up, at least $1. */
+/** Fee for depositing `amount`: 2% by default (less with a Vault), rounded up, at least $1. A 0% rate is free. */
 function depositFee(amount, rate = DEPOSIT_FEE) {
-  return Math.max(1, Math.ceil(amount * rate));
+  return rate > 0 ? Math.max(1, Math.ceil(amount * rate)) : 0;
 }
 
 /** The deposit fee rate for a player, after their base's Vault. */

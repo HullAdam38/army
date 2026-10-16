@@ -2,6 +2,7 @@
 
 const wars = require('./wars');
 const { NEUTRAL } = require('./events');
+const tuning = require('./tuning');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
@@ -68,7 +69,7 @@ function createWarService(db, players, unitRepo, { effects = () => NEUTRAL } = {
       note = `${forfeit === 'attacker' ? tagged(war.attacker_name, war.attacker_tag) : tagged(war.defender_name, war.defender_tag)} disbanded.`;
     } else {
       result = wars.settle(war);
-      const mult = effects(now).warPrizeMult; // War Season event
+      const mult = effects(now).warPrizeMult * tuning.get('warPrizeMult'); // War Season event × admin setting
       result = { ...result, attackerPrize: Math.round(result.attackerPrize * mult), defenderPrize: Math.round(result.defenderPrize * mult) };
     }
     if (!stmts.end.run(result.winner, note, now, war.id).changes) return null; // already settled

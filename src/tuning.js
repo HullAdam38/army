@@ -1,0 +1,93 @@
+'use strict';
+
+/**
+ * Game settings that admins can change at runtime (Admin › Game settings).
+ *
+ * SETTINGS is the registry: every tunable value with its default, limits and
+ * help text. The live values sit in this module; settings-service.js loads
+ * them from the database at startup and replaces them whenever an admin
+ * saves. Game rules read them through get(), so a change applies at once,
+ * with no restart.
+ *
+ * Multipliers stack with everything else: base × (1 + unit and rank-perk
+ * bonuses) × live event × the admin multiplier here.
+ */
+
+const SETTINGS = [
+  // Economy
+  { key: 'missionCashMult', group: 'economy', label: 'Mission & operation pay', type: 'mult', min: 0.25, max: 3, step: 0.05, default: 1, help: 'Multiplies the cash every mission and operation stage pays out.' },
+  { key: 'missionXpMult', group: 'economy', label: 'Mission & operation XP', type: 'mult', min: 0.25, max: 3, step: 0.05, default: 1, help: 'Multiplies the XP from missions and operation stages, so how fast players level up.' },
+  { key: 'deploymentPayMult', group: 'economy', label: 'Deployment pay & XP', type: 'mult', min: 0, max: 3, step: 0.05, default: 1, help: 'Multiplies what offline deployments pay. 0 pays nothing.' },
+  { key: 'dailyRewardsMult', group: 'economy', label: 'Daily orders & supply drops', type: 'mult', min: 0, max: 3, step: 0.05, default: 1, help: 'Multiplies daily order rewards and the daily supply drop.' },
+  { key: 'seasonRewardsMult', group: 'economy', label: 'PvP season rewards', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies the end-of-season cash and XP (division rewards and podium bonuses).' },
+  { key: 'warPrizeMult', group: 'economy', label: 'Unit war prizes', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies what a unit wins at the end of a war.' },
+  { key: 'depositFeePct', group: 'economy', label: 'Bank deposit fee', type: 'number', unit: '%', min: 0, max: 10, step: 0.1, default: 2, help: 'The base fee for banking cash. Each Vault level still takes 0.5 points off.' },
+
+  // Pace
+  { key: 'energyRegenMinutes', group: 'pace', label: 'Energy regeneration', type: 'number', unit: 'min per point', min: 0.5, max: 10, step: 0.5, default: 2, help: 'Minutes for one energy point to come back. Lower is faster and lets players do more each day.' },
+  { key: 'hospitalStayMinutes', group: 'pace', label: 'Hospital stay after a knockout', type: 'int', unit: 'min', min: 1, max: 120, step: 1, default: 10, help: 'How long a knocked-out soldier stays in hospital.' },
+  { key: 'deploymentCapHours', group: 'pace', label: 'Deployment hours per day', type: 'int', unit: 'h per 24h', min: 1, max: 24, step: 1, default: 16, help: 'The most deployed hours a player can use in any rolling 24 hours.' },
+
+  // PvP seasons
+  { key: 'seasonPlacementFights', group: 'seasons', label: 'Placement fights', type: 'int', unit: 'fights', min: 1, max: 50, step: 1, default: 5, help: 'Ranked fights a player needs to appear in the standings and earn season rewards.' },
+  { key: 'seasonDays', group: 'seasons', label: 'Season length', type: 'int', unit: 'days', min: 7, max: 90, step: 1, default: 28, help: 'Applies to seasons that start after you change it; the running season keeps its end date.' },
+
+  // Chat
+  { key: 'chatCooldownSeconds', group: 'chat', label: 'Chat cooldown', type: 'int', unit: 's', min: 0, max: 120, step: 1, default: 3, help: 'Minimum time between one player’s chat messages. Raise it to calm a busy channel (slow mode).' },
+  { key: 'chatMinLevel', group: 'chat', label: 'Level needed to chat', type: 'int', unit: 'level', min: 1, max: 20, step: 1, default: 2, help: 'New accounts below this level can read chat but not post.' },
+
+  // Access
+  { key: 'registrationOpen', group: 'access', label: 'New sign-ups', type: 'bool', default: true, help: 'Turn off to stop new accounts being created (for example during maintenance or a spam wave). Existing players can still sign in.' },
+];
+
+const GROUPS = [
+  { id: 'economy', name: 'Economy', blurb: 'How much things pay. These stack with rank perks, unit bonuses and live events.' },
+  { id: 'pace', name: 'Pace', blurb: 'How fast players can act.' },
+  { id: 'seasons', name: 'PvP seasons', blurb: 'Ranked season rules.' },
+  { id: 'chat', name: 'Chat', blurb: 'Limits for game chat.' },
+  { id: 'access', name: 'Access', blurb: 'Who can join.' },
+];
+
+const BY_KEY = new Map(SETTINGS.map((s) => [s.key, s]));
+const DEFAULTS = Object.freeze(Object.fromEntries(SETTINGS.map((s) => [s.key, s.default])));
+
+let current = { ...DEFAULTS };
+
+/** Live value of a setting. */
+function get(key) {
+  if (!BY_KEY.has(key)) throw new Error(`Unknown game setting: ${key}`);
+  return current[key];
+}
+
+/** Replaces the live values (unknown keys are ignored, missing keys use defaults). */
+function set(values = {}) {
+  const next = { ...DEFAULTS };
+  for (const [k, v] of Object.entries(values)) if (BY_KEY.has(k)) next[k] = v;
+  current = next;
+}
+
+const all = () => ({ ...current });
+const reset = () => { current = { ...DEFAULTS }; };
+
+/** Turns a submitted value into a setting value. Returns { value } or { error }. */
+function parse(setting, raw) {
+  if (setting.type === 'bool') return { value: raw === true || raw === '1' || raw === 'on' || raw === 'true' };
+  const text = String(raw ?? '').trim().replace(/[,%×x\s]/g, '');
+  if (!text) return { error: `${setting.label}: enter a value.` };
+  const n = Number(text);
+  if (!Number.isFinite(n)) return { error: `${setting.label}: “${raw}” isn’t a number.` };
+  if (setting.type === 'int' && !Number.isInteger(n)) return { error: `${setting.label}: use a whole number.` };
+  if (n < setting.min || n > setting.max) return { error: `${setting.label}: must be between ${setting.min} and ${setting.max}.` };
+  // Snap to the step so 1.0500000001 and friends don't creep in.
+  const snapped = Math.round(n / setting.step) * setting.step;
+  return { value: Number(snapped.toFixed(4)) };
+}
+
+/** How a value reads in the admin page and audit log, e.g. "×1.5", "2 min per point", "on". */
+function format(setting, value) {
+  if (setting.type === 'bool') return value ? 'on' : 'off';
+  if (setting.type === 'mult') return `×${Number(value)}`;
+  return `${Number(value)}${setting.unit ? (setting.unit === '%' ? '%' : ` ${setting.unit}`) : ''}`;
+}
+
+module.exports = { BY_KEY, DEFAULTS, GROUPS, SETTINGS, all, format, get, parse, reset, set };

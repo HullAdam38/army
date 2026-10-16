@@ -56,7 +56,7 @@ function chatRoutes(players, chatService, unitRepo, adminRepo) {
       viewingOlder: Boolean(before),
       blocker: chat.postBlocker(me, null, null, Date.now()),
       draft,
-      limits: { max: chat.MAX_LENGTH, minLevel: chat.MIN_LEVEL },
+      limits: { max: chat.MAX_LENGTH, minLevel: chat.minLevel() },
       mutes: chat.MUTES,
     });
   });

@@ -5,10 +5,15 @@
  * channel for each unit. Messages are BBCode, rendered with bbcode.render().
  */
 
+const tuning = require('./tuning');
+
 const MAX_LENGTH = 500;
 const MAX_LINES = 8;
-const MIN_LEVEL = 2; // brand-new accounts read but don't post (keeps spam bots out)
-const COOLDOWN_MS = 3 * 1000;
+const MIN_LEVEL = 2; // default: brand-new accounts read but don't post (keeps spam bots out)
+const COOLDOWN_MS = 3 * 1000; // default
+// Live values from Admin › Game settings.
+const minLevel = () => tuning.get('chatMinLevel');
+const cooldownMs = () => tuning.get('chatCooldownSeconds') * 1000;
 const DUPLICATE_MS = 60 * 1000; // the same message twice in a minute is spam
 const MAX_MENTIONS = 3; // @mentions that notify, per message
 const PAGE_SIZE = 50;
@@ -44,13 +49,16 @@ function validateBody(raw) {
 
 /** Why `player` can't post now, or null. `last` is their latest message ({ body, created_at }) or null. */
 function postBlocker(player, body, last, now = Date.now()) {
-  if (player.level < MIN_LEVEL) return `Reach level ${MIN_LEVEL} to chat. Run a mission or two first.`;
+  if (player.level < minLevel()) return `Reach level ${minLevel()} to chat. Run a mission or two first.`;
   if (player.chat_muted_until && player.chat_muted_until > now) {
     const mins = Math.ceil((player.chat_muted_until - now) / MINUTE);
     const left = mins >= 120 ? `${Math.ceil(mins / 60)} hours` : `${mins} minute${mins === 1 ? '' : 's'}`;
     return `You’re muted for another ${left}${player.chat_mute_reason ? ` (${player.chat_mute_reason})` : ''}.`;
   }
-  if (last && now - last.created_at < COOLDOWN_MS) return 'Slow down: wait a few seconds between messages.';
+  if (last && now - last.created_at < cooldownMs()) {
+    const s = Math.ceil((cooldownMs() - (now - last.created_at)) / 1000);
+    return cooldownMs() > 5000 ? `Slow mode is on: you can send another message in ${s}s.` : 'Slow down: wait a few seconds between messages.';
+  }
   if (last && last.body === body && now - last.created_at < DUPLICATE_MS) return 'You just sent that.';
   return null;
 }
@@ -86,5 +94,5 @@ const muteFor = (key) => MUTES[key] || null;
 
 module.exports = {
   COOLDOWN_MS, DUPLICATE_MS, MAX_LENGTH, MAX_LINES, MAX_MENTIONS, MAX_REPORT_REASON, MIN_LEVEL, MUTES, PAGE_SIZE, RETENTION_DAYS,
-  channelFor, linkMentions, mentionsIn, muteFor, postBlocker, validateBody,
+  channelFor, cooldownMs, linkMentions, minLevel, mentionsIn, muteFor, postBlocker, validateBody,
 };

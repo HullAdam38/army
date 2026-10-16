@@ -41,7 +41,7 @@ const FACILITIES = [
     blurb: 'A secure strongroom. Lowers the bank deposit fee.',
     baseCost: 5000,
     maxLevel: 3,
-    effect: (lvl) => `deposit fee ${(2 - 0.5 * lvl).toFixed(1)}%`,
+    effect: (lvl) => `deposit fee ${Math.max(0, require('./tuning').get('depositFeePct') - 0.5 * lvl).toFixed(1)}%`,
   },
   {
     id: 'intel',
@@ -80,7 +80,7 @@ function effectsOf(player) {
   return {
     maxEnergyBonus: 5 * levelOf(player, 'barracks'),
     healthRegenFactor: 1 - 0.1 * levelOf(player, 'medbay'), // multiplies the regen interval
-    depositFeeRate: 0.02 - 0.005 * levelOf(player, 'vault'),
+    depositFeeRate: Math.max(0, require('./tuning').get('depositFeePct') / 100 - 0.005 * levelOf(player, 'vault')),
     scoutDiscount: 0.1 * levelOf(player, 'intel'),
     trainingDiscount: 0.05 * levelOf(player, 'range'),
     ordersBonus: 0.1 * levelOf(player, 'comms'),

@@ -15,13 +15,18 @@
  * between their final rating and 1,000.
  */
 
+const tuning = require('./tuning');
+
 const DAY = 24 * 60 * 60 * 1000;
 const SEASON_DAYS = 28;
 const START_RATING = 1000;
 const RATING_FLOOR = 100;
-const PLACEMENT_FIGHTS = 5; // ranked fights needed to appear in the standings and earn rewards
+const PLACEMENT_FIGHTS = 5; // default ranked fights needed to appear in the standings and earn rewards
 const K_ATTACKER = 32;
 const K_DEFENDER = 20;
+// Live values from Admin › Game settings.
+const placementFights = () => tuning.get('seasonPlacementFights');
+const seasonDays = () => tuning.get('seasonDays');
 const CARRY_OVER = 0.5; // share of last season's distance from 1,000 that carries over
 
 const DIVISIONS = [
@@ -85,7 +90,8 @@ const isRanked = (rewards) => rewards.attacker === 1 && rewards.defender === 1;
 /** End-of-season reward for a placed player at `rank` (1-based) with `rating`. */
 function rewardFor(rating, rank) {
   const d = divisionFor(rating);
-  return { division: d, cash: d.cash + (PODIUM[rank - 1] || 0), xp: d.xp };
+  const mult = tuning.get('seasonRewardsMult'); // Admin › Game settings
+  return { division: d, cash: Math.round((d.cash + (PODIUM[rank - 1] || 0)) * mult), xp: Math.round(d.xp * mult) };
 }
 
 /** Badge text for a past result, e.g. "S2 Champion", "S3 · Top 10 · Gold". */
@@ -99,5 +105,5 @@ function badgeFor(result) {
 module.exports = {
   CARRY_OVER, DAY, DIVISIONS, DIVISIONS_BY_ID, K_ATTACKER, K_DEFENDER, PLACEMENT_FIGHTS, PODIUM, RATING_FLOOR,
   SEASON_DAYS, START_RATING, TOP_BADGE,
-  applyDelta, badgeFor, divisionFor, expected, isRanked, progressFor, ratingChange, rewardFor, startingRating,
+  applyDelta, badgeFor, placementFights, seasonDays, divisionFor, expected, isRanked, progressFor, ratingChange, rewardFor, startingRating,
 };

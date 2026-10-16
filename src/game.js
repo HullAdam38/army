@@ -5,6 +5,7 @@ const { modifiersFor } = require('./items');
 const training = require('./training');
 const perks = require('./perks');
 const base = require('./base');
+const tuning = require('./tuning');
 
 /** Health regen interval for a player: the Med Bay shortens it. */
 const healthRegenMs = (player) => Math.round(HEALTH_REGEN_MS * base.effectsOf(player).healthRegenFactor);
@@ -14,13 +15,17 @@ const healthRegenMs = (player) => Math.round(HEALTH_REGEN_MS * base.effectsOf(pl
  * unit tested by passing in a plain player object, a clock and an RNG.
  */
 
-const ENERGY_REGEN_MS = 2 * 60 * 1000; // +1 energy every 2 minutes
+const ENERGY_REGEN_MS = 2 * 60 * 1000; // default: +1 energy every 2 minutes (admins can change it)
 const HEALTH_REGEN_MS = 60 * 1000; // +1 health every minute
 const MIN_DEPLOY_HEALTH = 15;
 const HOSPITAL_COST_PER_HP = 2;
 const MAX_GEAR_SUCCESS_BONUS = 0.15;
-const HOSPITAL_STAY_MS = 10 * 60 * 1000; // knocked-out players are admitted for 10 minutes
+const HOSPITAL_STAY_MS = 10 * 60 * 1000; // default stay after a knockout (admins can change it)
 const DISCHARGE_HEALTH_PCT = 0.5; // and leave with at least half health
+
+/** Live values from Admin › Game settings. */
+const energyRegenMs = () => Math.round(tuning.get('energyRegenMinutes') * 60 * 1000);
+const hospitalStayMs = () => tuning.get('hospitalStayMinutes') * 60 * 1000;
 
 const RANKS = [
   { name: 'Recruit', grade: 'E-1' },
@@ -224,7 +229,7 @@ function applyRegen(player, now = Date.now()) {
 }
 
 function regenTo(player, now) {
-  const energy = regenResource(player.energy, player.max_energy, player.energy_updated_at, ENERGY_REGEN_MS, now);
+  const energy = regenResource(player.energy, player.max_energy, player.energy_updated_at, energyRegenMs(), now);
   const health = regenResource(player.health, player.max_health, player.health_updated_at, healthRegenMs(player), now);
   return {
     ...player,
@@ -333,7 +338,8 @@ function resolveMission(mission, current, { now = Date.now(), rng = Math.random,
     player.missions_failed += 1;
   }
 
-  if (xpBonus > 0) result.xp = Math.round(result.xp * (1 + xpBonus)); // unit Drill ground + rank perks
+  // Unit Drill ground, rank perks, events and the admin XP setting (which can go below 1).
+  if (xpBonus !== 0) result.xp = Math.max(1, Math.round(result.xp * (1 + xpBonus)));
   result.levelsGained = grantXp(player, result.xp);
   return { player, result };
 }
@@ -360,7 +366,7 @@ function visitHospital(current, { now = Date.now() } = {}) {
 function admitToHospital(player, now, reason) {
   player.health = 0;
   player.health_updated_at = now;
-  player.hospital_until = now + HOSPITAL_STAY_MS;
+  player.hospital_until = now + hospitalStayMs();
   player.hospital_reason = reason;
   return player;
 }
@@ -411,8 +417,8 @@ function playerView(raw, now = Date.now()) {
     energy: p.energy,
     maxEnergy: p.max_energy,
     energyPct: Math.floor((p.energy / p.max_energy) * 100),
-    energyRegenSeconds: ENERGY_REGEN_MS / 1000,
-    nextEnergyIn: secondsUntilNext(p.energy, p.max_energy, p.energy_updated_at, ENERGY_REGEN_MS, now),
+    energyRegenSeconds: energyRegenMs() / 1000,
+    nextEnergyIn: secondsUntilNext(p.energy, p.max_energy, p.energy_updated_at, energyRegenMs(), now),
     health: p.health,
     maxHealth: p.max_health,
     healthPct: Math.floor((p.health / p.max_health) * 100),
@@ -449,6 +455,8 @@ function missionViews(raw, now = Date.now(), stats = statsFor(raw.level)) {
 
 module.exports = {
   ENERGY_REGEN_MS,
+  energyRegenMs,
+  hospitalStayMs,
   HEALTH_REGEN_MS,
   HOSPITAL_STAY_MS,
   MIN_DEPLOY_HEALTH,

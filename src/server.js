@@ -45,6 +45,8 @@ const { createSeasonService } = require('./season-service');
 const { seasonRoutes } = require('./routes/seasons');
 const { createChatService } = require('./chat-service');
 const { chatRoutes } = require('./routes/chat');
+const { createSettingsService } = require('./settings-service');
+const { settingsRoutes } = require('./routes/settings');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -79,7 +81,10 @@ function createApp({
 
   const app = express();
   const players = createPlayerRepo(db);
-  const anti = createAntiCheat(db, players, { secret });
+  // Admin game settings load first: every rule below reads them (src/tuning.js).
+  const settingsService = createSettingsService(db);
+  settingsService.load();
+  const anti = createAntiCheat(db, players, { secret, settings: settingsService });
   app.anti = anti; // exposed for tests and maintenance scripts
   anti.schedule(scanHours);
   const eventService = createEventService(db);
@@ -184,6 +189,7 @@ function createApp({
   app.use(deploymentRoutes(players, deploymentService));
   app.use(seasonRoutes(players, seasonService, adminRepo));
   app.use(chatRoutes(players, chatService, unitRepo, adminRepo));
+  app.use(settingsRoutes(players, settingsService, adminRepo));
   app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players));

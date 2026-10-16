@@ -5,6 +5,7 @@ const base = require('./base');
 const { NEUTRAL } = require('./events');
 const game = require('./game');
 const { announceLevels } = require('./notify');
+const tuning = require('./tuning');
 
 /**
  * Daily orders and supply drops backed by the database. Claims must be called
@@ -107,7 +108,7 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
       if (order.progress < order.target) return { error: 'That order isn’t complete yet.' };
       if (!stmts.claim.run(now, user.id, day, slot).changes) return { error: 'Already claimed.' };
       stmts.countOrder.run(user.id); // career total, for the Order of Merit medal
-      const mult = effects(now).ordersMult * (1 + base.effectsOf(players.findById(user.id)).ordersBonus); // Supply Surge × Comms Tower
+      const mult = effects(now).ordersMult * (1 + base.effectsOf(players.findById(user.id)).ordersBonus) * tuning.get('dailyRewardsMult'); // Supply Surge × Comms Tower × admin setting
       const reward = { xp: Math.round(order.reward_xp * mult), cash: Math.round(order.reward_cash * mult) };
       const player = pay(user, reward, 'daily-order', `${day}:${slot}`);
       return { order: { ...order, reward_xp: reward.xp, reward_cash: reward.cash, text: daily.orderText(order) }, player };
@@ -120,7 +121,7 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
       if (!orders.every((o) => o.claimed_at)) return { error: 'Claim all three orders first.' };
       if (!stmts.claimBonus.run(user.id, day, now).changes) return { error: 'Today’s commendation is already claimed.' };
       const standard = daily.orderReward(user.level);
-      const mult = effects(now).ordersMult * (1 + base.effectsOf(players.findById(user.id)).ordersBonus);
+      const mult = effects(now).ordersMult * (1 + base.effectsOf(players.findById(user.id)).ordersBonus) * tuning.get('dailyRewardsMult');
       const reward = { xp: Math.round(standard.xp * mult), cash: Math.round(standard.cash * mult) };
       return { reward, player: pay(user, reward, 'daily-bonus', day) };
     },
@@ -131,7 +132,7 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
       const p = game.applyRegen(players.findById(user.id), now);
       const drop = daily.supplyDrop(p, day);
       if (drop.error) return drop;
-      drop.cash = Math.round(drop.cash * effects(now).supplyMult); // Supply Surge event
+      drop.cash = Math.round(drop.cash * effects(now).supplyMult * tuning.get('dailyRewardsMult')); // Supply Surge event × admin setting
       p.cash += drop.cash;
       p.streak_count = drop.streak;
       p.streak_day = day;

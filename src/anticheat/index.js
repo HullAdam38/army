@@ -2,7 +2,8 @@
 
 const crypto = require('node:crypto');
 const rules = require('./rules');
-const { MISSIONS, ENERGY_REGEN_MS } = require('../game');
+const { MISSIONS } = require('../game');
+const tuning = require('../tuning');
 const pvp = require('../pvp');
 const admin = require('../admin');
 
@@ -35,7 +36,9 @@ function readCookie(req, name) {
  * Anti-cheat: sign-in tracking, linked accounts, PvP reward limits, flags for
  * admins to review, and a periodic scan (money ledger audit, farming, links).
  */
-function createAntiCheat(db, players, { secret }) {
+function createAntiCheat(db, players, { secret, settings = null }) {
+  // The most generous value an admin setting had since `since` (see settings-service.extreme).
+  const generous = (key, since, pick) => (settings ? settings.extreme(key, since, pick) : tuning.get(key));
   // IPs are only ever stored as a keyed hash: enough to tell "same network",
   // useless for finding where someone lives.
   const ipKey = crypto.createHash('sha256').update(`ef-ip:${secret}`).digest();
@@ -289,7 +292,8 @@ function createAntiCheat(db, players, { secret }) {
         });
       }
       const suspects = new Map();
-      for (const e of stmts.suspectLedger.all(now - rules.FARMING_WINDOW_MS, MAX_MISSION_CASH, MAX_PVP_CASH)) {
+      const payCeiling = Math.ceil(MAX_MISSION_CASH * generous('missionCashMult', now - rules.FARMING_WINDOW_MS, Math.max)); // admin pay setting
+      for (const e of stmts.suspectLedger.all(now - rules.FARMING_WINDOW_MS, payCeiling, MAX_PVP_CASH)) {
         const rule = e.reason === 'unknown' ? 'unknown-money' : 'impossible-payout';
         const key = `${rule}:${e.user_id}`;
         if (!suspects.has(key)) suspects.set(key, { rule, userId: e.user_id, username: e.username, entries: [] });
@@ -346,13 +350,16 @@ function createAntiCheat(db, players, { secret }) {
       const since = now - rules.ACTIVITY_WINDOW_MS;
       // A Payday event in the window raises what honest play can earn.
       const eventCashMult = stmts.eventTypes.all(now, since).reduce((m, e) => Math.max(m, events.effectsOf([e.type]).cashMult), 1);
+      // So do admin settings: faster energy or higher mission pay at any point in the window.
+      const regenMs = Math.round(generous('energyRegenMinutes', since, Math.min) * 60 * 1000);
+      const adminCashMult = generous('missionCashMult', since, Math.max);
       const rows = stmts.gains.all(since);
       const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
       for (const r of rows) {
         const refills = stmts.refills.get(r.user_id, since).n;
         const cap = rules.missionCashCap({
-          missions: MISSIONS, level: r.level, maxEnergy: r.max_energy, refills, energyRegenMs: ENERGY_REGEN_MS,
-          cashMult: (1 + perks.perksFor(r.level).missionCash) * eventCashMult,
+          missions: MISSIONS, level: r.level, maxEnergy: r.max_energy, refills, energyRegenMs: regenMs,
+          cashMult: (1 + perks.perksFor(r.level).missionCash) * eventCashMult * adminCashMult,
         });
         const reasons = [];
         let severity = 0;

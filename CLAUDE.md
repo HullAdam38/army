@@ -23,7 +23,8 @@ Keep as plain text: callsigns, unit names and tags, search boxes, numbers, and s
 - Every cash or bank change goes through `players.save(player, { reason, ref })`, which writes the ledger. A missing reason gets flagged by anti-cheat.
 - Multi-step changes run inside `players.transaction(fn)`. It doesn't nest. Follow-up checks (medals, tutorial) run after the response via `res.on('finish')`.
 - Anything that pays out must not let linked accounts pass value to each other (see `anti.linked`, `anti.pvpRewards`).
-- Reward multipliers stack as: base × (1 + unit and rank-perk bonuses) × live event multiplier. Services get event effects through an `effects(now)` option (`src/events.js` lists them). If a new event type changes how much cash players can earn, update the anti-cheat limits in `src/anticheat`.
+- Reward multipliers stack as: base × (1 + unit and rank-perk bonuses) × live event multiplier × admin setting. Services get event effects through an `effects(now)` option (`src/events.js` lists them). If a new event type changes how much cash players can earn, update the anti-cheat limits in `src/anticheat`.
+- Numbers admins may want to tune (payouts, limits, cooldowns) belong in the registry in `src/tuning.js` and are read with `tuning.get(key)`; they then appear on Admin › Game settings automatically. Keep the old constant as the documented default. Tests that change settings call `tuning.set()` and reset with `tuning.reset()`.
 
 ### Front end
 - Strict CSP: no inline `<script>` or `on*=` handlers. JavaScript lives in `public/js/app.js` (progressive enhancement; every page works without it). Inline `style=` attributes are allowed.

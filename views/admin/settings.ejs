@@ -1,0 +1,97 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Live tuning</p>
+      <h1 class="page-head__title">Game settings</h1>
+      <p class="page-head__sub">Change the economy and limits without a restart. Changes apply to every player as soon as you save, and each one is recorded in the audit log. Multipliers stack with rank perks, unit bonuses and live events. Anti-cheat follows these settings automatically.</p>
+    </div>
+    <div class="base-rating">
+      <span class="base-rating__value"><%= changedCount %></span>
+      <span class="base-rating__label">changed from default</span>
+    </div>
+  </div>
+
+  <% if (errors.length) { %>
+    <ul class="flash flash--error settings-errors" role="alert">
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
+    </ul>
+  <% } %>
+
+  <form method="post" action="/admin/settings" class="settings-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="settings-grid">
+      <% groups.forEach(function (g) { %>
+        <section class="card settings-group" aria-labelledby="g-<%= g.id %>">
+          <h2 class="card__title" id="g-<%= g.id %>"><%= g.name %></h2>
+          <p class="settings-group__blurb"><%= g.blurb %></p>
+          <% g.settings.forEach(function (s) { const bad = errors.some((e) => e.startsWith(s.label + ':')); %>
+            <div class="setting<%= s.changed ? ' is-changed' : '' %><%= bad ? ' is-invalid' : '' %>">
+              <div class="setting__text">
+                <label class="setting__label" for="set-<%= s.key %>"><%= s.label %><% if (s.changed) { %> <span class="tag tag--crit">Changed</span><% } %></label>
+                <p class="setting__help" id="help-<%= s.key %>"><%= s.help %> <span class="setting__default">Default: <%= s.defaultLabel %>.</span></p>
+              </div>
+              <div class="setting__control">
+                <% if (s.type === 'bool') { %>
+                  <input type="hidden" name="<%= s.key %>__present" value="1">
+                  <label class="switch">
+                    <input id="set-<%= s.key %>" type="checkbox" name="<%= s.key %>" value="1" <%- s.value === true || s.value === '1' ? 'checked' : '' %> aria-describedby="help-<%= s.key %>">
+                    <span class="switch__track" aria-hidden="true"></span>
+                    <span class="switch__text" aria-hidden="true"></span>
+                  </label>
+                <% } else { %>
+                  <span class="setting__input">
+                    <% if (s.type === 'mult') { %><span class="setting__affix">×</span><% } %>
+                    <input id="set-<%= s.key %>" name="<%= s.key %>" type="number" inputmode="decimal" value="<%= s.value %>"
+                           min="<%= s.min %>" max="<%= s.max %>" step="<%= s.step %>" required aria-describedby="help-<%= s.key %>" <%- bad ? 'aria-invalid="true"' : '' %>>
+                    <% if (s.unit) { %><span class="setting__affix"><%= s.unit %></span><% } %>
+                  </span>
+                  <span class="setting__range"><%= s.min %>–<%= s.max %></span>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </section>
+      <% }) %>
+    </div>
+
+    <div class="card settings-save">
+      <div class="field">
+        <label for="settings-note">Why the change? <span class="muted">(optional, saved in the audit log)</span></label>
+        <input id="settings-note" name="_note" maxlength="200" placeholder="e.g. Launch weekend boost">
+      </div>
+      <button class="btn btn--primary" type="submit">Save changes</button>
+    </div>
+  </form>
+
+  <div class="settings-lower">
+    <section class="card" aria-labelledby="history-title">
+      <h2 class="card__title" id="history-title">Recent changes</h2>
+      <% if (history.length) { %>
+        <ol class="settings-history">
+          <% history.forEach(function (h) { %>
+            <li>
+              <span class="settings-history__what"><strong><%= h.setting ? h.setting.label : h.key %></strong> <%= h.before %> → <strong><%= h.after %></strong></span>
+              <span class="settings-history__who"><%= h.username || 'an admin' %> · <%= h.ago %><%= h.note ? ` · ${h.note}` : '' %></span>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted">No changes yet. Everything is on the defaults.</p>
+      <% } %>
+    </section>
+    <section class="card" aria-labelledby="reset-title">
+      <h2 class="card__title" id="reset-title">Back to defaults</h2>
+      <p class="muted">Puts every setting back to how the game ships. Each reset is still recorded.</p>
+      <form method="post" action="/admin/settings/reset" data-confirm="Reset every game setting to its default? This applies to every player straight away.">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn--ghost btn--danger" type="submit" <%- changedCount ? '' : 'disabled' %>>Reset all to defaults</button>
+      </form>
+    </section>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

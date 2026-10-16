@@ -4,6 +4,7 @@ const deployments = require('./deployments');
 const game = require('./game');
 const perks = require('./perks');
 const { NEUTRAL } = require('./events');
+const tuning = require('./tuning');
 const { announceLevels } = require('./notify');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
@@ -31,7 +32,8 @@ function createDeploymentService(db, players, { effects = () => NEUTRAL } = {}) 
   const multipliers = (level, now) => {
     const p = perks.perksFor(level);
     const e = effects(now);
-    return { cashMult: (1 + p.missionCash) * e.cashMult, xpMult: (1 + p.missionXp) * e.xpMult };
+    const admin = tuning.get('deploymentPayMult'); // Admin › Game settings
+    return { cashMult: (1 + p.missionCash) * e.cashMult * admin, xpMult: (1 + p.missionXp) * e.xpMult * admin };
   };
 
   const hoursUsed = (userId, now) => deployments.hoursUsed(stmts.recent.all(userId, now - 48 * deployments.HOUR), now);

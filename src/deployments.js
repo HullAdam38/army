@@ -6,12 +6,16 @@
  * Balance: they cost no energy, but while deployed you can't run missions,
  * operations, training, scouting or attacks, and per-hour pay is well below
  * active play (longer patrols pay a little less per hour). A rolling cap of
- * 16 deployed hours per 24 keeps active play the main way to progress. While
+ * 16 deployed hours per 24 (by default) keeps active play the main way to progress. While
  * deployed you're out of reach: nobody can attack you.
  */
 
+const tuning = require('./tuning');
+
 const HOUR = 60 * 60 * 1000;
-const DAILY_CAP_HOURS = 16;
+const DAILY_CAP_HOURS = 16; // default; admins can change it
+/** Live cap from Admin › Game settings. */
+const dailyCapHours = () => tuning.get('deploymentCapHours');
 const INJURY_CHANCE = 0.1;
 const FIND_CHANCE = 0.25;
 
@@ -63,9 +67,10 @@ function deployBlocker(player, kind, used, now = Date.now()) {
   if (player.hospital_until && player.hospital_until > now) return 'You’re in hospital';
   if (player.level < kind.minLevel) return `Unlocks at level ${kind.minLevel}`;
   if (player.health < Math.ceil(player.max_health * 0.25)) return 'Too injured to deploy. Heal up first';
-  if (used + kind.hours > DAILY_CAP_HOURS + 1e-9) {
-    const left = Math.max(0, DAILY_CAP_HOURS - used);
-    return left >= 1 ? `Only ${Math.floor(left)}h of deployment left today` : 'You’ve used today’s 16 hours of deployments';
+  const cap = dailyCapHours();
+  if (used + kind.hours > cap + 1e-9) {
+    const left = Math.max(0, cap - used);
+    return left >= 1 ? `Only ${Math.floor(left)}h of deployment left today` : `You’ve used today’s ${cap} hours of deployments`;
   }
   return null;
 }
@@ -88,4 +93,4 @@ function resolve(kind, player, { cashMult = 1, xpMult = 1, rng = Math.random } =
   return out;
 }
 
-module.exports = { DAILY_CAP_HOURS, HOUR, KINDS, KINDS_BY_ID, deployBlocker, hourlyRate, hoursUsed, resolve, rewardFor };
+module.exports = { DAILY_CAP_HOURS, HOUR, dailyCapHours, KINDS, KINDS_BY_ID, deployBlocker, hourlyRate, hoursUsed, resolve, rewardFor };
