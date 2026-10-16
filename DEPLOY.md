@@ -146,6 +146,7 @@ Backups stay on the same server. For real safety, copy `/var/backups/eliteforces
 - **"Apache is running" during install.** Something else is using port 80. If Apache only shows the default page, run `sudo systemctl disable --now apache2` and run the installer again.
 - **Clone failed during install.** The deploy key isn't set up yet (step 2). Check with `ssh -T git@github.com`.
 - **The game won't start.** Read the log with `sudo journalctl -u eliteforces -n 50`. The installer and the update script both show it when something goes wrong.
+- **"nginx.service is not active" or nginx won't start.** The installer now starts nginx itself and handles servers without IPv6. If something else holds port 80 or 443, it names it. To see why nginx failed: `sudo nginx -t` and `sudo journalctl -u nginx -n 20`.
 - **502 Bad Gateway.** nginx is up but the game isn't. Run `sudo systemctl restart eliteforces`, then check the log.
 
 ## Where everything is

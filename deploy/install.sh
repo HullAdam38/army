@@ -151,11 +151,29 @@ echo "Game is running on 127.0.0.1:3000."
 
 say "Setting up nginx for $DOMAIN"
 sed "s#__DOMAIN__#$DOMAIN#g" "$HERE/nginx-eliteforces.conf" > /etc/nginx/sites-available/eliteforces
+# Servers with IPv6 switched off can't listen on [::]: drop those lines or nginx won't start.
+if [ ! -f /proc/net/if_inet6 ] || [ "$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6 2>/dev/null || echo 0)" = 1 ]; then
+  sed -i '/listen \[::\]/d' /etc/nginx/sites-available/eliteforces
+  echo "IPv6 is off on this server, so nginx listens on IPv4 only."
+fi
 ln -sf /etc/nginx/sites-available/eliteforces /etc/nginx/sites-enabled/eliteforces
 # The default site serves /var/www/html as plain files, which would expose the code. Turn it off.
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
-systemctl reload nginx
+# Something other than nginx on port 80 or 443 (another web server, a control panel)?
+for port in 80 443; do
+  holder="$(ss -ltnpH "sport = :$port" 2>/dev/null | grep -v nginx | grep -o 'users:(("[^"]*"' | head -1 | sed 's/users:(("//;s/"//')"
+  if [ -n "$holder" ]; then
+    die "Port $port is already in use by '$holder', so nginx can't start.
+Stop it (for example: sudo systemctl disable --now $holder) if you don't need it, then run this script again."
+  fi
+done
+systemctl enable nginx >/dev/null 2>&1
+if ! systemctl restart nginx; then
+  journalctl -u nginx -n 20 --no-pager
+  die "nginx wouldn't start; its log is above. Running 'sudo nginx -t' shows config problems."
+fi
+echo "nginx is running."
 
 say "Turning on the firewall (SSH, HTTP and HTTPS only; port 3000 stays private)"
 ufw allow OpenSSH >/dev/null
