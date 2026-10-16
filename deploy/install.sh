@@ -4,7 +4,7 @@
 #   sudo bash deploy/install.sh
 #
 # Settings (override with environment variables, e.g. DOMAIN=... sudo -E bash ...):
-#   DOMAIN     the site's domain                      (default: eliteforces.com)
+#   DOMAIN     the site's domain                      (default: generalforces.com)
 #   APP_DIR    where the code lives                   (default: /var/www/html)
 #   REPO       the GitHub repository to pull          (default: git@github.com:HullAdam38/army.git)
 #   BRANCH     the branch to run                      (default: claude/determined-keller-i7bgjo)
@@ -19,7 +19,7 @@
 # firewall; and schedules nightly database backups. Safe to run again.
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-eliteforces.com}"
+DOMAIN="${DOMAIN:-generalforces.com}"
 APP_DIR="${APP_DIR:-/var/www/html}"
 REPO="${REPO:-git@github.com:HullAdam38/army.git}"
 BRANCH="${BRANCH:-claude/determined-keller-i7bgjo}"

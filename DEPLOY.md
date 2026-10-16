@@ -1,11 +1,11 @@
 # Deploying EliteForces
 
-Step by step for **Ubuntu 22.04** and **eliteforces.com**, with the code in **`/var/www/html`**. It takes about 15 minutes. The scripts are in [`deploy/`](deploy).
+Step by step for **Ubuntu 22.04** and **generalforces.com**, with the code in **`/var/www/html`**. It takes about 15 minutes. The scripts are in [`deploy/`](deploy).
 
 ## What you end up with
 
 - The game is pulled from GitHub into `/var/www/html` and runs as a background service (`eliteforces`) that starts on boot and restarts if it crashes.
-- nginx sits in front with free HTTPS from Let's Encrypt, which renews itself. `www.eliteforces.com` redirects to `https://eliteforces.com`.
+- nginx sits in front with free HTTPS from Let's Encrypt, which renews itself. `www.generalforces.com` redirects to `https://generalforces.com`.
 - The database lives in `/var/lib/eliteforces`, settings and secrets in `/etc/eliteforces`, and backups run every night to `/var/backups/eliteforces` (kept for 14 days).
 - A firewall allows only SSH, HTTP and HTTPS.
 
@@ -18,10 +18,10 @@ Step by step for **Ubuntu 22.04** and **eliteforces.com**, with the code in **`/
 
    | Type | Name | Value |
    |---|---|---|
-   | A | `@` (eliteforces.com) | your server's IPv4 address |
+   | A | `@` (generalforces.com) | your server's IPv4 address |
    | A | `www` | your server's IPv4 address |
 
-   Add matching `AAAA` records too if the server has IPv6. DNS can take a few minutes to an hour to spread. HTTPS can only be set up once `ping eliteforces.com` answers from your server's IP.
+   Add matching `AAAA` records too if the server has IPv6. DNS can take a few minutes to an hour to spread. HTTPS can only be set up once `ping generalforces.com` answers from your server's IP.
 
 ## Step 1: log in and install git
 
@@ -42,7 +42,7 @@ cat ~/.ssh/id_ed25519.pub
 Copy the line it prints. Then on GitHub:
 
 1. Open **HullAdam38/army › Settings › Deploy keys › Add deploy key**.
-2. Title it `eliteforces.com server`, paste the key, and **leave "Allow write access" unticked**.
+2. Title it `generalforces.com server`, paste the key, and **leave "Allow write access" unticked**.
 3. Click **Add key**.
 
 Check that it works (answer `yes` the first time):
@@ -61,7 +61,7 @@ git clone --branch claude/determined-keller-i7bgjo git@github.com:HullAdam38/arm
 sudo EMAIL=you@example.com bash ~/eliteforces-setup/deploy/install.sh
 ```
 
-Use your real email for certificate expiry notices. It takes a few minutes, and when it's done it prints **"EliteForces is live at https://eliteforces.com"**.
+Use your real email for certificate expiry notices. It takes a few minutes, and when it's done it prints **"EliteForces is live at https://generalforces.com"**.
 
 If `/var/www/html` already has files in it (Ubuntu puts a placeholder page there), they're moved to `/var/www/html.before-eliteforces.<date>` rather than deleted.
 
@@ -69,7 +69,7 @@ The defaults match your setup, so you shouldn't need any settings. If you ever d
 
 | Setting | Default |
 |---|---|
-| `DOMAIN` | `eliteforces.com` |
+| `DOMAIN` | `generalforces.com` |
 | `APP_DIR` | `/var/www/html` |
 | `BRANCH` | `claude/determined-keller-i7bgjo` (change to `main` if you merge into it) |
 | `REPO` | `git@github.com:HullAdam38/army.git` |
@@ -78,7 +78,7 @@ After it finishes you can delete the setup copy: `rm -rf ~/eliteforces-setup`.
 
 ## Step 4: make yourself an admin
 
-1. Open **https://eliteforces.com** and register your account.
+1. Open **https://generalforces.com** and register your account.
 2. Then on the server:
 
    ```bash
@@ -140,8 +140,8 @@ Backups stay on the same server. For real safety, copy `/var/backups/eliteforces
 
 ## Troubleshooting
 
-- **HTTPS failed during install.** DNS usually doesn't point at the server yet. Check with `ping eliteforces.com`, then run:
-  `sudo certbot --nginx -d eliteforces.com -d www.eliteforces.com --redirect --agree-tos -m you@example.com`
+- **HTTPS failed during install.** DNS usually doesn't point at the server yet. Check with `ping generalforces.com`, then run:
+  `sudo certbot --nginx -d generalforces.com -d www.generalforces.com --redirect --agree-tos -m you@example.com`
 - **Can't sign up or log in ("session expired"), or forms don't work.** The site has to be opened over **https://**. In production, login cookies are only sent over HTTPS, so plain http won't keep you signed in. Finish the HTTPS step above.
 - **"Apache is running" during install.** Something else is using port 80. If Apache only shows the default page, run `sudo systemctl disable --now apache2` and run the installer again.
 - **Clone failed during install.** The deploy key isn't set up yet (step 2). Check with `ssh -T git@github.com`.
