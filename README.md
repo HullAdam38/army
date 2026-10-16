@@ -1,4 +1,4 @@
-# EliteForces
+# GeneralForces
 
 A text-based military strategy game for players aged 18+. You enlist, spend energy on missions, earn XP and cash, get promoted through 18 ranks, and patch up your wounds at the field hospital.
 
@@ -15,8 +15,8 @@ A text-based military strategy game for players aged 18+. You enlist, spend ener
 ### Linux Mint / Ubuntu / Debian (one command)
 
 ```bash
-git clone -b claude/determined-keller-i7bgjo https://github.com/HullAdam38/army.git eliteforces
-cd eliteforces
+git clone -b claude/determined-keller-i7bgjo https://github.com/HullAdam38/army.git generalforces
+cd generalforces
 bash scripts/setup-linux.sh
 npm run dev        # then open http://localhost:3000
 ```

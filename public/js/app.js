@@ -1,4 +1,4 @@
-/* EliteForces client enhancements. Every page works without this script. */
+/* GeneralForces client enhancements. Every page works without this script. */
 (function () {
   'use strict';
 

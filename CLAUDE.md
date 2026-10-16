@@ -1,4 +1,4 @@
-# EliteForces: notes for working on this codebase
+# GeneralForces: notes for working on this codebase
 
 Text-based military browser game. Node 22.13+, Express 5, EJS, SQLite through `node:sqlite`, hand-written CSS. See README.md for features and SECURITY.md for the security model.
 

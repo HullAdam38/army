@@ -352,7 +352,7 @@ test('notifications: welcome, attack alerts, polling, read state, unlocks and th
   await register(bravo, 'Bravo');
 
   let { text } = await bravo.request('/notifications');
-  assert.match(text, /Welcome to EliteForces/);
+  assert.match(text, /Welcome to GeneralForces/);
   ({ text } = await bravo.request('/hq'));
   assert.doesNotMatch(text, /data-bell-count >/); // read after visiting the page
   const latestId = Number(text.match(/data-latest-id="(\d+)"/)[1]);

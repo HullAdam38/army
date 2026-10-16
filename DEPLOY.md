@@ -1,4 +1,4 @@
-# Deploying EliteForces
+# Deploying GeneralForces
 
 Step by step for **Ubuntu 22.04** and **generalforces.com**, with the code in **`/var/www/html`**. It takes about 15 minutes. The scripts are in [`deploy/`](deploy).
 
@@ -61,7 +61,7 @@ git clone --branch claude/determined-keller-i7bgjo git@github.com:HullAdam38/arm
 sudo EMAIL=you@example.com bash ~/eliteforces-setup/deploy/install.sh
 ```
 
-Use your real email for certificate expiry notices. It takes a few minutes, and when it's done it prints **"EliteForces is live at https://generalforces.com"**.
+Use your real email for certificate expiry notices. It takes a few minutes, and when it's done it prints **"GeneralForces is live at https://generalforces.com"**.
 
 If `/var/www/html` already has files in it (Ubuntu puts a placeholder page there), they're moved to `/var/www/html.before-eliteforces.<date>` rather than deleted.
 

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   EliteForces — tactical dark theme
+   GeneralForces — tactical dark theme
    Display: Saira Stencil One · UI/headings: Chakra Petch · Body: Barlow
    ========================================================================== */
 
@@ -1829,6 +1829,13 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .mission-result { flex-direction: column; align-items: flex-start; }
 }
 
+/* Signed-out header on phones: logo plus Sign in and Enlist on one line. */
+@media (max-width: 440px) {
+  .site-header:not(.site-header--game) .brand { gap: 6px; font-size: 1.1rem; }
+  .site-header:not(.site-header--game) .brand__crest { width: 22px; height: 22px; }
+  .site-header__actions { gap: 6px; }
+  .site-header__actions .btn { padding-inline: 10px; }
+}
 @media (max-width: 380px) {
   .site-header__actions .btn--ghost { display: none; }
 }
@@ -2460,8 +2467,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 }
 /* 320px phones (iPhone SE 1st gen and similar). */
 @media (max-width: 340px) {
-  .site-header .brand { gap: 6px; font-size: 1.05rem; }
-  .site-header .brand__crest { width: 22px; height: 22px; }
+  .site-header .brand { gap: 5px; font-size: 0.98rem; }
+  .site-header .brand__crest { width: 20px; height: 20px; }
   .statbar__grid { column-gap: 10px; }
   .stat { gap: 6px; }
   .stat__label { font-size: 0.66rem; letter-spacing: 0.04em; }

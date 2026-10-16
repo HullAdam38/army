@@ -1,8 +1,8 @@
 <header class="site-header<%= player ? ' site-header--game' : '' %><%= player && isAdmin ? ' site-header--admin' : '' %>">
   <div class="container site-header__bar">
-    <a class="brand" href="<%= signedIn ? '/hq' : '/' %>" aria-label="EliteForces home">
+    <a class="brand" href="<%= signedIn ? '/hq' : '/' %>" aria-label="GeneralForces home">
       <svg class="brand__crest" aria-hidden="true"><use href="#i-crest"/></svg>
-      <span>Elite<b>Forces</b></span>
+      <span>General<b>Forces</b></span>
     </a>
     <% if (player) { %>
       <nav class="game-nav" aria-label="Game">

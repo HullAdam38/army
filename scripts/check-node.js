@@ -7,7 +7,7 @@ var ok = parts[0] > 22 || (parts[0] === 22 && parts[1] >= 13);
 
 if (!ok) {
   console.error('');
-  console.error('  EliteForces needs Node.js 22.13 or newer, but this is Node ' + process.version + '.');
+  console.error('  GeneralForces needs Node.js 22.13 or newer, but this is Node ' + process.version + '.');
   console.error('  (' + process.execPath + ')');
   console.error('');
   console.error('  On Linux Mint / Ubuntu, run the setup script from the project folder:');

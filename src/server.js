@@ -76,7 +76,7 @@ function createApp({
   if (!secret) {
     if (production) throw new Error('SESSION_SECRET must be set in production.');
     secret = crypto.randomBytes(32).toString('hex');
-    console.warn('[eliteforces] SESSION_SECRET not set; using a random one. Sessions reset on restart.');
+    console.warn('[generalforces] SESSION_SECRET not set; using a random one. Sessions reset on restart.');
   }
 
   const app = express();
@@ -122,11 +122,11 @@ function createApp({
   app.disable('x-powered-by');
 
   app.locals.assetVersion = pkg.version;
-  app.locals.siteName = 'EliteForces';
+  app.locals.siteName = 'GeneralForces';
   app.locals.year = new Date().getFullYear();
   app.locals.legal = legalSettings();
   if (production && app.locals.legal.missing.length) {
-    console.warn(`[eliteforces] The Terms of Service show placeholders until you set: ${app.locals.legal.missing.join(', ')}.`);
+    console.warn(`[generalforces] The Terms of Service show placeholders until you set: ${app.locals.legal.missing.join(', ')}.`);
   }
   // Defaults so any template (including error pages) renders even if a middleware never ran.
   Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, unreadMessages: 0, chatUnread: { unit: 0, global: false }, liveEvents: [], latestNotificationId: 0, isAdmin: false });
@@ -215,7 +215,7 @@ function createApp({
 if (require.main === module) {
   const port = Number(process.env.PORT) || 3000;
   createApp().listen(port, () => {
-    console.log(`[eliteforces] Listening on http://localhost:${port}`);
+    console.log(`[generalforces] Listening on http://localhost:${port}`);
   });
 }
 

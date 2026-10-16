@@ -1,7 +1,7 @@
-# systemd service for EliteForces. install.sh copies this to
+# systemd service for GeneralForces. install.sh copies this to
 # /etc/systemd/system/eliteforces.service, filling in __APP_DIR__.
 [Unit]
-Description=EliteForces game server
+Description=GeneralForces game server
 After=network.target
 
 [Service]

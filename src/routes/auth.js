@@ -104,7 +104,7 @@ function authRoutes(players, anti) {
           errors: { [field]: field === 'email' ? 'An account with that email already exists.' : 'That callsign is already taken.' },
         });
       }
-      players.notify(id, 'system', 'Welcome to EliteForces. Run missions to earn XP and cash. PvP unlocks at level 3.', '/missions');
+      players.notify(id, 'system', 'Welcome to GeneralForces. Run missions to earn XP and cash. PvP unlocks at level 3.', '/missions');
       startSession(req, id, (err) => {
         if (err) return next(err);
         req.flash('success', `Welcome aboard, ${values.username}. Your first orders are waiting.`);

@@ -1,7 +1,7 @@
 {
-  "name": "eliteforces",
+  "name": "generalforces",
   "version": "0.1.0",
-  "description": "EliteForces — a text-based military strategy game",
+  "description": "GeneralForces — a text-based military strategy game",
   "main": "src/server.js",
   "scripts": {
     "prestart": "node scripts/check-node.js",

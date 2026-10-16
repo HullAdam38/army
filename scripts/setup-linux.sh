@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup for running EliteForces locally on Linux Mint, Ubuntu or Debian.
+# One-time setup for running GeneralForces locally on Linux Mint, Ubuntu or Debian.
 #
 #   bash scripts/setup-linux.sh
 #
@@ -51,8 +51,8 @@ say "Installing the game's packages"
 npm ci
 
 say "Running the tests"
-npm test >/tmp/eliteforces-tests.log 2>&1 && echo "All tests passed." || {
-  echo "Some tests failed; see /tmp/eliteforces-tests.log" >&2
+npm test >/tmp/generalforces-tests.log 2>&1 && echo "All tests passed." || {
+  echo "Some tests failed; see /tmp/generalforces-tests.log" >&2
   exit 1
 }
 

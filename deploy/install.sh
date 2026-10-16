@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time server setup for EliteForces on Ubuntu 22.04 (also works on 24.04).
+# One-time server setup for GeneralForces on Ubuntu 22.04 (also works on 24.04).
 #
 #   sudo bash deploy/install.sh
 #
@@ -60,7 +60,7 @@ fi
 
 # nginx needs ports 80 and 443. Don't silently break an existing Apache site.
 if systemctl is-active --quiet apache2 2>/dev/null; then
-  die "Apache is running and using port 80. EliteForces uses nginx in front of the game.
+  die "Apache is running and using port 80. GeneralForces uses nginx in front of the game.
 If Apache only serves the default page, stop it with:
   sudo systemctl disable --now apache2
 then run this script again. (If Apache hosts other sites, set those up in nginx first.)"
@@ -119,7 +119,7 @@ as_deployer bash -c "cd '$APP_DIR' && npm ci --omit=dev --no-audit --no-fund"
 say "Writing settings to $ENV_FILE"
 if [ ! -f "$ENV_FILE" ]; then
   cat > "$ENV_FILE" <<ENV
-# EliteForces settings. Read by the systemd service; restart after editing:
+# GeneralForces settings. Read by the systemd service; restart after editing:
 #   sudo systemctl restart eliteforces
 NODE_ENV=production
 PORT=3000
@@ -208,14 +208,14 @@ fi
 say "Scheduling nightly database backups (kept for 14 days in $BACKUP_DIR)"
 install -m 755 "$HERE/backup.sh" /usr/local/sbin/eliteforces-backup
 cat > /etc/cron.d/eliteforces-backup <<CRON
-# Nightly EliteForces database backup.
+# Nightly GeneralForces database backup.
 17 3 * * * root /usr/local/sbin/eliteforces-backup >> /var/log/eliteforces-backup.log 2>&1
 CRON
 
 say "Done"
 cat <<DONE
 
-  EliteForces is live at https://$DOMAIN
+  GeneralForces is live at https://$DOMAIN
 
   Next:
     1. Register your account on the site, then make yourself an admin:

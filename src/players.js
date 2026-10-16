@@ -139,7 +139,7 @@ function createPlayerRepo(db) {
       });
       const id = Number(info.lastInsertRowid);
       stmts.ledger.run(id, newPlayerDefaults(now).cash, 0, 'signup', null, now);
-      stmts.log.run(id, 'system', 'Enlisted with EliteForces. Welcome to the unit, soldier.', now);
+      stmts.log.run(id, 'system', 'Enlisted with GeneralForces. Welcome to the unit, soldier.', now);
       return id;
     },
     /** Records which version of the Terms of Service the player accepted, and when. */

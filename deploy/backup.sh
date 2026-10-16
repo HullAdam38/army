@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Backs up the EliteForces database while the game is running (SQLite's online
+# Backs up the GeneralForces database while the game is running (SQLite's online
 # backup, so it's always consistent), compresses it, and keeps 14 days.
 # install.sh copies this to /usr/local/sbin/eliteforces-backup and runs it nightly.
 #   sudo eliteforces-backup
