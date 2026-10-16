@@ -175,6 +175,19 @@ if ! systemctl restart nginx; then
 fi
 echo "nginx is running."
 
+# Behind Cloudflare? Then every request arrives from Cloudflare's addresses: make
+# nginx pass the visitor's real IP on, or anti-cheat sees everyone as one network.
+if curl -sI --max-time 10 "http://$DOMAIN/" 2>/dev/null | grep -qi '^server: cloudflare'; then
+  say "$DOMAIN is behind Cloudflare: passing visitors' real IPs to the game"
+  install -m 755 "$HERE/cloudflare-realip.sh" /usr/local/sbin/eliteforces-cloudflare-realip
+  /usr/local/sbin/eliteforces-cloudflare-realip || echo "Couldn't set it up now; run: sudo eliteforces-cloudflare-realip"
+  cat > /etc/cron.d/eliteforces-cloudflare <<CRON
+# Refresh Cloudflare's IP ranges for nginx's real-IP settings, monthly.
+41 4 1 * * root /usr/local/sbin/eliteforces-cloudflare-realip >> /var/log/eliteforces-cloudflare.log 2>&1
+CRON
+  printf '\n\033[1;33mIn Cloudflare, set SSL/TLS to "Full (strict)".\033[0m "Flexible" makes an endless redirect loop.\n'
+fi
+
 say "Turning on the firewall (SSH, HTTP and HTTPS only; port 3000 stays private)"
 ufw allow OpenSSH >/dev/null
 ufw allow 'Nginx Full' >/dev/null

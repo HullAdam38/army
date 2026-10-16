@@ -138,6 +138,19 @@ sudo systemctl start eliteforces
 
 Backups stay on the same server. For real safety, copy `/var/backups/eliteforces` somewhere else now and then, for example with your host's snapshot feature or by downloading it with `scp`.
 
+## Using Cloudflare
+
+If your domain's DNS is on Cloudflare with the orange cloud (proxied):
+
+1. **In Cloudflare, go to SSL/TLS › Overview and choose "Full (strict)".** Your server has its own valid certificate. "Flexible" causes an endless redirect loop ("The page isn't redirecting properly").
+2. **Real visitor IPs.** Behind Cloudflare, every request reaches your server from Cloudflare's addresses. Left alone, anti-cheat would see all players as linked accounts on one network, and login limits would lump everyone together. The installer detects Cloudflare and sets nginx to use the real visitor IP, but only for requests that genuinely come from Cloudflare's published ranges, so it can't be faked. A monthly job keeps that list up to date. To run it yourself:
+
+   ```bash
+   sudo eliteforces-cloudflare-realip
+   ```
+
+   (It's also at `deploy/cloudflare-realip.sh`.) Turned Cloudflare on after installing? Run that command once.
+
 ## Troubleshooting
 
 - **HTTPS failed during install.** DNS usually doesn't point at the server yet. Check with `ping generalforces.com`, then run:
@@ -147,6 +160,7 @@ Backups stay on the same server. For real safety, copy `/var/backups/eliteforces
 - **Clone failed during install.** The deploy key isn't set up yet (step 2). Check with `ssh -T git@github.com`.
 - **The game won't start.** Read the log with `sudo journalctl -u eliteforces -n 50`. The installer and the update script both show it when something goes wrong.
 - **"nginx.service is not active" or nginx won't start.** The installer now starts nginx itself and handles servers without IPv6. If something else holds port 80 or 443, it names it. To see why nginx failed: `sudo nginx -t` and `sudo journalctl -u nginx -n 20`.
+- **"The page isn't redirecting properly" (too many redirects).** Almost always Cloudflare set to "Flexible" SSL. Change it to **Full (strict)** (see Using Cloudflare above).
 - **Visiting the server's IP address sends you to the domain.** That's on purpose: the game is meant to be reached at https://generalforces.com, and login only works over HTTPS on the domain. To try the site before DNS is ready, add a line `YOUR.SERVER.IP generalforces.com` to your computer's hosts file (on Windows `C:\Windows\System32\drivers\etc\hosts`; on Mac or Linux `/etc/hosts`). If your browser keeps going to an old address, it has remembered an earlier redirect: try a private window or clear its cache.
 - **502 Bad Gateway.** nginx is up but the game isn't. Run `sudo systemctl restart eliteforces`, then check the log.
 
