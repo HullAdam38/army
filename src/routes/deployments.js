@@ -18,7 +18,7 @@ function deploymentRoutes(players, deploymentService) {
     const active = deploymentService.active(me.id);
     res.render('deployments', {
       title: 'Deployments',
-      nav: null,
+      nav: 'deployments',
       // The header was built before completeDue ran; refresh it if someone just came back.
       player: returned.length ? game.playerView(me, now) : res.locals.player,
       cap: deployments.DAILY_CAP_HOURS,

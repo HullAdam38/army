@@ -151,6 +151,8 @@ test('deployments page and flow through the app', async () => {
     page = (await request('/hq')).text;
     assert.match(page, /You're on deployment/);
     assert.match(page, /Missions resume when you're back/);
+    // The phone menu flags the deployment on its tile.
+    assert.match(page, /data-tabbar[\s\S]*href="\/deployments"[\s\S]*tabbar__badge">Away</);
 
     // Missions and training are off while away.
     const cash = db.prepare('SELECT cash FROM users').get().cash;

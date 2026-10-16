@@ -19,7 +19,7 @@ function eventRoutes(players, eventService, adminRepo) {
     const now = Date.now();
     res.render('events', {
       title: 'Events',
-      nav: null,
+      nav: 'events',
       live: eventService.live(now),
       upcoming: eventService.upcoming(now, 10),
       recent: eventService.recent(now, 6).map((e) => ({ ...e, ago: presence.timeAgo(e.ends_at, now) })),

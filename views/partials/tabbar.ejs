@@ -1,0 +1,60 @@
+<%#
+  Phone menu (≤640px): four main tabs and a "More" sheet with everything else.
+  The sheet is a <details>, so it opens without JavaScript; app.js adds
+  closing on Escape and on a tap outside. Hidden on wider screens, where the
+  header menu shows instead.
+%>
+<%
+  const tabs = [
+    { key: 'hq', href: '/hq', label: 'HQ', icon: 'i-home' },
+    { key: 'missions', href: '/missions', label: 'Missions', icon: 'i-target' },
+    { key: 'armory', href: '/armory', label: 'Armory', icon: 'i-weapon' },
+    { key: 'players', href: '/players', label: 'Players', icon: 'i-helmet', also: ['online'] },
+  ];
+  const more = [
+    { key: 'training', href: '/training', label: 'Training', icon: 'i-chevrons' },
+    { key: 'deployments', href: '/deployments', label: 'Deploy', icon: 'i-kit', badge: player.deployed ? 'Away' : null },
+    { key: 'unit', href: '/unit', label: 'Unit', icon: 'i-flag' },
+    { key: 'bank', href: '/bank', label: 'Bank', icon: 'i-cash' },
+    { key: 'hospital', href: '/hospital', label: 'Hospital', icon: 'i-health', badge: player.hospitalized ? 'In' : null },
+    { key: 'base', href: '/base', label: 'Base', icon: 'i-crest' },
+    { key: 'leaderboards', href: '/leaderboards', label: 'Rankings', icon: 'i-podium' },
+    { key: 'events', href: '/events', label: 'Events', icon: 'i-calendar', badge: liveEvents.length ? 'Live' : null },
+    { key: 'profile', href: '/profile/' + encodeURIComponent(player.username), label: 'Profile', icon: 'i-body' },
+  ];
+  if (isAdmin) more.push({ key: 'admin', href: '/admin', label: 'Admin', icon: 'i-lock', admin: true });
+  const isOn = (t) => nav === t.key || (t.also || []).includes(nav);
+  const moreOn = more.some(isOn);
+  const moreBadge = more.some((t) => t.badge);
+%>
+<nav class="tabbar" aria-label="Game menu" data-tabbar>
+  <% tabs.forEach(function (t) { %>
+    <a class="tabbar__tab" href="<%= t.href %>" <%- isOn(t) ? 'aria-current="page"' : '' %>>
+      <svg aria-hidden="true"><use href="#<%= t.icon %>"/></svg><span><%= t.label %></span>
+    </a>
+  <% }) %>
+  <details class="tabbar__more" data-tabbar-more>
+    <summary class="tabbar__tab<%= moreOn ? ' is-on' : '' %>">
+      <svg aria-hidden="true"><use href="#i-grid"/></svg><span>More</span>
+      <% if (moreBadge) { %><i class="tabbar__dot" aria-hidden="true"></i><% } %>
+    </summary>
+    <div class="tabbar__sheet">
+      <p class="tabbar__title">Command menu</p>
+      <ul class="tabbar__grid">
+        <% more.forEach(function (t) { %>
+          <li>
+            <a class="tabbar__tile<%= t.admin ? ' tabbar__tile--admin' : '' %>" href="<%= t.href %>" <%- isOn(t) ? 'aria-current="page"' : '' %>>
+              <svg aria-hidden="true"><use href="#<%= t.icon %>"/></svg>
+              <span><%= t.label %></span>
+              <% if (t.badge) { %><em class="tabbar__badge"><%= t.badge %></em><% } %>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+      <form method="post" action="/logout" class="tabbar__logout">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn--ghost btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-logout"/></svg>Sign out</button>
+      </form>
+    </div>
+  </details>
+</nav>

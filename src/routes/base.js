@@ -16,7 +16,7 @@ function baseRoutes(players, baseService) {
     const building = me.base_build && me.base_build_until > now ? base.FACILITIES_BY_ID.get(me.base_build) : null;
     res.render('base', {
       title: 'Forward base',
-      nav: null,
+      nav: 'base',
       unlocked: me.level >= base.UNLOCK_LEVEL,
       unlockLevel: base.UNLOCK_LEVEL,
       rating: base.baseRating(me),

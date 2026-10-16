@@ -526,6 +526,17 @@ public/              CSS, JS, favicon
 test/                node:test suites
 ```
 
+## Phone menu
+
+On screens up to 640px wide, the header menu gives way to an app-style **bottom tab bar**:
+- **Tabs:** HQ, Missions, Armory, Players and More. The active tab glows orange.
+- **More sheet:** More slides up a sheet of tiles for everything else (Training, Deployments, Unit, Bank, Hospital, Base, Rankings, Events, Profile, and Admin for admins). Sign out lives there too.
+- **Badges:** tiles show Away, In or Live while you're deployed, in hospital or an event is running, and a dot on More tells you something's up.
+- **Header:** on phones it keeps just the logo, messages and notifications.
+- **Without JavaScript:** the sheet is a plain `<details>` element, so it still opens and closes. JavaScript adds closing on Escape or a tap outside.
+
+The markup is in `views/partials/tabbar.ejs`.
+
 ## Pages
 
 - `/`: landing page

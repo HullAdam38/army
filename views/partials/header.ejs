@@ -75,6 +75,7 @@
     </div>
   <% } %>
 </header>
+<% if (player) { %><%- include('tabbar') %><% } %>
 <% if (player) { %><div class="toasts" data-toasts aria-live="polite"></div><% } %>
 <% if (flash.length) { %>
   <div class="container flash-stack" role="status">

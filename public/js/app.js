@@ -78,6 +78,21 @@
     });
   });
 
+  /* ---------- Phone menu: close the "More" sheet on Escape or a tap outside ---------- */
+  const more = document.querySelector('[data-tabbar-more]');
+  if (more) {
+    const sheet = more.querySelector('.tabbar__sheet');
+    const summary = more.querySelector('summary');
+    document.addEventListener('click', (e) => {
+      if (more.open && !sheet.contains(e.target) && !summary.contains(e.target)) more.open = false;
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && more.open) { more.open = false; summary.focus(); }
+    });
+    // Coming back with the browser's back button shouldn't leave the sheet open.
+    window.addEventListener('pageshow', () => { more.open = false; });
+  }
+
   /* ---------- Forms that ask before doing something drastic ---------- */
   document.querySelectorAll('form[data-confirm]').forEach((form) => {
     form.addEventListener('submit', (event) => {
