@@ -39,6 +39,8 @@ SESSION_SECRET="$(openssl rand -hex 32)" NODE_ENV=production npm start
 
 See `.env.example` for all settings, and **[SECURITY.md](SECURITY.md)** for the security review and the production checklist (HTTPS proxy, secrets, backups).
 
+**Putting it on a server:** **[DEPLOY.md](DEPLOY.md)** is a step-by-step guide for Ubuntu 22.04. It covers the code in `/var/www/html`, nginx with HTTPS, a systemd service, nightly backups and one-command updates, using the scripts in `deploy/`.
+
 ## Terms of Service
 
 - **The page:** `/terms` is public and linked from every page footer and the sign-up form. It covers eligibility (18+), one account per player, fair play (no alts, bots, exploits or real-money trading), conduct, virtual items, enforcement, data, liability, changes and governing law. Retention periods are read from the anti-cheat settings, so the page always matches what the game does.

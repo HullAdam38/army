@@ -7,6 +7,7 @@ Text-based military browser game. Node 22.13+, Express 5, EJS, SQLite through `n
 - `npm run dev`: run locally on http://localhost:3000 (restarts on change)
 - `npm test`: the full suite (node:test). Keep it green before every commit.
 - `npm run admin -- grant <callsign>`: make an admin
+- Deploying: see DEPLOY.md (`deploy/install.sh` once, then `deploy/update.sh`).
 - `npm run balance`: simulate three player types for 30 days (levels, income and XP by source). Run it after changing payouts.
 
 ## House rules

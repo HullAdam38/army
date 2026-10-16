@@ -73,6 +73,8 @@ Admin player pages show a **24-hour activity chart** (actions per hour). Real pl
 
 ## Production checklist
 
+[DEPLOY.md](DEPLOY.md) and `deploy/install.sh` do all of this for an Ubuntu server. The list below is for setting it up by hand.
+
 1. Run behind HTTPS (nginx or Caddy with a Let's Encrypt certificate).
 2. Set environment variables:
    ```

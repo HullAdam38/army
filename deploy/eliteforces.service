@@ -1,0 +1,25 @@
+# systemd service for EliteForces. install.sh copies this to
+# /etc/systemd/system/eliteforces.service, filling in __APP_DIR__.
+[Unit]
+Description=EliteForces game server
+After=network.target
+
+[Service]
+Type=simple
+User=eliteforces
+Group=eliteforces
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=/etc/eliteforces/eliteforces.env
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning src/server.js
+Restart=always
+RestartSec=3
+
+# Hardening: the game can only write to its data folder.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/eliteforces
+
+[Install]
+WantedBy=multi-user.target
