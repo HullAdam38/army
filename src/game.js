@@ -46,6 +46,14 @@ const RANKS = [
   { name: 'Major General', grade: 'O-8' },
   { name: 'Lieutenant General', grade: 'O-9' },
   { name: 'General', grade: 'O-10' },
+  // Campaign 3 (levels 37–49): the high command.
+  { name: 'General of the Army', grade: 'O-11' },
+  { name: 'Chief of Staff', grade: 'O-12' },
+  { name: 'Field Marshal', grade: 'O-13' },
+  { name: 'Marshal of the Forces', grade: 'O-14' },
+  { name: 'Theatre Commander', grade: 'O-15' },
+  { name: 'Supreme Commander', grade: 'O-16' },
+  { name: 'Commander-in-Chief', grade: 'O-17' },
 ];
 
 const MISSIONS = [
@@ -159,6 +167,62 @@ const MISSIONS = [
     campaign: 2, minLevel: 34, energy: 55, chance: 0.42,
     xp: [650, 750], cash: [4400, 6000], damage: [45, 70],
   },
+
+  // Campaign 3: Global war (levels 35–50).
+  {
+    id: 'satellite-uplink',
+    favours: 'endurance',
+    name: 'Seize the Satellite Uplink',
+    theatre: 'Arctic Station',
+    brief: 'Take the polar ground station that steers their satellites, and hold it through the storm.',
+    campaign: 3, minLevel: 36, energy: 60, chance: 0.45,
+    xp: [760, 870], cash: [5600, 7400], damage: [50, 75],
+  },
+  {
+    id: 'carrier-boarding',
+    favours: 'agility',
+    name: 'Board the Carrier',
+    theatre: 'Open Ocean',
+    brief: 'Fast-rope onto the flagship’s deck at night and take the bridge before it can launch.',
+    campaign: 3, minLevel: 39, energy: 65, chance: 0.43,
+    xp: [900, 1020], cash: [7000, 9200], damage: [55, 80],
+  },
+  {
+    id: 'reactor-lockdown',
+    favours: 'endurance',
+    name: 'Reactor Lockdown',
+    theatre: 'Exclusion Zone',
+    brief: 'Saboteurs hold a damaged reactor. Get in, shut it down, and get everyone out.',
+    campaign: 3, minLevel: 42, energy: 70, chance: 0.42,
+    xp: [1050, 1200], cash: [8600, 11200], damage: [60, 85],
+  },
+  {
+    id: 'mountain-fortress',
+    favours: 'strength',
+    name: 'Storm the Mountain Fortress',
+    theatre: 'High Sierra',
+    brief: 'The enemy’s last stronghold is carved into a mountain. Breach it from the top down.',
+    campaign: 3, minLevel: 45, energy: 75, chance: 0.4,
+    xp: [1230, 1400], cash: [10500, 13500], damage: [65, 90],
+  },
+  {
+    id: 'shadow-council',
+    favours: 'agility',
+    name: 'Take Down the Shadow Council',
+    theatre: 'Undisclosed Location',
+    brief: 'The people who started this war meet once a year. This year, you’re invited.',
+    campaign: 3, minLevel: 48, energy: 80, chance: 0.38,
+    xp: [1420, 1620], cash: [12500, 16000], damage: [70, 95],
+  },
+  {
+    id: 'zero-hour',
+    favours: 'strength',
+    name: 'Zero Hour',
+    theatre: 'Enemy Capital',
+    brief: 'Every unit, every front, one night. Lead the assault that ends the war.',
+    campaign: 3, minLevel: 50, energy: 85, chance: 0.36,
+    xp: [1650, 1880], cash: [15000, 19000], damage: [75, 100],
+  },
 ];
 
 const MISSIONS_BY_ID = new Map(MISSIONS.map((m) => [m.id, m]));
@@ -166,6 +230,7 @@ const MISSIONS_BY_ID = new Map(MISSIONS.map((m) => [m.id, m]));
 const CAMPAIGNS = [
   { id: 1, name: 'Home front', blurb: 'Patrols, escorts and raids close to home. Levels 1–14.' },
   { id: 2, name: 'Forward operations', blurb: 'Deep behind the line, for seasoned soldiers. Levels 15–34.' },
+  { id: 3, name: 'Global war', blurb: 'The war goes worldwide, and only the high command can end it. Levels 35–50.' },
 ];
 
 function xpToNext(level) {

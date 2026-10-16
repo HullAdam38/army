@@ -110,7 +110,7 @@ Nothing is banned automatically. See [SECURITY.md](SECURITY.md#anti-cheat) for t
 | **Energy** | Starts at 50. +1 every 2 minutes. Each mission costs energy. |
 | **Health** | Starts at 100. +1 every minute. Failed missions deal damage, and you can't deploy below 15 HP. |
 | **XP / Level** | Level *n* needs `100 × n^1.6` XP. Each level-up adds +5 max energy and +10 max health and refills both. |
-| **Rank** | Changes every 2 levels, from Recruit (E-1) to General (O-10). |
+| **Rank** | Changes every 2 levels, from Recruit (E-1) through General (O-10, level 35) to Commander-in-Chief (O-17, level 49). |
 | **Cash** | Earned from successful missions. Spend it in the Armory or at the field hospital ($2 per HP). Only cash on hand can be taken in PvP. |
 | **Bank** | Money in the bank is safe from attacks. Deposits cost 2% (minimum $1); withdrawals are free. There's deliberately **no interest**, so the bank never creates money. Balances are private. |
 | **Gear** | Four slots (weapon, body armour, helmet, tactical kit). Gear raises your combat rating, which adds up to +15% mission success, and armour reduces failure damage. |
@@ -192,7 +192,7 @@ At `/deployments` (linked from HQ) a player sends their soldier out on a timed p
 
 Rules live in `src/deployments.js`; storage and returns are in `src/deployment-service.js`.
 
-## Campaign 2: levels 15–35
+## Campaign 2: levels 15–34
 
 ### Missions
 
@@ -245,8 +245,54 @@ Officer ranks bring permanent economic perks, never combat ones, so PvP balance 
 | Colonel | 27 | another +5% pay |
 | Brigadier General | 29 | another +5% XP |
 | General | 35 | supply drops +50% |
+| Field Marshal | 41 | another +5% pay |
+| Theatre Commander | 45 | another +5% XP |
+| Commander-in-Chief | 49 | supply drops pay double |
 
 Pay and XP perks also apply to operations. The Missions page lists your perks, and HQ shows the next one. Anti-cheat's "impossible payout" limit includes the perk bonus.
+
+## Campaign 3: levels 35–50
+
+**Global war** opens at level 35 with a notification. It continues every curve past where Campaign 2 stops, so the game has room to grow. Levels have no cap: XP keeps counting past 50, and Commander-in-Chief stays the top rank.
+
+### Ranks
+
+There's a new rank every 2 levels above General: General of the Army (37, O-11), Chief of Staff (39), Field Marshal (41), Marshal of the Forces (43), Theatre Commander (45), Supreme Commander (47) and Commander-in-Chief (49, O-17).
+
+### Missions
+
+| Mission | Level | Energy | XP | Pay |
+|---|---|---|---|---|
+| Seize the Satellite Uplink | 36 | 60 | 760–870 | $5.6k–7.4k |
+| Board the Carrier | 39 | 65 | 900–1,020 | $7k–9.2k |
+| Reactor Lockdown | 42 | 70 | 1,050–1,200 | $8.6k–11.2k |
+| Storm the Mountain Fortress | 45 | 75 | 1,230–1,400 | $10.5k–13.5k |
+| Take Down the Shadow Council | 48 | 80 | 1,420–1,620 | $12.5k–16k |
+| Zero Hour | 50 | 85 | 1,650–1,880 | $15k–19k |
+
+As in Campaign 2, every new mission pays more XP and cash per energy than the one before, and tests enforce it.
+
+### Operations
+
+| Operation | Level | Stage energy | Completion bonus |
+|---|---|---|---|
+| Black Tide | 40 | 60 / 65 / 70 | $28,000 + 4,500 XP |
+| Iron Crown | 47 | 70 / 75 / 80 | $45,000 + 7,000 XP |
+
+### Gear
+
+Two new items per slot, for levels 36–48 and $120k–$450k:
+- **Weapons:** EM Railgun Prototype, Pulse Carbine
+- **Armour:** Reactive Armour, Nano-Weave Suit
+- **Helmets:** Tactical HUD Helmet, Neural Link Helmet
+- **Kit:** Satellite Designator, Drone Swarm Controller
+
+The best combat rating climbs from about 850 to about 1,770. Armour has steep diminishing returns this high, so the new armour adds mostly attack and the new helmets mostly crits. Armour reduction stays under 70%, and a test checks it at every level up to 50.
+
+### Also new
+
+- **Rank perks:** more pay, XP and supply drops at levels 41, 45 and 49 (see the rank perks table).
+- **Title:** **Living Legend**, for reaching level 50.
 
 Rules live in `src/game.js` (missions), `src/operations.js`, `src/items.js`, `src/supplies.js` and `src/perks.js`.
 
@@ -442,7 +488,7 @@ Players earn **titles** and can show one under their callsign, on their profile 
 | Architect | forward base rating 15 |
 | War Hero | 100 war points |
 | Warlord | 5 unit wars won |
-| Veteran / The General | level 20 / level 35 |
+| Veteran / The General / Living Legend | level 20 / 35 / 50 |
 | Contender | a PvP season finished in Gold or Elite |
 | Top Ten / Season Champion | a PvP season finished in the top 10 / first |
 

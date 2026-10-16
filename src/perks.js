@@ -13,6 +13,10 @@ const PERKS = [
   { level: 27, rank: 'Colonel', key: 'missionCash', value: 0.05, text: 'another +5% mission pay' },
   { level: 29, rank: 'Brigadier General', key: 'missionXp', value: 0.05, text: 'another +5% mission XP' },
   { level: 35, rank: 'General', key: 'supplyDrop', value: 0.5, text: 'supply drops pay 50% more' },
+  // Campaign 3
+  { level: 41, rank: 'Field Marshal', key: 'missionCash', value: 0.05, text: 'another +5% mission pay' },
+  { level: 45, rank: 'Theatre Commander', key: 'missionXp', value: 0.05, text: 'another +5% mission XP' },
+  { level: 49, rank: 'Commander-in-Chief', key: 'supplyDrop', value: 0.5, text: 'supply drops pay double' },
 ];
 
 const MAX_CASH_BONUS = PERKS.filter((p) => p.key === 'missionCash').reduce((n, p) => n + p.value, 0);

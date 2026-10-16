@@ -46,6 +46,12 @@ const ITEMS = [
   { id: 'smart-rifle', slot: 'weapon', name: 'XM Smart Rifle', minLevel: 33, price: 140000,
     blurb: 'Computer-assisted fire control. It doesn’t miss much.',
     mods: [flat('attack', 95), flat('critChance', 0.12), more('damage', 0.15)] },
+  { id: 'railgun', slot: 'weapon', name: 'EM Railgun Prototype', minLevel: 38, price: 240000,
+    blurb: 'Magnetic rails, no powder. Punches through walls and the people behind them.',
+    mods: [flat('attack', 115), flat('critChance', 0.05), more('damage', 0.2)] },
+  { id: 'pulse-carbine', slot: 'weapon', name: 'Pulse Carbine', minLevel: 46, price: 420000,
+    blurb: 'Directed energy in a carbine frame. Silent, recoilless, terrifying.',
+    mods: [flat('attack', 135), flat('critChance', 0.14), more('damage', 0.2)] },
 
   // Body armour: the main source of armour.
   { id: 'flak-vest', slot: 'body', name: 'Flak Vest', minLevel: 1, price: 120,
@@ -69,6 +75,13 @@ const ITEMS = [
   { id: 'juggernaut-suit', slot: 'body', name: 'Juggernaut Suit', minLevel: 31, price: 110000,
     blurb: 'Bomb-disposal protection rebuilt for the assault.',
     mods: [flat('armor', 135), increased('armor', 0.2)] },
+  { id: 'reactive-armour', slot: 'body', name: 'Reactive Armour', minLevel: 37, price: 200000,
+    blurb: 'Powered plates that harden on impact and help you carry heavier weapons.',
+    // Armour already has steep diminishing returns this high, so the upgrade is mostly offence.
+    mods: [flat('armor', 142), increased('armor', 0.2), flat('attack', 12)] },
+  { id: 'nano-weave', slot: 'body', name: 'Nano-Weave Suit', minLevel: 45, price: 380000,
+    blurb: 'Light as cloth until something hits it; then it’s steel. Servo-assisted.',
+    mods: [flat('armor', 150), increased('armor', 0.2), flat('attack', 25)] },
 
   // Helmets: a little armour plus utility.
   { id: 'combat-helmet', slot: 'helmet', name: 'Combat Helmet', minLevel: 2, price: 250,
@@ -86,6 +99,12 @@ const ITEMS = [
   { id: 'panoramic-helmet', slot: 'helmet', name: 'Panoramic NVG Helmet', minLevel: 27, price: 60000,
     blurb: 'Four-tube night vision. The night belongs to you.',
     mods: [flat('armor', 30), flat('critChance', 0.08), flat('critDamage', 0.15)] },
+  { id: 'hud-helmet', slot: 'helmet', name: 'Tactical HUD Helmet', minLevel: 36, price: 120000,
+    blurb: 'Threats, distances and weak points painted onto the world.',
+    mods: [flat('armor', 33), flat('critChance', 0.1), flat('critDamage', 0.2)] },
+  { id: 'neural-link', slot: 'helmet', name: 'Neural Link Helmet', minLevel: 43, price: 300000,
+    blurb: 'Thinks with you. Sees the shot before you do.',
+    mods: [flat('armor', 36), flat('critChance', 0.12), flat('critDamage', 0.3)] },
 
   // Tactical kit: damage multipliers and crits.
   { id: 'red-dot-sight', slot: 'kit', name: 'Red Dot Sight', minLevel: 2, price: 400,
@@ -106,6 +125,12 @@ const ITEMS = [
   { id: 'smart-munitions', slot: 'kit', name: 'Smart Munitions', minLevel: 30, price: 100000,
     blurb: 'Guided rounds that find the gaps in cover.',
     mods: [more('damage', 0.2), flat('critChance', 0.06)] },
+  { id: 'sat-designator', slot: 'kit', name: 'Satellite Designator', minLevel: 40, price: 260000,
+    blurb: 'Paint a target and something very large arrives from orbit.',
+    mods: [more('damage', 0.25), flat('critDamage', 0.35)] },
+  { id: 'swarm-drones', slot: 'kit', name: 'Drone Swarm Controller', minLevel: 48, price: 450000,
+    blurb: 'A hundred small drones that go where you point.',
+    mods: [more('damage', 0.3), flat('critChance', 0.08)] },
 ];
 
 const ITEMS_BY_ID = new Map(ITEMS.map((i) => [i.id, i]));

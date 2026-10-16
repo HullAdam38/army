@@ -24,6 +24,7 @@ const TITLES = [
   { id: 'topten', name: 'Top Ten', how: 'Finish a PvP season in the top 10.', test: (m) => m.seasonBestRank > 0 && m.seasonBestRank <= 10 },
   { id: 'champion', name: 'Season Champion', how: 'Finish first in a PvP season.', test: (m) => m.seasonBestRank === 1 },
   { id: 'general', name: 'The General', how: 'Reach level 35.', test: (m) => m.level >= 35 },
+  { id: 'legend', name: 'Living Legend', how: 'Reach level 50.', test: (m) => m.level >= 50 },
 ];
 
 const TITLES_BY_ID = new Map(TITLES.map((t) => [t.id, t]));
