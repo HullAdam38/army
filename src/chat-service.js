@@ -14,7 +14,7 @@ function createChatService(db, players) {
     u.username, u.level, u.is_admin, un.tag AS unit_tag`;
   const FROM = `
     FROM chat_messages m JOIN users u ON u.id = m.user_id LEFT JOIN units un ON un.id = u.unit_id
-    WHERE m.channel = ?1 AND m.deleted_at IS NULL
+    WHERE m.channel = ?1 AND m.deleted_at IS NULL AND u.banned_at IS NULL
       AND m.user_id NOT IN (SELECT blocked_id FROM blocks WHERE user_id = ?2)`;
   const stmts = {
     insert: db.prepare('INSERT INTO chat_messages (channel, user_id, body, created_at) VALUES (?, ?, ?, ?)'),
@@ -29,6 +29,9 @@ function createChatService(db, players) {
     prune: db.prepare('DELETE FROM chat_messages WHERE created_at < ?'),
     usersNamed: (n) => db.prepare(`SELECT id, username, unit_id, banned_at FROM users WHERE username COLLATE NOCASE IN (${Array(n).fill('?').join(',')})`),
     blocked: db.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?'),
+    // Mention notifications are links back to chat; the latest one from this author tells us if they're pinging too often.
+    lastMention: db.prepare("SELECT MAX(created_at) AS at FROM notifications WHERE user_id = ? AND kind = 'chat' AND message LIKE ? ESCAPE '\\'"),
+    reportsSince: db.prepare('SELECT COUNT(*) AS n FROM chat_reports WHERE reporter_id = ? AND created_at >= ?'),
 
     report: db.prepare(`INSERT OR IGNORE INTO chat_reports (message_id, channel, reporter_id, author_id, body, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`),
     reports: db.prepare(`
@@ -99,6 +102,9 @@ function createChatService(db, players) {
       const snippet = bbcode.toPlain(v.body).slice(0, 120);
       for (const u of mentioned.values()) {
         if (u.id === me.id || u.banned_at || !canSee(u) || stmts.blocked.get(u.id, me.id)) continue;
+        const prefix = `${me.username.replace(/[\\%_]/g, (c) => `\\${c}`)} mentioned you%`;
+        const last = stmts.lastMention.get(u.id, prefix).at;
+        if (last && now - last < chat.MENTION_NOTIFY_MS) continue; // already pinged them recently
         players.notify(u.id, 'chat', `${me.username} mentioned you in ${channelName} chat: “${snippet}”`, `/chat/${channel === 'global' ? 'global' : 'unit'}#m-${id}`);
       }
       return { message: view([stmts.one.get(id)], me)[0] };
@@ -120,6 +126,9 @@ function createChatService(db, players) {
       const m = stmts.byId.get(id);
       if (!m || m.deleted_at) return { error: 'That message is already gone.' };
       if (m.user_id === me.id) return { error: 'You can’t report your own message.' };
+      if (stmts.reportsSince.get(me.id, now - 60 * 60 * 1000).n >= chat.REPORTS_PER_HOUR) {
+        return { error: 'You’ve sent a lot of reports in the last hour. The admins will get to them; try again later.' };
+      }
       const why = String(reason || '').replace(/\s+/g, ' ').trim().slice(0, chat.MAX_REPORT_REASON) || null;
       const added = stmts.report.run(id, m.channel, me.id, m.user_id, m.body, why, now).changes;
       return { message: m, added: Boolean(added) };

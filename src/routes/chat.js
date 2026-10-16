@@ -61,8 +61,24 @@ function chatRoutes(players, chatService, unitRepo, adminRepo) {
     });
   });
 
+  // Live updates are polled every few seconds; cap it per player so a script can't hammer the database.
+  const polls = new Map();
+  const POLL_LIMIT = 60; // per minute: plenty for several open tabs
+  setInterval(() => { const now = Date.now(); for (const [k, e] of polls) if (e.reset <= now) polls.delete(k); }, 60 * 1000).unref();
+  const pollLimit = (req, res, next) => {
+    const now = Date.now();
+    let e = polls.get(req.player.id);
+    if (!e || e.reset <= now) { e = { n: 0, reset: now + 60 * 1000 }; polls.set(req.player.id, e); }
+    e.n += 1;
+    if (e.n > POLL_LIMIT) {
+      res.setHeader('Retry-After', Math.ceil((e.reset - now) / 1000));
+      return res.status(429).json({ ok: false, error: 'Too many requests.' });
+    }
+    next();
+  };
+
   // Live updates: new messages since `after`, and recently deleted ones.
-  router.get('/chat/:slug/poll', requireAuth, async (req, res, next) => {
+  router.get('/chat/:slug/poll', requireAuth, pollLimit, async (req, res, next) => {
     const channel = channelFor(String(req.params.slug), req.player);
     if (!channel) return res.status(404).json({ ok: false });
     try {

@@ -19,6 +19,8 @@ const MAX_MENTIONS = 3; // @mentions that notify, per message
 const PAGE_SIZE = 50;
 const RETENTION_DAYS = 30;
 const MAX_REPORT_REASON = 200;
+const MENTION_NOTIFY_MS = 10 * 60 * 1000; // one mention notification per author → player per 10 minutes
+const REPORTS_PER_HOUR = 10; // keeps one player from flooding the admin queue
 
 const MINUTE = 60 * 1000;
 const MUTES = {
@@ -81,18 +83,29 @@ function mentionsIn(body) {
  * inside a URL or attribute (they must follow a space, tag or punctuation).
  */
 function linkMentions(html, names, me = null) {
-  return html.replace(MENTION_RE, (all, pre, name) => {
-    const real = names.get(name.toLowerCase());
-    if (!real) return all;
-    const you = me && real.toLowerCase() === me.toLowerCase();
-    return `${pre}<a class="chat-mention${you ? ' chat-mention--you' : ''}" href="/profile/${real}">@${real}</a>`;
-  });
+  // Only touch text between tags, never tags or their attributes (a URL can
+  // contain "@name"), and never text already inside a link or code block.
+  let skip = 0;
+  return html.split(/(<[^>]*>)/).map((part) => {
+    if (part.startsWith('<')) {
+      if (/^<(a|code)[\s>]/i.test(part)) skip += 1;
+      else if (/^<\/(a|code)>/i.test(part)) skip = Math.max(0, skip - 1);
+      return part;
+    }
+    if (skip) return part;
+    return part.replace(MENTION_RE, (all, pre, name) => {
+      const real = names.get(name.toLowerCase());
+      if (!real) return all;
+      const you = me && real.toLowerCase() === me.toLowerCase();
+      return `${pre}<a class="chat-mention${you ? ' chat-mention--you' : ''}" href="/profile/${real}">@${real}</a>`;
+    });
+  }).join('');
 }
 
 /** Mute length for an admin's choice, or null. */
 const muteFor = (key) => MUTES[key] || null;
 
 module.exports = {
-  COOLDOWN_MS, DUPLICATE_MS, MAX_LENGTH, MAX_LINES, MAX_MENTIONS, MAX_REPORT_REASON, MIN_LEVEL, MUTES, PAGE_SIZE, RETENTION_DAYS,
+  COOLDOWN_MS, DUPLICATE_MS, MENTION_NOTIFY_MS, REPORTS_PER_HOUR, MAX_LENGTH, MAX_LINES, MAX_MENTIONS, MAX_REPORT_REASON, MIN_LEVEL, MUTES, PAGE_SIZE, RETENTION_DAYS,
   channelFor, cooldownMs, linkMentions, minLevel, mentionsIn, muteFor, postBlocker, validateBody,
 };

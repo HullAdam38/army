@@ -214,10 +214,59 @@ test('chat in the app: channels, posting with and without JS, moderation', async
     const rookId = db.prepare("SELECT id FROM users WHERE username = 'Rook'").get().id;
     await ace.post(`/admin/chat/unmute/${rookId}`);
     assert.equal(db.prepare('SELECT chat_muted_until FROM users WHERE id = ?').get(rookId).chat_muted_until, null);
+    // Live polling is rate limited per player.
+    const statuses = [];
+    for (let i = 0; i < 62; i += 1) statuses.push((await rook.request('/chat/global/poll?after=0')).res.status);
+    assert.equal(statuses[0], 200);
+    assert.equal(statuses.at(-1), 429);
     // Deleting your own message with JS.
     r = await ace.post(`/chat/messages/${unitMsg}/delete`, {}, { json: true });
     assert.equal(r.json().ok, true);
   } finally {
     server.close();
   }
+});
+
+test('chat hardening: mentions only in text, suspended authors hidden, mention and report throttles', () => {
+  // @mentions are never linked inside tags, attributes, links or code.
+  const names = new Map([['kay', 'Kay']]);
+  const html = chat.linkMentions('<p>@kay <a href="https://x.com/(@kay">see @kay</a> <code>@kay</code></p>', names);
+  assert.equal(html, '<p><a class="chat-mention" href="/profile/Kay">@Kay</a> <a href="https://x.com/(@kay">see @kay</a> <code>@kay</code></p>');
+
+  const db = openDatabase(':memory:');
+  const players = createPlayerRepo(db);
+  const svc = createChatService(db, players);
+  const now = Date.now();
+  const add = (name) => {
+    const id = Number(db.prepare(`INSERT INTO users (username, email, password_hash, energy_updated_at, health_updated_at, created_at, level)
+                                  VALUES (?, ?, 'x', ?, ?, ?, 5)`).run(name, `${name}@x`, now, now, now).lastInsertRowid);
+    return () => players.findById(id);
+  };
+  const pest = add('Pest_1');
+  const kay = add('Kay');
+  const other = add('Other');
+  const say = (who, raw, at) => svc.post({ me: who(), channel: 'global', channelName: 'Global', raw, now: at });
+
+  // A flood of @mentions notifies the target once per 10 minutes.
+  for (let i = 0; i < 5; i += 1) assert.ok(say(pest, `@Kay hey ${i}`, now + i * 5000).message);
+  const pings = () => db.prepare("SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND kind = 'chat'").get(kay().id).n;
+  assert.equal(pings(), 1);
+  // Someone else mentioning them still gets through.
+  say(other, '@Kay welcome', now);
+  assert.equal(pings(), 2);
+
+  // Reports are capped per hour.
+  const ids = db.prepare('SELECT id FROM chat_messages WHERE user_id = ?').all(pest().id).map((r) => r.id);
+  for (let i = 0; i < 5; i += 1) db.prepare("INSERT INTO chat_messages (channel, user_id, body, created_at) VALUES ('global', ?, 'spam', ?)").run(pest().id, now);
+  const all = db.prepare('SELECT id FROM chat_messages WHERE user_id = ?').all(pest().id).map((r) => r.id);
+  assert.equal(all.length, 10);
+  for (const id of all) assert.equal(svc.report(id, kay(), null, now).added, true);
+  assert.match(svc.report(svc.post({ me: other(), channel: 'global', channelName: 'Global', raw: 'one more', now: now + 60000 }).message.id, kay(), null, now).error, /a lot of reports/);
+  assert.ok(ids.length);
+
+  // Suspending a player takes their messages out of chat.
+  assert.ok(svc.history('global', kay()).some((m) => m.user_id === pest().id));
+  db.prepare('UPDATE users SET banned_at = ? WHERE id = ?').run(now, pest().id);
+  assert.ok(!svc.history('global', kay()).some((m) => m.user_id === pest().id));
+  assert.ok(!svc.poll('global', kay(), 0, now).messages.some((m) => m.user_id === pest().id));
 });
