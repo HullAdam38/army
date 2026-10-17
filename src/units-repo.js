@@ -115,6 +115,8 @@ function createUnitRepo(db) {
       stmts.rally.run(until, now, unitId);
       return true;
     },
+    /** Spends from the treasury; false if it can't cover `amount`. */
+    spendTreasury: (unitId, amount) => stmts.spend.run(amount, unitId).changes > 0,
     /** Pays into the treasury from the game itself (e.g. a completed weekly objective). */
     addTreasury: (unitId, amount) => stmts.treasury.run(amount, unitId),
     donate(unitId, userId, amount) {

@@ -112,6 +112,70 @@
     </section>
   <% } %>
 
+  <% if (raid) { %>
+    <section id="raid" class="card unit-raid reveal<%= raid.raid ? ' is-active' : '' %>" style="--i:2" aria-labelledby="raid-title">
+      <h2 id="raid-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-target"/></svg>Raid<% if (raid.raid) { %> <span class="card__title-meta">Ends in <span data-until="<%= raid.raid.ends_at %>">a while</span></span><% } %></h2>
+      <% if (raid.raid) { const r = raid.raid; %>
+        <div class="unit-raid__target">
+          <div class="unit-raid__head">
+            <span class="unit-raid__name"><%= r.name %></span>
+            <span class="unit-raid__hp"><%= r.hp.toLocaleString('en-US') %> / <%= r.max_hp.toLocaleString('en-US') %> health</span>
+          </div>
+          <p class="muted small"><%= r.blurb %></p>
+          <span class="meter meter--lg unit-raid__meter" role="progressbar" aria-label="Stronghold health" aria-valuemin="0" aria-valuemax="<%= r.max_hp %>" aria-valuenow="<%= r.hp %>"><span class="meter__fill" style="width:<%= r.pct %>%"></span></span>
+          <p class="unit-raid__loot">Loot if it falls: <strong><%= money(r.cash_pool) %></strong> and <strong><%= r.xp_pool.toLocaleString('en-US') %> XP</strong>, shared by damage dealt. <%= Math.round(raidShare * 100) %>% of the cash goes to the treasury.</p>
+        </div>
+        <div class="unit-raid__strike">
+          <% if (r.blocker) { %>
+            <p class="muted small"><%= r.blocker %>.</p>
+          <% } else { %>
+            <form method="post" action="/units/<%= unit.id %>/raid/strike"><%- csrf %><button class="btn btn--primary" type="submit">Strike · <%= raid.energy %> energy</button></form>
+          <% } %>
+          <p class="muted small"><%= r.mine ? `Your damage: ${r.mine.damage.toLocaleString('en-US')} in ${r.mine.strikes} strike${r.mine.strikes === 1 ? '' : 's'}.` : 'You haven’t struck yet. Every strike counts towards your share.' %> Each strike costs a little health too.</p>
+        </div>
+        <% if (r.top.length) { %>
+          <h3 class="unit-raid__sub">Top strikers <span class="muted small">(<%= r.strikers %> in total)</span></h3>
+          <ol class="unit-raid__top">
+            <% r.top.forEach(function (h) { %>
+              <li>
+                <%- include('partials/avatar', { url: avatarUrl(h.userId, h.avatarV), size: 'sm' }) %>
+                <a class="unit-raid__who" href="/profile/<%= encodeURIComponent(h.username) %>"><%= h.username %></a>
+                <span class="unit-raid__dmg"><%= h.damage.toLocaleString('en-US') %> <span class="muted">· <%= h.share %>%</span></span>
+              </li>
+            <% }) %>
+          </ol>
+        <% } %>
+      <% } else { %>
+        <p class="muted">Pick an enemy stronghold and strike it together. It has one shared health bar and your unit has 48 hours. Each strike costs <%= raid.energy %> energy. If it falls, the loot is shared by damage dealt, with <%= Math.round(raidShare * 100) %>% going to the treasury. If time runs out, there’s no loot and the supplies are lost.</p>
+        <% if (raid.last) { %>
+          <p class="unit-raid__last <%= raid.last.status === 'won' ? 'is-won' : 'is-failed' %>">Last raid: <%= raid.last.name %>, <%= raid.last.status === 'won' ? 'taken' : 'ran out of time' %>.</p>
+        <% } %>
+        <% if (raid.canLaunch) { %>
+          <form method="post" action="/units/<%= unit.id %>/raid" class="unit-raid__launch" data-confirm="Spend treasury on supplies and launch this raid?">
+            <%- csrf %>
+            <fieldset>
+              <legend class="unit-raid__sub">Choose a stronghold</legend>
+              <% raid.options.forEach(function (s, i) { %>
+                <label class="raid-option<%= s.affordable ? '' : ' is-locked' %>">
+                  <input type="radio" name="stronghold" value="<%= s.id %>" <%- s.affordable ? '' : 'disabled' %> <%- s.affordable && i === raid.options.filter(function (o) { return o.affordable; }).length - 1 ? 'checked' : '' %> required>
+                  <span class="raid-option__body">
+                    <span class="raid-option__name"><%= s.name %></span>
+                    <span class="raid-option__meta"><%= s.hp.toLocaleString('en-US') %> health · loot <%= money(s.cash) %> + <%= s.xp.toLocaleString('en-US') %> XP</span>
+                    <span class="raid-option__cost">Supplies: <%= money(s.cost) %><%= s.affordable ? '' : ' (not enough in the treasury)' %></span>
+                  </span>
+                </label>
+              <% }) %>
+            </fieldset>
+            <button class="btn btn--primary" type="submit" <%- raid.options.some(function (o) { return o.affordable; }) ? '' : 'disabled' %>>Launch raid</button>
+          </form>
+        <% } else { %>
+          <p class="muted small">Ask a Lieutenant or the Commander to launch one.</p>
+        <% } %>
+        <% if (raid.next) { %><p class="muted small">The <%= raid.next.name %> opens when the unit averages level <%= raid.next.minLevel %>.</p><% } %>
+      <% } %>
+    </section>
+  <% } %>
+
   <% if (objectives) { %>
     <section id="objectives" class="card unit-objectives reveal" style="--i:2" aria-labelledby="objectives-title">
       <h2 id="objectives-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Weekly objectives <span class="card__title-meta">New objectives in <span data-until="<%= objectives.endsAt %>">soon</span></span></h2>

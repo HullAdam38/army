@@ -115,3 +115,98 @@ test('promotions follow the chain of command', async () => {
     server.close();
   }
 });
+
+test('raids: Lieutenants launch from the treasury, members strike, loot is shared by damage', async () => {
+  const raids = require('../src/raids');
+  const { db, app, server, c, unitId, U } = await setup();
+  const raid = () => db.prepare('SELECT * FROM raids WHERE unit_id = ? ORDER BY id DESC').get(unitId);
+  try {
+    let page = (await c.pvt.request(U)).text;
+    assert.match(page, /id="raid"/);
+    assert.match(page, /Ask a Lieutenant or the Commander to launch one/);
+    assert.match((await c.sgt.act(`${U}/raid`, { stronghold: 'outpost' }, U)).message, /Only Lieutenants and the Commander/);
+    // The unit averages level 10, so the bunker (level 20) is locked.
+    assert.match((await c.lt.act(`${U}/raid`, { stronghold: 'bunker' }, U)).message, /needs a unit average of level 20/);
+    assert.match((await c.lt.act(`${U}/raid`, { stronghold: 'nope' }, U)).message, /Pick a stronghold/);
+
+    const plan = raids.plan(raids.STRONGHOLDS_BY_ID.get('compound'), { members: 4, avgLevel: 10 });
+    assert.match((await c.lt.act(`${U}/raid`, { stronghold: 'compound' }, U)).message, /Raid launched on the Fortified Compound/);
+    assert.equal(db.prepare('SELECT treasury FROM units WHERE id = ?').get(unitId).treasury, 100000 - plan.cost);
+    assert.deepEqual([raid().hp, raid().max_hp, raid().cash_pool], [plan.hp, plan.hp, plan.cash]);
+    assert.match(db.prepare("SELECT message FROM notifications WHERE user_id = ? AND kind = 'unit' ORDER BY id DESC").get(c.pvt.id).message, /launched a raid on the Fortified Compound/);
+    assert.match((await c.cmd.act(`${U}/raid`, { stronghold: 'outpost' }, U)).message, /already on a raid/);
+
+    // A strike spends energy, costs a little health and is recorded.
+    assert.match((await c.pvt.act(`${U}/raid/strike`, {}, U)).message, /Strike for [\d,]+ damage/);
+    const me = db.prepare('SELECT energy, health FROM users WHERE id = ?').get(c.pvt.id);
+    assert.equal(me.energy, 95 - raids.STRIKE_ENERGY);
+    assert.ok(me.health < 190);
+    const hit = db.prepare('SELECT * FROM raid_hits WHERE user_id = ?').get(c.pvt.id);
+    assert.equal(hit.strikes, 1);
+    assert.equal(raid().hp, plan.hp - hit.damage);
+    page = (await c.pvt.request(U)).text;
+    assert.match(page, /Your damage: [\d,]+ in 1 strike\./);
+    assert.match(page, /Top strikers/);
+
+    // Out of energy: no strike.
+    db.prepare('UPDATE users SET energy = 5, energy_updated_at = ? WHERE id = ?').run(Date.now(), c.sgt.id);
+    assert.match((await c.sgt.act(`${U}/raid/strike`, {}, U)).message, /need 10 energy/);
+    // Not a member: no strike.
+    db.prepare('UPDATE users SET unit_id = NULL, unit_role = NULL WHERE id = ?').run(c.sgt.id);
+    assert.match((await c.sgt.act(`${U}/raid/strike`, {}, U)).message, /Only members/);
+    db.prepare("UPDATE users SET unit_id = ?, unit_role = 'sergeant' WHERE id = ?").run(unitId, c.sgt.id);
+
+    // Just above a quarter left: the next strike takes it 75% down and members are told.
+    db.prepare('UPDATE raids SET hp = ? WHERE id = ?').run(Math.round(plan.hp * 0.25) + 5, raid().id);
+    await c.cmd.act(`${U}/raid/strike`, {}, U);
+    assert.ok(raid().nudged_at);
+    assert.match(db.prepare("SELECT message FROM notifications WHERE user_id = ? AND kind = 'unit' ORDER BY id DESC").get(c.lt.id).message, /Finish it!/);
+
+    // The final blow: loot shared by damage, a quarter to the treasury.
+    db.prepare('UPDATE raids SET hp = 1 WHERE id = ?').run(raid().id);
+    const before = Object.fromEntries(['cmd', 'pvt', 'lt'].map((k) => [k, db.prepare('SELECT cash FROM users WHERE id = ?').get(c[k].id).cash]));
+    const treasury = db.prepare('SELECT treasury FROM units WHERE id = ?').get(unitId).treasury;
+    assert.match((await c.lt.act(`${U}/raid/strike`, {}, U)).message, /has fallen/);
+    assert.equal(raid().status, 'won');
+    const hits = db.prepare('SELECT * FROM raid_hits WHERE raid_id = ?').all(raid().id);
+    const total = hits.reduce((n, h) => n + h.damage, 0);
+    const pool = plan.cash - Math.round(plan.cash * raids.TREASURY_SHARE);
+    for (const h of hits) {
+      const k = Object.keys(c).find((key) => c[key].id === h.user_id);
+      assert.equal(h.cash, Math.floor(pool * (h.damage / total)));
+      assert.equal(db.prepare('SELECT cash FROM users WHERE id = ?').get(h.user_id).cash, before[k] + h.cash);
+      assert.ok(db.prepare("SELECT 1 FROM ledger WHERE user_id = ? AND reason = 'raid-loot'").get(h.user_id));
+    }
+    assert.equal(db.prepare('SELECT treasury FROM units WHERE id = ?').get(unitId).treasury, treasury + Math.round(plan.cash * raids.TREASURY_SHARE));
+    assert.match((await c.pvt.request(U)).text, /Last raid: Fortified Compound, taken/);
+
+    // A raid that runs out of time pays nothing.
+    assert.match((await c.cmd.act(`${U}/raid`, { stronghold: 'outpost' }, U)).message, /Raid launched/);
+    await c.pvt.act(`${U}/raid/strike`, {}, U);
+    const cash = db.prepare('SELECT cash FROM users WHERE id = ?').get(c.pvt.id).cash;
+    db.prepare('UPDATE raids SET ends_at = ? WHERE id = ?').run(Date.now() + 60 * 60 * 1000, raid().id);
+    app.raids.finishDue();
+    assert.ok(raid().reminded_at, '6-hour reminder');
+    assert.match(db.prepare("SELECT message FROM notifications WHERE user_id = ? AND kind = 'unit' ORDER BY id DESC").get(c.pvt.id).message, /6 hours left/);
+    db.prepare('UPDATE raids SET ends_at = ? WHERE id = ?').run(Date.now() - 1, raid().id);
+    app.raids.finishDue();
+    assert.equal(raid().status, 'failed');
+    assert.equal(db.prepare('SELECT cash FROM users WHERE id = ?').get(c.pvt.id).cash, cash);
+    assert.match(db.prepare("SELECT message FROM unit_log WHERE unit_id = ? AND kind = 'raid' ORDER BY id DESC").get(unitId).message, /ran out of time/);
+  } finally {
+    server.close();
+  }
+});
+
+test('raid maths: health scales with the unit, loot splits by damage', () => {
+  const raids = require('../src/raids');
+  const outpost = raids.STRONGHOLDS_BY_ID.get('outpost');
+  // Small units are sized as three members.
+  assert.deepEqual(raids.plan(outpost, { members: 1, avgLevel: 5 }), raids.plan(outpost, { members: 3, avgLevel: 5 }));
+  assert.ok(raids.plan(outpost, { members: 10, avgLevel: 5 }).hp > raids.plan(outpost, { members: 3, avgLevel: 5 }).hp);
+  assert.deepEqual(raids.available({ members: 5, avgLevel: 20 }).map((s) => s.id), ['outpost', 'compound', 'bunker']);
+  const loot = raids.splitLoot({ cash: 1000, xp: 100 }, [{ user_id: 1, damage: 300 }, { user_id: 2, damage: 100 }]);
+  assert.equal(loot.treasury, 250);
+  assert.deepEqual(loot.players.map((p) => [p.userId, p.cash, p.xp]), [[1, 562, 75], [2, 187, 25]]);
+  assert.deepEqual(raids.splitLoot({ cash: 1000, xp: 100 }, []).players, []);
+});

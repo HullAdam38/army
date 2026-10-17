@@ -2,6 +2,7 @@
 
 const express = require('express');
 const units = require('../units');
+const raids = require('../raids');
 const game = require('../game');
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
@@ -16,7 +17,7 @@ const PROMOTION_PERKS = {
   officer: 'You can now remove Sergeants and Privates, promote Privates, call rally orders and launch raids.',
 };
 
-function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null) {
+function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null, raidService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const urlOf = (unit, hash = '') => `/units/${unit.id}${hash}`;
@@ -196,6 +197,8 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
           canCall: units.can.rally(role),
         };
       })(),
+      raid: member && raidService ? raidService.view(unit, req.player, role, now) : null,
+      raidShare: raids.TREASURY_SHARE,
       chain: Object.entries(units.ROLES).map(([key, r]) => ({ key, label: r.label })),
       posts: member ? unitRepo.posts(unit.id).map((p) => ({ ...p, html: bbcode.render(p.body), ago: presence.timeAgo(p.created_at, now), canDelete: p.user_id === req.player.id || units.can.moderate(role) })) : [],
       log: member ? unitRepo.recentLog(unit.id).map((l) => ({ ...l, ago: presence.timeAgo(l.created_at, now) })) : [],
@@ -330,6 +333,23 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
     notifyAll(unitRepo.memberIds(unit.id), `${units.roleLabel(role)} ${me.username} called a rally: ${units.RALLY.label} +${pct}% mission and operation cash and XP for the next hour. Move out!`, `/missions`, me.id);
     return { ok: `Rally called: +${pct}% mission cash and XP for every member for the next hour.` };
   }, `${urlOf(req.unit)}#rally`));
+
+  // Raids: a Lieutenant or the Commander buys supplies from the treasury; every member strikes with energy.
+  router.post('/units/:id/raid', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
+    if (!raidService) return { error: 'Raids are not available.' };
+    const out = raidService.launch({ unit, role, me, strongholdId: req.body.stronghold });
+    if (out.error) return out;
+    return { ok: `Raid launched on the ${out.stronghold.name}. Your unit has 48 hours to bring it down.` };
+  }, `${urlOf(req.unit)}#raid`));
+
+  router.post('/units/:id/raid/strike', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
+    if (!raidService) return { error: 'Raids are not available.' };
+    if (!role) return { error: 'Only members can strike.' };
+    const out = raidService.strike({ unitId: unit.id, userId: me.id });
+    if (out.error) return out;
+    if (out.won) return { ok: `Direct hit for ${out.damage.toLocaleString('en-US')} damage, and the ${out.stronghold.name} has fallen! The loot is shared out.` };
+    return { ok: `Strike for ${out.damage.toLocaleString('en-US')} damage (you took ${out.hurt} damage in return). The ${out.stronghold.name} is at ${Math.round((out.raid.hp / out.raid.max_hp) * 100)}%.` };
+  }, `${urlOf(req.unit)}#raid`));
 
   router.post('/units/:id/donate', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
     if (!role) return { error: 'Only members can donate.' };

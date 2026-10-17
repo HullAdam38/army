@@ -49,6 +49,7 @@ const { chatRoutes } = require('./routes/chat');
 const { createSettingsService } = require('./settings-service');
 const { settingsRoutes } = require('./routes/settings');
 const { createObjectiveService } = require('./objective-service');
+const { createRaidService } = require('./raid-service');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
@@ -128,6 +129,9 @@ function createApp({
   daily.onProgress((userId, type, amount, now) => {
     if (OBJECTIVE_METRICS[type]) objectiveService.track(userId, OBJECTIVE_METRICS[type], amount, now);
   });
+  const raidService = createRaidService(db, players, unitRepo);
+  raidService.schedule();
+  app.raids = raidService; // exposed for tests
   const targetService = createTargetService(db, players);
   targetService.schedule();
   app.target = targetService; // exposed for tests
@@ -248,7 +252,7 @@ function createApp({
   app.use(avatarRoutes(players, avatarService, adminRepo));
   app.use(alertRoutes(players, pushService));
   app.use(messageRoutes(players, messageService, pushService));
-  app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService));
+  app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService, raidService));
   app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo));

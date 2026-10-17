@@ -495,9 +495,13 @@ Rules live in `src/daily.js` and `src/daily-service.js`.
   - strength, members, war record (W–L–D), combined PvP wins and missions, mission XP bonus
   - application status and requirements
   - roster, upgrades and war history
-- **Roles:** the **Commander** promotes and demotes officers, removes anyone, edits settings, spends the treasury, hands over command (type the callsign to confirm) and can disband the unit (type the tag). **Officers** review applications and remove members. Everyone can post on the **unit board**, which only members can read and which allows one post per 10 seconds.
+- **Chain of command:** **Commander** › **Lieutenant** › **Sergeant** › **Private**. Promotions and demotions move one step at a time, and only on people below your own rank.
+  - **Commander:** everything below, plus making Lieutenants, editing settings, spending the treasury on upgrades, handing over command (type the callsign to confirm) and disbanding the unit (type the tag).
+  - **Lieutenants:** remove Sergeants and Privates, promote Privates to Sergeant, call **rally orders** and launch **raids**.
+  - **Sergeants:** review applications and moderate the unit board.
+  - Everyone can post on the **unit board**, which only members can read and which allows one post per 10 seconds.
 - **No friendly fire:** members can't attack each other, and the Targets filter hides them.
-- **Treasury:** members donate cash, which goes through the ledger as `unit-donation`. Only upgrades can spend it; it **never pays out to players**, so it can't be used to move money between accounts.
+- **Treasury:** members donate cash, which goes through the ledger as `unit-donation`. It's spent on upgrades, rally orders and raid supplies, and it **never pays out to players**, so it can't be used to move money between accounts. (Raid loot is new money from the game, sized by the unit, not by what was spent.)
   - **Barracks:** 10 members, +5 per level, up to 3 levels ($5k, $15k, $40k).
   - **Drill ground:** +2% mission XP for every member per level, up to 5 levels ($3k to $90k).
 - **Leaving** starts a 12-hour wait before you can join or found another unit. A Commander has to hand over command first; if they're the last member, leaving disbands the unit.
@@ -505,6 +509,24 @@ Rules live in `src/daily.js` and `src/daily-service.js`.
 - **Moderation:** admins see an Admin box on every unit page to rename or disband it. Both actions are written to the admin audit log and members are notified.
 
 Rules live in `src/units.js`; data access is in `src/units-repo.js`.
+
+### Rally orders
+
+A Lieutenant or the Commander spends treasury on **"Advance!"**: +15% mission and operation cash and XP for every member for one hour. It stacks with the drill ground and rank perks (before event and admin multipliers). Every member gets a unit alert. The cost scales with members and average level, and a unit can rally once every 12 hours.
+
+### Raids
+
+A co-op boss fight against an enemy stronghold (`#raid` on the unit page).
+
+- **Launching:** a Lieutenant or the Commander picks a stronghold and pays for supplies from the treasury. Six tiers open with the unit's average level: Insurgent Outpost (1), Fortified Compound (10), Mountain Bunker (20), Coastal Battery (35), Command Citadel (50) and Black Site (75). One raid at a time.
+- **Sizing:** health, supply cost and loot scale with the number of members (counted as at least 3) and their average level, so a big unit faces a bigger stronghold.
+- **Striking:** each strike costs **10 energy** and deals damage from your combat rating, and you take 3–8% of your health in return fire. You can't strike from hospital, on deployment or below 20% health.
+- **Winning:** the unit has **48 hours**. If the stronghold falls, 25% of the cash goes to the treasury and the rest, plus all the XP, is shared by damage dealt. Only strikers still in the unit (and not suspended) share. Payouts go through the ledger as `raid-loot`.
+- **Losing:** if time runs out there's no loot and the supplies are gone.
+- **Alerts:** members hear when a raid launches, when the stronghold is 75% down, when 6 hours are left and when it ends.
+- Admins scale the loot with **Game settings › Economy › Unit raid loot** (`raidRewardMult`).
+
+Rules: `src/raids.js`. Storage, strikes and payouts: `src/raid-service.js`.
 
 ### Unit wars
 

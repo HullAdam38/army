@@ -539,6 +539,36 @@ const SCHEMA = `
     PRIMARY KEY (week, unit_id, user_id, type)
   );
 
+  -- Unit raids (src/raids.js): one stronghold at a time per unit, and each member's damage.
+  CREATE TABLE IF NOT EXISTS raids (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id      INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    stronghold   TEXT    NOT NULL,
+    hp           INTEGER NOT NULL,
+    max_hp       INTEGER NOT NULL,
+    cash_pool    INTEGER NOT NULL,
+    xp_pool      INTEGER NOT NULL,
+    status       TEXT    NOT NULL DEFAULT 'active', -- active, won, failed
+    launched_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    started_at   INTEGER NOT NULL,
+    ends_at      INTEGER NOT NULL,
+    finished_at  INTEGER,
+    nudged_at    INTEGER,
+    reminded_at  INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_raids_unit ON raids(unit_id, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_raids_active ON raids(status, ends_at);
+  CREATE TABLE IF NOT EXISTS raid_hits (
+    raid_id  INTEGER NOT NULL REFERENCES raids(id) ON DELETE CASCADE,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    damage   INTEGER NOT NULL DEFAULT 0,
+    strikes  INTEGER NOT NULL DEFAULT 0,
+    cash     INTEGER,
+    xp       INTEGER,
+    last_at  INTEGER NOT NULL,
+    PRIMARY KEY (raid_id, user_id)
+  );
+
   -- The daily high-value target (src/target-service.js), and who has collected on them.
   CREATE TABLE IF NOT EXISTS daily_targets (
     day         TEXT    PRIMARY KEY,
