@@ -38,6 +38,13 @@ say "Installing packages"
 as_owner bash -c "cd '$APP_DIR' && npm ci --omit=dev --no-audit --no-fund"
 
 say "Restarting the game"
+# Avatar uploads need a body limit above nginx's old 1 MB (older installs).
+SITE=/etc/nginx/sites-available/eliteforces
+if [ -f "$SITE" ] && priv grep -q 'client_max_body_size 1m;' "$SITE"; then
+  priv sed -i 's/client_max_body_size 1m;/client_max_body_size 2m;/' "$SITE"
+  if priv nginx -t 2>/dev/null; then priv systemctl reload nginx && echo "nginx: upload limit raised to 2 MB."; fi
+fi
+
 priv systemctl restart eliteforces
 for i in 1 2 3 4 5 6 7 8 9 10; do
   if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
