@@ -51,7 +51,7 @@ function createUnitRepo(db) {
     applied: db.prepare('SELECT 1 FROM unit_applications WHERE unit_id = ? AND user_id = ?'),
     pendingCount: db.prepare('SELECT COUNT(*) AS n FROM unit_applications WHERE user_id = ?'),
     pendingForUnit: db.prepare(`
-      SELECT a.id, a.message, a.created_at, u.id AS user_id, u.username, u.level, u.pvp_wins, u.missions_completed
+      SELECT a.id, a.message, a.created_at, u.id AS user_id, u.username, u.level, u.pvp_wins, u.missions_completed, u.avatar_v
       FROM unit_applications a JOIN users u ON u.id = a.user_id
       WHERE a.unit_id = ? AND u.banned_at IS NULL ORDER BY a.id`),
     pendingForUser: db.prepare(`
@@ -63,7 +63,7 @@ function createUnitRepo(db) {
 
     post: db.prepare('INSERT INTO unit_posts (unit_id, user_id, body, created_at) VALUES (?, ?, ?, ?)'),
     posts: db.prepare(`
-      SELECT p.id, p.user_id, p.body, p.created_at, u.username, u.unit_id = p.unit_id AS still_member
+      SELECT p.id, p.user_id, p.body, p.created_at, u.username, u.avatar_v, u.unit_id = p.unit_id AS still_member
       FROM unit_posts p JOIN users u ON u.id = p.user_id
       WHERE p.unit_id = ? ORDER BY p.id DESC LIMIT ?`),
     postById: db.prepare('SELECT * FROM unit_posts WHERE id = ? AND unit_id = ?'),

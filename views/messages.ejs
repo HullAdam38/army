@@ -19,7 +19,7 @@
       <% conversations.forEach(function (c) { %>
         <li class="inbox__item<%= c.unread ? ' is-unread' : '' %>">
           <a class="inbox__row" href="/messages/<%= c.id %>">
-            <span class="inbox__who"><%= c.other || 'Former soldier' %><% if (c.unread) { %><span class="inbox__dot" aria-label="Unread"></span><% } %></span>
+            <span class="inbox__who"><% if (c.other_id) { %><%- include('partials/avatar', { url: avatarUrl(c.other_id, c.other_avatar_v), size: 'xs', extra: 'inbox__avatar' }) %><% } %><span class="inbox__name"><%= c.other || 'Former soldier' %></span><% if (c.unread) { %><span class="inbox__dot" aria-label="Unread"></span><% } %></span>
             <span class="inbox__subject"><%= c.subject %> <span class="muted">· <%= c.count %></span></span>
             <span class="inbox__snippet"><%= c.fromYou ? 'You: ' : '' %><%= c.snippet %></span>
             <span class="inbox__time"><%= c.ago %></span>

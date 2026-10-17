@@ -20,7 +20,7 @@
     { key: 'base', href: '/base', label: 'Base', icon: 'i-crest' },
     { key: 'leaderboards', href: '/leaderboards', label: 'Rankings', icon: 'i-podium' },
     { key: 'events', href: '/events', label: 'Events', icon: 'i-calendar', badge: liveEvents.length ? 'Live' : null },
-    { key: 'profile', href: '/profile/' + encodeURIComponent(player.username), label: 'Profile', icon: 'i-body' },
+    { key: 'profile', href: '/profile/' + encodeURIComponent(player.username), label: 'Profile', icon: 'i-body', avatar: player.avatarUrl },
   ];
   if (isAdmin) more.push({ key: 'admin', href: '/admin', label: 'Admin', icon: 'i-lock', admin: true });
   const isOn = (t) => nav === t.key || (t.also || []).includes(nav);
@@ -44,7 +44,7 @@
         <% more.forEach(function (t) { %>
           <li>
             <a class="tabbar__tile<%= t.admin ? ' tabbar__tile--admin' : '' %>" href="<%= t.href %>" <%- isOn(t) ? 'aria-current="page"' : '' %>>
-              <svg aria-hidden="true"><use href="#<%= t.icon %>"/></svg>
+              <% if (t.avatar) { %><img class="avatar tabbar__avatar" src="<%= t.avatar %>" alt="" width="26" height="26" loading="lazy" decoding="async"><% } else { %><svg aria-hidden="true"><use href="#<%= t.icon %>"/></svg><% } %>
               <span><%= t.label %></span>
               <% if (t.badge) { %><em class="tabbar__badge"><%= t.badge %></em><% } %>
             </a>

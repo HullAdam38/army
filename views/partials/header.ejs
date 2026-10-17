@@ -34,6 +34,9 @@
         <svg aria-hidden="true"><use href="#i-bell"/></svg>
         <span class="bell__count" data-bell-count <%- unreadCount ? '' : 'hidden' %>><%= unreadCount > 99 ? '99+' : unreadCount %></span>
       </a>
+      <a class="header-avatar" href="/profile/<%= encodeURIComponent(player.username) %>" aria-label="Your profile" <%- nav === 'profile' ? 'aria-current="page"' : '' %>>
+        <%- include('avatar', { url: player.avatarUrl, size: 'xs', eager: true }) %>
+      </a>
       <form method="post" action="/logout" class="site-header__logout">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button class="btn btn--ghost btn--sm" type="submit">Sign out</button>

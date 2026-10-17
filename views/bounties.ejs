@@ -30,7 +30,7 @@
           <% wanted.forEach(function (w, i) { %>
             <li class="wanted<%= w.isYou ? ' is-you' : '' %>">
               <span class="wanted__pos"><%= i + 1 %></span>
-              <span class="stat__grade"><%= w.grade %></span>
+              <%- include('partials/avatar', { url: avatarUrl(w.id, w.avatar_v), size: 'sm' }) %>
               <span class="wanted__who">
                 <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(w.username) %>"><%= w.username %></a><% if (w.isYou) { %> <span class="tag">You</span><% } %></span>
                 <span class="roster__rank">Lv <%= w.level %> · <%= w.count %> bount<%= w.count === 1 ? 'y' : 'ies' %> ·

@@ -245,6 +245,27 @@ test('avatars end to end: build, upload, report, moderate', async () => {
     await alpha.request('/chat/global', { method: 'POST', form: { _csrf: await alpha.csrf('/chat/global'), body: 'Hello all' } });
     assert.ok((await bravo.request('/chat/global')).text.includes(`class="chat-msg__avatar"`));
 
+    // Header, HQ, battle reports, battle lists, hospital and messages show avatars too.
+    const bv = db.prepare('SELECT avatar_v FROM users WHERE id = ?').get(bravo.id).avatar_v;
+    const alphaImg = `/avatars/${alpha.id}?v=${v}`;
+    const bravoImg = `/avatars/${bravo.id}?v=${bv}`;
+    page = (await alpha.request('/hq')).text;
+    assert.match(page, /class="header-avatar"/);
+    assert.ok(page.includes(`class="hq-hello__avatar"`) && page.includes(alphaImg));
+    db.prepare('UPDATE users SET energy = max_energy, health = max_health').run();
+    r = await bravo.request('/attack/Alpha', { method: 'POST', form: { _csrf: await bravo.csrf('/profile/Alpha') } });
+    page = (await bravo.request(r.location)).text;
+    assert.ok(page.includes(alphaImg) && page.includes(bravoImg), 'battle report shows both fighters');
+    assert.ok((await bravo.request('/profile/Alpha')).text.includes('battle-row__avatar'));
+    db.prepare('UPDATE users SET hospital_until = ?, hospital_reason = ? WHERE id = ?').run(Date.now() + 600000, 'Testing', alpha.id);
+    assert.ok((await bravo.request('/hospital')).text.includes(alphaImg));
+    db.prepare('UPDATE users SET hospital_until = NULL').run();
+    await bravo.request('/messages', { method: 'POST', form: { _csrf: await bravo.csrf('/messages/new'), to: 'Alpha', subject: 'Hi', body: 'Nice badge' } });
+    page = (await alpha.request('/messages')).text;
+    assert.ok(page.includes('inbox__avatar') && page.includes(bravoImg));
+    const convo = db.prepare('SELECT id FROM conversations').get().id;
+    assert.ok((await alpha.request(`/messages/${convo}`)).text.includes('msg__avatar'));
+
     // Bravo reports it; reporting twice counts once.
     token = await bravo.csrf('/profile/Alpha');
     await bravo.request(`/avatars/${alpha.id}/report`, { method: 'POST', form: { _csrf: token, reason: 'rude picture' } });

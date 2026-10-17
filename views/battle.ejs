@@ -43,12 +43,17 @@
     <% } %>
 
     <div class="fighters">
-      <% [['attacker', a], ['defender', d]].forEach(function ([side, name]) {
+      <% [['attacker', a, battle.attacker_id, battle.attacker_avatar_v], ['defender', d, battle.defender_id, battle.defender_avatar_v]].forEach(function ([side, name, uid, av]) {
            const ko = r.knockout === side; %>
         <div class="fighter<%= (side === 'attacker') === r.attackerWon ? ' fighter--winner' : '' %>">
-          <p class="fighter__role"><%= side === 'attacker' ? 'Attacker' : 'Defender' %></p>
-          <p class="fighter__name"><a href="/profile/<%= encodeURIComponent(name) %>"><%= name %></a></p>
-          <p class="fighter__meta">Level <%= r.levels[side] %></p>
+          <div class="fighter__head">
+            <a href="/profile/<%= encodeURIComponent(name) %>" tabindex="-1" aria-hidden="true"><%- include('partials/avatar', { url: avatarUrl(uid, av), size: 'md', eager: true }) %></a>
+            <div class="fighter__id">
+              <p class="fighter__role"><%= side === 'attacker' ? 'Attacker' : 'Defender' %></p>
+              <p class="fighter__name"><a href="/profile/<%= encodeURIComponent(name) %>"><%= name %></a></p>
+              <p class="fighter__meta">Level <%= r.levels[side] %></p>
+            </div>
+          </div>
           <div class="progress-line">
             <div class="progress-line__label"><span>Health</span><span><%= r.end[side] %> / <%= r.start[side] %></span></div>
             <span class="meter meter--health meter--lg"><span class="meter__fill" style="width:<%= pct(r.end[side], r.start[side]) %>%"></span></span>

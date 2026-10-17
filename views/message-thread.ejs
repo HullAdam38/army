@@ -28,6 +28,7 @@
     <% messages.forEach(function (m, i) { %>
       <li class="msg<%= m.mine ? ' msg--mine' : '' %><%= m.unread ? ' is-new' : '' %>" id="<%= i === messages.length - 1 ? 'latest' : `m${m.id}` %>">
         <div class="msg__head">
+          <% if (m.sender_id && m.sender) { %><%- include('partials/avatar', { url: avatarUrl(m.sender_id, m.sender_avatar_v), size: 'xs', extra: 'msg__avatar' }) %><% } %>
           <span class="msg__from"><% if (m.sender && !m.mine) { %><a href="/profile/<%= encodeURIComponent(m.sender) %>"><%= m.sender %></a><% } else { %><%= m.mine ? 'You' : (m.sender || 'Former soldier') %><% } %></span>
           <time class="msg__time" datetime="<%= m.when %>"><%= m.ago %></time>
           <span class="msg__actions">

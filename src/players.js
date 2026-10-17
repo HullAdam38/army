@@ -74,12 +74,12 @@ function createPlayerRepo(db) {
       INSERT INTO battles (attacker_id, defender_id, attacker_won, knockout, cash_taken, attacker_xp, defender_xp, report, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`),
     battle: db.prepare(`
-      SELECT b.*, a.username AS attacker_name, d.username AS defender_name
+      SELECT b.*, a.username AS attacker_name, d.username AS defender_name, a.avatar_v AS attacker_avatar_v, d.avatar_v AS defender_avatar_v
       FROM battles b JOIN users a ON a.id = b.attacker_id JOIN users d ON d.id = b.defender_id
       WHERE b.id = ?`),
     battlesFor: db.prepare(`
       SELECT b.id, b.attacker_id, b.defender_id, b.attacker_won, b.knockout, b.cash_taken, b.created_at,
-             a.username AS attacker_name, d.username AS defender_name
+             a.username AS attacker_name, d.username AS defender_name, a.avatar_v AS attacker_avatar_v, d.avatar_v AS defender_avatar_v
       FROM battles b JOIN users a ON a.id = b.attacker_id JOIN users d ON d.id = b.defender_id
       WHERE b.attacker_id = ?1 OR b.defender_id = ?1
       ORDER BY b.id DESC LIMIT ?2`),
@@ -113,7 +113,7 @@ function createPlayerRepo(db) {
       SELECT defender_id, MAX(created_at) AS at FROM battles
       WHERE attacker_id = ? AND created_at >= ? GROUP BY defender_id`),
     patients: db.prepare(`
-      SELECT username, level, hospital_until, hospital_reason FROM users
+      SELECT id, username, level, hospital_until, hospital_reason, avatar_v FROM users
       WHERE hospital_until > ? AND banned_at IS NULL ORDER BY hospital_until DESC LIMIT ?`),
   };
 

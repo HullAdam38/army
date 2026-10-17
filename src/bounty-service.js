@@ -22,7 +22,7 @@ function createBountyService(db, players, isLinked, { effects = () => NEUTRAL } 
     byId: db.prepare('SELECT * FROM bounties WHERE id = ?'),
     expire: db.prepare("UPDATE bounties SET status = 'expired', settled_at = ? WHERE id = ? AND status = 'open'"),
     wanted: db.prepare(`
-      SELECT u.id, u.username, u.level, u.hospital_until, u.last_seen_at, u.signed_out_at,
+      SELECT u.id, u.username, u.level, u.avatar_v, u.hospital_until, u.last_seen_at, u.signed_out_at,
              SUM(b.amount) AS total, COUNT(*) AS count, MIN(b.expires_at) AS first_expiry, MAX(b.created_at) AS latest
       FROM bounties b JOIN users u ON u.id = b.target_id
       WHERE b.status = 'open' AND b.expires_at > ? AND u.banned_at IS NULL

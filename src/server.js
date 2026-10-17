@@ -144,6 +144,8 @@ function createApp({
   // contents: any change gets a new URL and every player picks it up at once.
   app.locals.assetVersion = assetHash();
   app.locals.siteName = 'GeneralForces';
+  // Where a player's avatar image lives; `v` changes whenever they change it (see avatar-service).
+  app.locals.avatarUrl = (id, v) => `/avatars/${id}?v=${v || 0}`;
   app.locals.year = new Date().getFullYear();
   app.locals.legal = legalSettings();
   if (production && app.locals.legal.missing.length) {

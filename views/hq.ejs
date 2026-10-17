@@ -6,9 +6,12 @@
 
 <main id="main" class="container game-main">
   <div class="page-head reveal" style="--i:0">
-    <div>
-      <p class="eyebrow">Headquarters</p>
-      <h1 class="page-head__title">Welcome back, <span class="accent"><%= player.username %></span>.</h1>
+    <div class="hq-hello">
+      <a class="hq-hello__avatar" href="/account/avatar" title="Change your avatar"><%- include('partials/avatar', { url: player.avatarUrl, size: 'md', eager: true, alt: 'Your avatar' }) %></a>
+      <div>
+        <p class="eyebrow">Headquarters</p>
+        <h1 class="page-head__title">Welcome back, <span class="accent"><%= player.username %></span>.</h1>
+      </div>
     </div>
     <a class="btn btn--primary" href="/missions">View missions <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   </div>

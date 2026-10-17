@@ -49,7 +49,7 @@
           <% patients.forEach(function (p) { %>
             <li>
               <a class="ward__row<%= p.isYou ? ' ward__row--you' : '' %>" href="/profile/<%= encodeURIComponent(p.username) %>">
-                <span class="stat__grade"><%= p.grade %></span>
+                <%- include('partials/avatar', { url: p.avatarUrl, size: 'sm' }) %>
                 <span class="ward__who">
                   <span class="roster__name"><%= p.username %><% if (p.isYou) { %> <span class="tag">You</span><% } %></span>
                   <span class="ward__reason"><%= p.reason %></span>

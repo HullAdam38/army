@@ -15,6 +15,7 @@ function hospitalRoutes(players) {
       const rank = game.rankFor(p.level);
       return {
         username: p.username,
+        avatarUrl: `/avatars/${p.id}?v=${p.avatar_v || 0}`,
         level: p.level,
         grade: rank.grade,
         rank: rank.name,

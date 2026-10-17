@@ -23,15 +23,15 @@ function createMessageService(db, players) {
     touch: db.prepare('UPDATE conversations SET last_message_at = ? WHERE id = ?'),
     markRead: db.prepare('UPDATE conversation_members SET last_read_at = ? WHERE conversation_id = ? AND user_id = ?'),
     member: db.prepare('SELECT * FROM conversation_members WHERE conversation_id = ? AND user_id = ?'),
-    other: db.prepare(`SELECT u.id, u.username, u.level, u.banned_at FROM conversation_members m JOIN users u ON u.id = m.user_id
+    other: db.prepare(`SELECT u.id, u.username, u.level, u.banned_at, u.avatar_v FROM conversation_members m JOIN users u ON u.id = m.user_id
                        WHERE m.conversation_id = ? AND m.user_id != ?`),
     conversation: db.prepare('SELECT * FROM conversations WHERE id = ?'),
-    messages: db.prepare(`SELECT msg.id, msg.sender_id, msg.body, msg.created_at, u.username AS sender
+    messages: db.prepare(`SELECT msg.id, msg.sender_id, msg.body, msg.created_at, u.username AS sender, u.avatar_v AS sender_avatar_v
                           FROM messages msg LEFT JOIN users u ON u.id = msg.sender_id WHERE msg.conversation_id = ? ORDER BY msg.id`),
     message: db.prepare('SELECT * FROM messages WHERE id = ?'),
     inbox: db.prepare(`
       SELECT c.id, c.subject, c.last_message_at, m.last_read_at,
-             o.username AS other, o.id AS other_id,
+             o.username AS other, o.id AS other_id, o.avatar_v AS other_avatar_v,
              (SELECT body FROM messages WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) AS last_body,
              (SELECT sender_id FROM messages WHERE conversation_id = c.id ORDER BY id DESC LIMIT 1) AS last_sender,
              (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) AS count

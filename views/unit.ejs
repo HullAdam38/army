@@ -128,7 +128,7 @@
             <ol class="unit-apps-review">
               <% applications.forEach(function (a) { %>
                 <li>
-                  <p><a class="directory__name" href="/profile/<%= encodeURIComponent(a.username) %>"><strong><%= a.username %></strong></a> <span class="muted">· Lv <%= a.level %> · <%= a.missions_completed %> missions · <%= a.pvp_wins %> PvP wins · <%= a.ago %></span></p>
+                  <p class="unit-apps-review__who"><%- include('partials/avatar', { url: avatarUrl(a.user_id, a.avatar_v), size: 'sm' }) %><span><a class="directory__name" href="/profile/<%= encodeURIComponent(a.username) %>"><strong><%= a.username %></strong></a> <span class="muted">· Lv <%= a.level %> · <%= a.missions_completed %> missions · <%= a.pvp_wins %> PvP wins · <%= a.ago %></span></span></p>
                   <% if (a.message) { %><div class="unit-quote bb-content"><%- a.html %></div><% } %>
                   <div class="unit-apps-review__actions">
                     <form method="post" action="/units/<%= unit.id %>/applications/<%= a.id %>/accept"><%- csrf %><button class="btn btn--primary btn--sm" type="submit" <%- members >= unit.capacity ? 'disabled' : '' %>>Accept</button></form>
@@ -227,6 +227,7 @@
             <% posts.forEach(function (p) { %>
               <li class="unit-post<%= p.user_id === player.id ? ' is-you' : '' %>">
                 <div class="unit-post__head">
+                  <%- include('partials/avatar', { url: avatarUrl(p.user_id, p.avatar_v), size: 'xs' }) %>
                   <a class="directory__name" href="/profile/<%= encodeURIComponent(p.username) %>"><strong><%= p.username %></strong></a><% if (!p.still_member) { %> <span class="muted">(left)</span><% } %>
                   <span class="feed__time"><%= p.ago %></span>
                   <button type="button" class="msg__link" data-bb-quote="#post-body" data-author="<%= p.username %>" data-body="<%= p.body %>">Quote</button>

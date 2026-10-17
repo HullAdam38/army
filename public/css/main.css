@@ -1107,7 +1107,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .battle-list { display: grid; gap: 6px; padding: 0; list-style: none; }
 .battle-row {
   display: grid;
-  grid-template-columns: 4.2rem 1fr auto;
+  grid-template-columns: 4.2rem auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   padding: 10px 14px;
@@ -1809,8 +1809,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
   .directory td[data-label='Status'] { grid-column: 1 / 3; }
   .directory__action { align-self: end; }
   .directory__why { max-width: none; }
-  .battle-row { grid-template-columns: 3.4rem 1fr; }
-  .battle-row__time { grid-column: 2; }
+  .battle-row { grid-template-columns: 3.4rem auto minmax(0, 1fr); }
+  .battle-row__time { grid-column: 3; }
   .round { grid-template-columns: 2.2rem 1fr; }
   .round__hp { grid-column: 2; }
   .ward-banner__inner { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
@@ -2479,7 +2479,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 @media (max-width: 640px) {
   :root { --tabbar-h: 62px; }
   .site-header--game .game-nav,
-  .site-header--game .site-header__logout { display: none; }
+  .site-header--game .site-header__logout,
+  .site-header--game .header-avatar { display: none; }
   .site-header--game .site-header__bar { flex-wrap: nowrap; min-height: 56px; padding-top: 0; gap: 6px; }
   body:has(.tabbar) { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); }
   body:has(.tabbar) .toasts { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px); }
@@ -3073,3 +3074,28 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .avatar-mod__item { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-start; }
 .avatar-mod__body { flex: 1; min-width: min(100%, 16rem); display: grid; gap: 8px; }
 .avatar-mod__reasons { margin: 0; padding-left: 18px; font-size: 0.9rem; color: var(--text-muted); }
+
+/* Avatars around the game */
+.header-avatar { display: grid; place-items: center; flex: none; padding: 3px; border-radius: 9px; border: 1px solid transparent; transition: border-color 0.2s; }
+.header-avatar:hover, .header-avatar[aria-current="page"] { border-color: var(--line-strong); }
+.hq-hello { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.hq-hello > div { min-width: 0; }
+.hq-hello__avatar { flex: none; border-radius: 18%; transition: transform 0.2s; }
+.hq-hello__avatar:hover { transform: scale(1.05); }
+.fighter__head { display: flex; align-items: center; gap: 12px; min-width: 0; margin-bottom: 14px; }
+.fighter__head .fighter__meta { margin-bottom: 0; }
+.fighter__id { min-width: 0; }
+.fighter__name { overflow-wrap: anywhere; }
+.battle-row__avatar { width: 24px; height: 24px; }
+.tabbar__avatar { width: 26px; height: 26px; }
+.inbox__avatar { width: 24px; height: 24px; }
+.inbox__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg__head .msg__avatar { width: 24px; height: 24px; align-self: center; }
+.unit-post__head .avatar { width: 24px; height: 24px; align-self: center; }
+.unit-apps-review__who { display: flex; align-items: center; gap: 10px; }
+.unit-apps-review__who > span { min-width: 0; }
+@media (max-width: 560px) {
+  .fighter__head { gap: 10px; }
+  .fighter__head .avatar { width: 44px; height: 44px; }
+  .hq-hello .avatar { width: 48px; height: 48px; }
+}
