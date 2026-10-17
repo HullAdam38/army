@@ -739,6 +739,22 @@ A hit is `attack × damage × variance(±10%) × critDamage (on a crit) × (1 �
 
 To add a new source of bonuses (training, buffs, perks), produce modifiers and pass them to `buildStats` alongside the gear modifiers. Items live in `src/items.js`.
 
+## Performance
+
+`npm run bench` builds a 20,000-player test database (in `data/bench/`, separate from the real game), starts the game in production mode and fires the busiest pages and polls at it, 50 requests at a time. It prints requests per second and response times per page. Options: `--players`, `--concurrency`, `--seconds`.
+
+On one CPU core with 20,000 players and millions of rows of history it handles about **340–370 requests a second** (it was 73 before the work below). An online player makes roughly one request every 5 seconds (polls plus page views), so one game process serves well over a thousand players online at once.
+
+What keeps it fast:
+
+- **SQLite settings:** WAL with `synchronous = NORMAL` (a power cut can lose the last moment of play, never corrupt the database), a 64 MB page cache, memory-mapped reads and in-memory temp tables.
+- **Indexes for the hot queries:** chat polls look up deleted messages through a tiny partial index instead of reading the whole channel, and the anti-cheat ledger audit adds up money from a covering index. The 6-hourly scan, which pauses the game while it runs, went from about 4 seconds to 0.35 at this size.
+- **Short caches:** leaderboard rankings and unit rankings are worked out at most once a minute. Names, avatars and online status are always fresh.
+- **Fewer writes:** a session's rolling expiry is saved at most every 10 minutes instead of on every request, and the anti-cheat scan writes its flags in one transaction.
+- Page URLs skip the static-file check; CSS, JS and icons are cached by browsers and Cloudflare for a week.
+
+Next steps if it ever needs more: compress responses in nginx instead of Node, and run several game processes over the same database (the background jobs would need to run in just one of them).
+
 ## Project layout
 
 ```

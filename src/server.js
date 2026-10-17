@@ -123,7 +123,7 @@ function createApp({
   eventService.schedule();
   const effects = (now) => eventService.effects(now);
   const daily = createDailyService(db, players, { effects });
-  const unitRepo = createUnitRepo(db);
+  const unitRepo = createUnitRepo(db, { rankCacheMs: 60 * 1000 });
   // Weekly unit objectives count the same actions as daily orders, plus deployments and donations.
   const objectiveService = createObjectiveService(db, players, unitRepo);
   app.objectives = objectiveService; // exposed for tests
@@ -200,12 +200,9 @@ function createApp({
     res.set({ 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.send(swSource);
   });
-  app.use(
-    express.static(path.join(__dirname, '..', 'public'), {
-      maxAge: production ? '7d' : 0,
-      index: false,
-    }),
-  );
+  // Static files all have an extension; page URLs don't, so they skip the disk check.
+  const serveStatic = express.static(path.join(__dirname, '..', 'public'), { maxAge: production ? '7d' : 0, index: false });
+  app.use((req, res, next) => (/\.[a-z0-9]+$/i.test(req.path) ? serveStatic(req, res, next) : next()));
   app.use(express.urlencoded({ extended: false, limit: '10kb' }));
   app.use(express.json({ limit: '10kb' }));
   app.use(

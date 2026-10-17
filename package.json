@@ -11,7 +11,8 @@
     "pretest": "node scripts/check-node.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
     "admin": "node --disable-warning=ExperimentalWarning scripts/admin.js",
-    "balance": "node --disable-warning=ExperimentalWarning scripts/balance.js"
+    "balance": "node --disable-warning=ExperimentalWarning scripts/balance.js",
+    "bench": "node --disable-warning=ExperimentalWarning scripts/bench.js"
   },
   "repository": {
     "type": "git",

@@ -772,6 +772,10 @@ function migrate(db) {
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_hospital ON users(hospital_until)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_unit ON users(unit_id)');
+  // Chat polls ask for recently deleted messages; only deleted rows go in this index, so it stays tiny.
+  db.exec('CREATE INDEX IF NOT EXISTS idx_chat_deleted ON chat_messages(channel, deleted_at) WHERE deleted_at IS NOT NULL');
+  // Lets the anti-cheat ledger audit add up each player's history from the index alone.
+  db.exec('CREATE INDEX IF NOT EXISTS idx_ledger_sums ON ledger(user_id, delta_cash, delta_bank)');
   // First run with player_days: rebuild active days from the history the game already keeps.
   if (!db.prepare('SELECT 1 FROM player_days LIMIT 1').get() && db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
     const day = (col) => `strftime('%Y-%m-%d', ${col} / 1000, 'unixepoch')`;
@@ -797,6 +801,10 @@ function openDatabase(file = process.env.DB_FILE || path.join(__dirname, '..', '
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
+  // Speed: with WAL, NORMAL only syncs to disk at checkpoints. A power cut can lose
+  // the last moments of play but never corrupts the database. A bigger page cache,
+  // memory-mapped reads and in-memory temp tables keep hot data out of the disk.
+  db.exec('PRAGMA synchronous = NORMAL; PRAGMA cache_size = -65536; PRAGMA mmap_size = 268435456; PRAGMA temp_store = MEMORY;');
   db.exec(SCHEMA);
   migrate(db);
   return db;

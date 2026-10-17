@@ -9,7 +9,7 @@ const { createRequireAuth } = require('../require-auth');
 function leaderboardRoutes(players, db) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
-  const boards = createLeaderboards(db);
+  const boards = createLeaderboards(db, { cacheMs: 60 * 1000 });
 
   router.get('/leaderboards', requireAuth, (req, res) => {
     const key = Object.hasOwn(BOARDS, req.query.board) ? req.query.board : 'level';

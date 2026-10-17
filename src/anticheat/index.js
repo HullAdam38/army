@@ -283,6 +283,11 @@ function createAntiCheat(db, players, { secret, settings = null }) {
      * farming across everyone, plus deleting old sign-in records.
      */
     runScan(now = Date.now()) {
+      // One transaction: hundreds of flag writes then cost one disk sync instead of one each.
+      return players.transaction(() => this.scan(now));
+    },
+
+    scan(now) {
       const before = stmts.openCount.get().n;
       for (const m of stmts.ledgerMismatches.all()) {
         raise({

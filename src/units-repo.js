@@ -5,7 +5,12 @@
  * so every player read already knows their unit. Multi-step changes should be
  * wrapped in players.transaction().
  */
-function createUnitRepo(db) {
+/**
+ * `rankCacheMs`: how long the unit rankings (by strength) are reused. Working
+ * them out sums every member of every unit, so the game caches them briefly.
+ */
+function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
+  let ranks = { at: 0, byId: new Map() };
   const SUMMARY = `
     SELECT u.*, COUNT(m.id) AS members, COALESCE(SUM(m.level), 0) AS strength,
            (SELECT username FROM users l WHERE l.unit_id = u.id AND l.unit_role = 'leader') AS leader_name
@@ -17,6 +22,9 @@ function createUnitRepo(db) {
     nameTaken: db.prepare('SELECT (name = ?1 COLLATE NOCASE) AS name, (tag = ?2 COLLATE NOCASE) AS tag FROM units WHERE name = ?1 COLLATE NOCASE OR tag = ?2 COLLATE NOCASE'),
     list: db.prepare(`${SUMMARY} WHERE (?1 = '' OR u.name LIKE ?1 ESCAPE '\\' OR u.tag LIKE ?1 ESCAPE '\\')
                       GROUP BY u.id ORDER BY strength DESC, members DESC, u.id ASC LIMIT ?2`),
+    ranking: db.prepare(`
+      SELECT u.id FROM units u LEFT JOIN users m ON m.unit_id = u.id AND m.banned_at IS NULL
+      GROUP BY u.id ORDER BY COALESCE(SUM(m.level), 0) DESC, COUNT(m.id) DESC, u.id ASC`),
     rankOf: db.prepare(`
       WITH s AS (SELECT u.id, COALESCE(SUM(m.level), 0) AS strength, COUNT(m.id) AS members
                  FROM units u LEFT JOIN users m ON m.unit_id = u.id AND m.banned_at IS NULL GROUP BY u.id)
@@ -93,7 +101,11 @@ function createUnitRepo(db) {
       const like = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : '';
       return stmts.list.all(like, limit);
     },
-    position: (id) => stmts.rankOf.get(id).position,
+    position(id) {
+      if (rankCacheMs <= 0) return stmts.rankOf.get(id).position;
+      if (Date.now() - ranks.at >= rankCacheMs) ranks = { at: Date.now(), byId: new Map(stmts.ranking.all().map((r, i) => [r.id, i + 1])) };
+      return ranks.byId.get(id) || stmts.rankOf.get(id).position; // a brand-new unit isn't in the cache yet
+    },
     count: () => stmts.count.get().n,
     members: (unitId) => stmts.members.all(unitId),
     memberCount: (unitId) => stmts.memberCount.get(unitId).n,

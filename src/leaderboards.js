@@ -44,12 +44,25 @@ const BOARDS = {
   },
 };
 
-function createLeaderboards(db) {
-  const stmts = Object.fromEntries(Object.entries(BOARDS).map(([key, b]) => [key, db.prepare(`
-    WITH ranked AS (
-      SELECT *, ROW_NUMBER() OVER (ORDER BY ${b.order}) AS position FROM (${b.source})
-    )
-    SELECT * FROM ranked WHERE position <= :top OR id = :me ORDER BY position`)]));
+/**
+ * `cacheMs`: how long a board's ranking is reused before it's worked out again.
+ * Ranking means sorting every player, so the game caches it for a minute; the
+ * names, avatars and online status shown are always read fresh.
+ */
+function createLeaderboards(db, { cacheMs = 0 } = {}) {
+  const rank = Object.fromEntries(Object.entries(BOARDS).map(([key, b]) => [key, db.prepare(`
+    SELECT id, value, detail, ROW_NUMBER() OVER (ORDER BY ${b.order}) AS position FROM (${b.source}) ORDER BY position`)]));
+  const people = (n) => db.prepare(`SELECT id, username, level, avatar_v, last_seen_at, signed_out_at FROM users WHERE id IN (${Array(n).fill('?').join(',')})`);
+  const cache = new Map(); // key → { at, list, byId }
+
+  function ranking(key, now) {
+    const hit = cache.get(key);
+    if (cacheMs > 0 && hit && Date.now() - hit.at < cacheMs) return hit;
+    const list = key === 'weekly' ? rank[key].all({ since: now - WEEK_MS }) : rank[key].all();
+    const fresh = { at: Date.now(), list, byId: new Map(list.map((r) => [r.id, r])) };
+    cache.set(key, fresh);
+    return fresh;
+  }
 
   return {
     /**
@@ -57,11 +70,14 @@ function createLeaderboards(db) {
      * total }. `me.outside` is true when you're not in the top 50.
      */
     board(key, meId, now = Date.now()) {
-      const params = { top: TOP, me: meId };
-      if (key === 'weekly') params.since = now - WEEK_MS;
-      const all = stmts[key].all(params);
-      const rows = all.filter((r) => r.position <= TOP);
-      const mine = all.find((r) => r.id === meId) || null;
+      const { list, byId } = ranking(key, now);
+      const picked = list.slice(0, TOP);
+      const mineRank = byId.get(meId) || null;
+      if (mineRank && mineRank.position > TOP) picked.push(mineRank);
+      const who = picked.length ? new Map(people(picked.length).all(...picked.map((r) => r.id)).map((u) => [u.id, u])) : new Map();
+      const full = picked.filter((r) => who.has(r.id)).map((r) => ({ ...who.get(r.id), ...r }));
+      const rows = full.filter((r) => r.position <= TOP);
+      const mine = full.find((r) => r.id === meId) || null;
       return { rows, me: mine ? { ...mine, outside: mine.position > TOP } : null };
     },
   };

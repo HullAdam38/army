@@ -9,6 +9,7 @@ Text-based military browser game. Node 22.13+, Express 5, EJS, SQLite through `n
 - `npm run admin -- grant <callsign>`: make an admin
 - Deploying: see DEPLOY.md (`deploy/install.sh` once, then `deploy/update.sh`).
 - `npm run balance`: simulate three player types for 30 days (levels, income and XP by source). Run it after changing payouts.
+- `npm run bench`: load test against a 20,000-player database (requests per second, response times per page). Run it after changing hot pages, polls or queries.
 
 ## House rules
 
