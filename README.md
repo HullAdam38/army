@@ -531,6 +531,17 @@ Players earn **titles** and can show one under their callsign, on their profile 
 
 The rules are in `src/titles.js`. Earning and choosing titles is handled in `src/medal-service.js`.
 
+## Avatars
+
+Every player has an avatar, shown on their profile, in chat, in the player directory, on leaderboards and on unit rosters. Set it on **Profile › Avatar** (`/account/avatar`). There are two kinds:
+
+- **Badge:** build one from ten sections: shape, field colour, pattern and its colour, emblem and its colour, trim and its colour, banner (rank grade, level, callsign or unit tag) and honours (stars or a laurel wreath). Some parts unlock with level, others with titles (Skull: Enforcer; Crown: Living Legend; Laurel: Veteran; Elite violet: Contender). The preview updates as you pick, and **Shuffle** picks a random badge. Badges are stored as part ids only and drawn as SVG on the server. Until a player builds one, they get a starting badge picked from their account id.
+- **Uploaded picture:** PNG, JPEG or WebP, up to 1 MB and 32–4096 pixels a side. The real type is read from the file's bytes, and EXIF/GPS and other metadata are stripped before it's stored (in the database, so backups include it). Pictures need level 3 and are limited to 10 uploads a day. Players can switch between their badge and their picture, or delete the picture.
+
+Pictures can be reported from the player's profile. **Admin › Avatars** lists reported pictures and the latest uploads. Admins can remove a picture (the player is told why and goes back to their badge) and block a player from uploading again. **Admin › Game settings › Avatars** turns uploads off for everyone or changes the level needed. Avatar images are only served to signed-in players, with a sandboxing Content-Security-Policy.
+
+The parts are in `src/avatars.js`, the picture checks in `src/images.js`, and storage in `src/avatar-service.js`.
+
 ## Medals
 
 Fourteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
@@ -682,6 +693,11 @@ src/
   settings-service.js game settings storage, history, anti-cheat window
   routes/settings.js Admin › Game settings page
   titles.js          earnable titles shown under callsigns (pure)
+  avatars.js         avatar badge parts, unlocks and SVG drawing (pure)
+  images.js          checks uploaded pictures and strips their metadata (pure)
+  multipart.js       reads file-upload forms
+  avatar-service.js  avatar storage, uploads, reports
+  routes/avatars.js  avatar images, the builder, uploads, admin moderation
   chat.js            chat rules: channels, limits, mentions, mutes (pure)
   chat-service.js    chat storage, history, live polling, reports, mutes
   routes/chat.js     chat pages, posting, polling, admin moderation
@@ -749,6 +765,7 @@ The markup is in `views/partials/tabbar.ejs`.
 - `/units/:id`: a unit's page showing its roster and upgrades, plus (for members) the treasury, board and unit log, and (for the Commander) settings and command
 - `/bounties`: the most wanted list, recent collections, your bounties and the posting form
 - `/account/profile`: edit your profile bio
+- `/account/avatar`: build a badge or upload a picture as your avatar
 - `/messages`: inbox; `/messages/new`, `/messages/:id` (conversation), `/messages/blocked`
 - `/base`: your forward base
 - `/chat`: live game chat (Global, plus your unit's channel); `/admin/chat` for reports and mutes

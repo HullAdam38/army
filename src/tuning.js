@@ -36,6 +36,10 @@ const SETTINGS = [
   { key: 'chatCooldownSeconds', group: 'chat', label: 'Chat cooldown', type: 'int', unit: 's', min: 0, max: 120, step: 1, default: 3, help: 'Minimum time between one player’s chat messages. Raise it to calm a busy channel (slow mode).' },
   { key: 'chatMinLevel', group: 'chat', label: 'Level needed to chat', type: 'int', unit: 'level', min: 1, max: 20, step: 1, default: 2, help: 'New accounts below this level can read chat but not post.' },
 
+  // Avatars
+  { key: 'avatarUploadsOpen', group: 'avatars', label: 'Picture uploads', type: 'bool', default: true, help: 'Let players upload their own picture as an avatar. Turn off to allow badges only; pictures already uploaded stay until you remove them.' },
+  { key: 'avatarUploadMinLevel', group: 'avatars', label: 'Level needed to upload', type: 'int', unit: 'level', min: 1, max: 50, step: 1, default: 3, help: 'Players below this level can build a badge but not upload a picture. Keeps throwaway accounts from posting pictures.' },
+
   // Access
   { key: 'registrationOpen', group: 'access', label: 'New sign-ups', type: 'bool', default: true, help: 'Turn off to stop new accounts being created (for example during maintenance or a spam wave). Existing players can still sign in.' },
 ];
@@ -45,6 +49,7 @@ const GROUPS = [
   { id: 'pace', name: 'Pace', blurb: 'How fast players can act.' },
   { id: 'seasons', name: 'PvP seasons', blurb: 'Ranked season rules.' },
   { id: 'chat', name: 'Chat', blurb: 'Limits for game chat.' },
+  { id: 'avatars', name: 'Avatars', blurb: 'Who can upload their own picture.' },
   { id: 'access', name: 'Access', blurb: 'Who can join.' },
 ];
 

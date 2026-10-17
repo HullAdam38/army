@@ -93,7 +93,7 @@
       <ol class="unit-roster">
         <% roster.forEach(function (m) { %>
           <li class="unit-roster__row unit-roster__row--<%= m.unit_role %><%= m.isYou ? ' is-you' : '' %>">
-            <span class="stat__grade"><%= m.grade %></span>
+            <%- include('partials/avatar', { url: m.avatarUrl, size: 'sm' }) %>
             <span class="roster__who">
               <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(m.username) %>"><%= m.username %></a><% if (m.isYou) { %> <span class="tag">You</span><% } %></span>
               <span class="roster__rank"><span class="unit-role unit-role--<%= m.unit_role %>"><%= m.roleLabel %></span> · Lv <%= m.level %><% if (member) { %> · donated <%= money(m.unit_donated) %><% } %></span>

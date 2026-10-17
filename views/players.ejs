@@ -57,7 +57,7 @@
         <% list.forEach(function (p) { %>
           <tr class="<%= p.isYou ? 'is-you' : '' %>">
             <th scope="row" class="directory__who">
-              <span class="stat__grade"><%= p.grade %></span>
+              <%- include('partials/avatar', { url: p.avatarUrl, size: 'sm' }) %>
               <span class="roster__who">
                 <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(p.username) %>"><%= p.username %></a><% if (p.isYou) { %> <span class="tag">You</span><% } %></span>
                 <span class="roster__rank"><%= p.rank %></span>

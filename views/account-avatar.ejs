@@ -1,0 +1,105 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/profile/<%= encodeURIComponent(player.username) %>"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Your profile</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Service record</p>
+      <h1 class="page-head__title">Avatar</h1>
+      <p class="page-head__sub">Your avatar shows on your profile, in chat and in player lists. Build a badge from the parts below, or upload your own picture. More parts unlock as you level up and earn titles.</p>
+    </div>
+  </div>
+
+  <section class="card avatar-now reveal" style="--i:1" aria-labelledby="now-title">
+    <%- include('partials/avatar', { url: ed.url, size: 'lg', eager: true, alt: 'Your current avatar' }) %>
+    <div class="avatar-now__body">
+      <h2 class="card__title" id="now-title">In use now</h2>
+      <p class="muted">
+        <% if (ed.kind === 'upload') { %>Your uploaded picture.<% } else if (ed.kind === 'badge') { %>Your badge.<% } else { %>A starting badge picked for you. Build your own below.<% } %>
+      </p>
+      <% if (ed.upload) { %>
+        <form method="post" action="/account/avatar/use" class="avatar-now__switch">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% if (ed.kind === 'upload') { %>
+            <button class="btn btn--ghost btn--sm" type="submit" name="kind" value="badge">Use my badge instead</button>
+          <% } else { %>
+            <button class="btn btn--ghost btn--sm" type="submit" name="kind" value="upload">Use my picture instead</button>
+          <% } %>
+        </form>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="card avatar-builder reveal" style="--i:2" id="badge" aria-labelledby="badge-title">
+    <h2 class="card__title" id="badge-title">Build your badge</h2>
+    <form method="post" action="/account/avatar/badge" class="avatar-builder__form" data-avatar-builder>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="avatar-builder__preview">
+        <img class="avatar avatar--xl avatar-builder__img" src="<%= previewUrl %>" alt="Badge preview" width="160" height="160" data-avatar-preview>
+        <p class="muted avatar-builder__note"><%= previewing ? 'Preview: not saved yet.' : (ed.kind === 'upload' ? 'Your saved badge.' : 'Pick parts to see them here.') %></p>
+        <div class="avatar-builder__actions">
+          <button class="btn btn--primary" type="submit">Save badge</button>
+          <button class="btn btn--ghost" data-avatar-nojs type="submit" formmethod="get" formaction="/account/avatar#badge" name="preview" value="1">Preview</button>
+          <button class="btn btn--ghost" type="button" data-avatar-random hidden>Shuffle</button>
+        </div>
+      </div>
+      <div class="avatar-builder__parts">
+        <% ed.sections.forEach(function (s) { const locked = s.parts.filter((p) => !p.unlocked); const swatch = s.parts[0].hex !== null; %>
+          <fieldset class="av-section">
+            <legend class="av-section__name"><%= s.name %></legend>
+            <div class="av-opts<%= swatch ? ' av-opts--swatch' : s.key === 'banner' ? ' av-opts--text' : '' %>">
+              <% s.parts.forEach(function (p) { const id = `av-${s.key}-${p.id}`; %>
+                <input class="av-opt__input" type="radio" id="<%= id %>" name="<%= s.key %>" value="<%= p.id %>" <%- chosen[s.key] === p.id ? 'checked' : '' %> <%- p.unlocked ? '' : 'disabled' %>>
+                <label class="av-opt<%= p.unlocked ? '' : ' is-locked' %>" for="<%= id %>" title="<%= p.name %><%= p.unlocked ? '' : ` (locked: ${p.how})` %>">
+                  <% if (swatch) { %>
+                    <span class="av-opt__swatch" style="background:<%= p.hex %>"></span>
+                  <% } else if (s.key === 'banner') { %>
+                    <span class="av-opt__text"><%= p.name %></span>
+                  <% } else { %>
+                    <span class="av-opt__art"><%- sample(s.key, p.id) %></span>
+                  <% } %>
+                  <span class="visually-hidden"><%= swatch || s.key !== 'banner' ? p.name : '' %><%= p.unlocked ? '' : ` (locked: ${p.how})` %></span>
+                  <% if (!p.unlocked) { %><svg class="av-opt__lock" aria-hidden="true"><use href="#i-lock"/></svg><% } %>
+                </label>
+              <% }) %>
+            </div>
+            <% if (locked.length) { %>
+              <p class="av-section__locked"><svg aria-hidden="true"><use href="#i-lock"/></svg><span><%= locked.map((p) => `${p.name}: ${p.how.replace(/^./, (c) => c.toLowerCase())}`).join(' · ') %></span></p>
+            <% } %>
+          </fieldset>
+        <% }) %>
+      </div>
+    </form>
+  </section>
+
+  <section class="card avatar-upload reveal" style="--i:3" id="upload" aria-labelledby="upload-title">
+    <h2 class="card__title" id="upload-title">Upload your own</h2>
+    <% if (ed.upload) { %>
+      <div class="avatar-upload__current">
+        <%- include('partials/avatar', { url: `/avatars/${ed.user.id}?v=${ed.user.avatar_v}&kind=upload`, size: 'md', eager: true, alt: 'Your uploaded picture' }) %>
+        <p class="muted">You have a picture uploaded (<%= ed.upload.width %> × <%= ed.upload.height %>, <%= Math.ceil(ed.upload.bytes / 1024) %> KB).<% if (ed.kind !== 'upload') { %> You’re using your badge at the moment.<% } %></p>
+        <form method="post" action="/account/avatar/upload/delete" data-confirm="Delete your picture? Your badge becomes your avatar.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm btn--danger" type="submit">Delete picture</button>
+        </form>
+      </div>
+    <% } %>
+    <% if (ed.uploadBlocker) { %>
+      <p class="muted"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><%= ed.uploadBlocker %></p>
+    <% } else { %>
+      <form method="post" action="/account/avatar/upload" enctype="multipart/form-data" class="avatar-upload__form" data-avatar-upload data-max-bytes="<%= maxKb * 1024 %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="field__label" for="picture"><%= ed.upload ? 'Replace your picture' : 'Picture' %></label>
+        <input class="avatar-upload__file" id="picture" name="picture" type="file" accept="image/png,image/jpeg,image/webp" required>
+        <p class="muted avatar-upload__hint" data-avatar-upload-hint>PNG, JPEG or WebP, up to <%= maxKb.toLocaleString('en-US') %> KB. Square pictures look best. Location and camera details are removed when you upload.</p>
+        <div class="compose__actions">
+          <button class="btn btn--primary" type="submit">Upload picture</button>
+        </div>
+      </form>
+      <p class="muted avatar-upload__rules">Pictures must follow the conduct rules in the <a href="/terms#conduct">Terms of Service</a>: nothing offensive, sexual or hateful, no real people without their permission, and only pictures you have the right to use. Other players can report a picture, and admins can remove it.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

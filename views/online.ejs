@@ -18,7 +18,7 @@
       <% soldiers.forEach(function (s, i) { %>
         <li class="reveal" style="--i:<%= Math.min(i + 1, 12) %>">
           <a class="roster__row<%= s.isYou ? ' roster__row--you' : '' %>" href="/profile/<%= encodeURIComponent(s.username) %>">
-            <span class="stat__grade"><%= s.grade %></span>
+            <%- include('partials/avatar', { url: s.avatarUrl, size: 'sm' }) %>
             <span class="roster__who">
               <span class="roster__name"><%= s.username %><% if (s.isYou) { %> <span class="tag">You</span><% } %><% if (s.hospitalized) { %> <span class="tag tag--hospital">Hospital</span><% } %></span>
               <span class="roster__rank"><%= s.rank %></span>

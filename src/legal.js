@@ -12,7 +12,7 @@
 
 const rules = require('./anticheat/rules');
 
-const TERMS_VERSION = '2026-10-17.1'; // the game is renamed GeneralForces
+const TERMS_VERSION = '2026-10-17.2'; // avatar pictures (conduct, licence and data)
 const EFFECTIVE_DATE = '15 October 2026';
 const MIN_AGE = 18;
 

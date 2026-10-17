@@ -129,6 +129,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService) {
       const rank = game.rankFor(m.level);
       return {
         ...m,
+        avatarUrl: `/avatars/${m.id}?v=${m.avatar_v || 0}`,
         grade: rank.grade,
         rank: rank.name,
         roleLabel: units.roleLabel(m.unit_role),

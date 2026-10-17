@@ -47,6 +47,9 @@ const { createChatService } = require('./chat-service');
 const { chatRoutes } = require('./routes/chat');
 const { createSettingsService } = require('./settings-service');
 const { settingsRoutes } = require('./routes/settings');
+const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
+const { avatarRoutes } = require('./routes/avatars');
+const { multipart } = require('./multipart');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -111,6 +114,8 @@ function createApp({
   app.seasons = seasonService; // exposed for tests
   const chatService = createChatService(db, players);
   chatService.schedule();
+  const avatarService = createAvatarService(db, players);
+  app.avatars = avatarService; // exposed for tests
   const adminRepo = createAdminRepo(db);
 
   app.set('view engine', 'ejs');
@@ -163,6 +168,8 @@ function createApp({
   });
   app.use(anti.deviceCookie({ production }));
   app.use(flash);
+  // File uploads are read before the CSRF check, which needs their _csrf field.
+  app.use(multipart({ paths: ['/account/avatar/upload'], maxBytes: MAX_UPLOAD_BYTES }));
   app.use(eventService.locals());
   app.use(csrf);
   app.use(actionRateLimit());
@@ -190,11 +197,12 @@ function createApp({
   app.use(seasonRoutes(players, seasonService, adminRepo));
   app.use(chatRoutes(players, chatService, unitRepo, adminRepo));
   app.use(settingsRoutes(players, settingsService, adminRepo));
+  app.use(avatarRoutes(players, avatarService, adminRepo));
   app.use(messageRoutes(players, messageService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
-  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService));
+  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

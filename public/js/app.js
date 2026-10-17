@@ -691,4 +691,60 @@
       for (const d of chatBox.querySelectorAll('.chat-msg__menu[open]')) if (!d.contains(e.target)) d.open = false;
     });
   }
+  /* ---------- Avatar badge builder: live preview and shuffle ---------- */
+  const builder = document.querySelector('[data-avatar-builder]');
+  if (builder) {
+    const preview = builder.querySelector('[data-avatar-preview]');
+    const note = builder.querySelector('.avatar-builder__note');
+    builder.querySelectorAll('[data-avatar-nojs]').forEach((el) => { el.hidden = true; });
+    const update = () => {
+      const params = new URLSearchParams();
+      for (const [k, v] of new FormData(builder)) if (k !== '_csrf') params.set(k, v);
+      preview.src = `/avatars/preview?${params}`;
+      if (note) note.textContent = 'Preview: press Save badge to keep it.';
+    };
+    builder.addEventListener('change', update);
+    // The preview sticks just below the (sticky) site header, whatever its height.
+    const header = document.querySelector('.site-header');
+    const setHeaderHeight = () => {
+      const sticky = header && getComputedStyle(header).position === 'sticky';
+      document.documentElement.style.setProperty('--header-h', `${sticky ? header.offsetHeight : 0}px`);
+    };
+    setHeaderHeight();
+    window.addEventListener('resize', setHeaderHeight);
+    const shuffle = builder.querySelector('[data-avatar-random]');
+    if (shuffle) {
+      shuffle.hidden = false;
+      shuffle.addEventListener('click', () => {
+        const groups = new Map();
+        builder.querySelectorAll('input[type="radio"]:not(:disabled)').forEach((r) => {
+          if (!groups.has(r.name)) groups.set(r.name, []);
+          groups.get(r.name).push(r);
+        });
+        for (const list of groups.values()) list[Math.floor(Math.random() * list.length)].checked = true;
+        update();
+      });
+    }
+  }
+
+  /* ---------- Avatar upload: catch oversized files before sending ---------- */
+  document.querySelectorAll('[data-avatar-upload]').forEach((form) => {
+    const input = form.querySelector('input[type="file"]');
+    const hint = form.querySelector('[data-avatar-upload-hint]');
+    const max = Number(form.dataset.maxBytes) || 0;
+    const original = hint ? hint.textContent : '';
+    const check = () => {
+      const file = input.files && input.files[0];
+      const tooBig = Boolean(file && max && file.size > max);
+      const badType = Boolean(file && !/^image\/(png|jpeg|webp)$/.test(file.type));
+      if (hint) {
+        hint.textContent = tooBig ? `That picture is ${Math.ceil(file.size / 1024).toLocaleString()} KB. The limit is ${Math.round(max / 1024).toLocaleString()} KB.`
+          : badType ? 'Use a PNG, JPEG or WebP picture.' : original;
+        hint.classList.toggle('is-error', tooBig || badType);
+      }
+      return !(tooBig || badType);
+    };
+    input.addEventListener('change', check);
+    form.addEventListener('submit', (e) => { if (!check()) e.preventDefault(); });
+  });
 })();

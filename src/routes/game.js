@@ -200,6 +200,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       const rank = game.rankFor(u.level);
       return {
         username: u.username,
+        avatarUrl: `/avatars/${u.id}?v=${u.avatar_v || 0}`,
         level: u.level,
         rank: rank.name,
         grade: rank.grade,
@@ -243,6 +244,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       const targetBlocker = isYou ? null : pvp.targetBlocker(me, u, { now, lastAttackAt: cooldowns.get(u.id) || null });
       return {
         username: u.username,
+        avatarUrl: `/avatars/${u.id}?v=${u.avatar_v || 0}`,
         level: u.level,
         rank: rank.name,
         grade: rank.grade,
@@ -301,7 +303,10 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       title: user.username,
       nav: user.id === req.player.id ? 'profile' : null,
       soldier: {
+        id: user.id,
         username: user.username,
+        avatarUrl: `/avatars/${user.id}?v=${user.avatar_v || 0}`,
+        avatarIsUpload: user.avatar_kind === 'upload',
         title: titles.nameOf(user.title),
         level: user.level,
         rank: rank.name,

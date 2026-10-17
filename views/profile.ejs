@@ -5,12 +5,25 @@
   <a class="back-link reveal" style="--i:0" href="/players"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All players</a>
 
   <section class="card profile-hero reveal" style="--i:1" aria-labelledby="profile-name">
-    <span class="stat__grade stat__grade--xl"><%= soldier.grade %></span>
+    <div class="profile-hero__avatar">
+      <%- include('partials/avatar', { url: soldier.avatarUrl, size: 'xl', eager: true, alt: `${soldier.username}'s avatar` }) %>
+      <% if (soldier.isYou) { %><a class="profile-hero__avatar-edit" href="/account/avatar">Change avatar</a><% } else if (soldier.avatarIsUpload) { %>
+        <details class="avatar-report">
+          <summary>Report picture</summary>
+          <form method="post" action="/avatars/<%= soldier.id %>/report" class="avatar-report__form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="visually-hidden" for="avatar-why">Why are you reporting this picture?</label>
+            <input id="avatar-why" name="reason" maxlength="200" placeholder="Why? (optional)">
+            <button class="btn btn--ghost btn--sm" type="submit">Report to admins</button>
+          </form>
+        </details>
+      <% } %>
+    </div>
     <div class="profile-hero__body">
       <p class="eyebrow">Service record</p>
       <h1 id="profile-name" class="profile-hero__name"><%= soldier.username %></h1>
       <% if (soldier.title) { %><p class="profile-hero__title callsign-title">“<%= soldier.title %>”</p><% } %>
-      <p class="profile-hero__rank"><%= soldier.rank %> · Level <%= soldier.level %></p>
+      <p class="profile-hero__rank"><%= soldier.rank %> <span class="profile-hero__grade"><%= soldier.grade %></span> · Level <%= soldier.level %></p>
       <ul class="profile-hero__meta">
         <li>
           <% if (soldier.hospitalized) { %>
@@ -68,7 +81,7 @@
       </ul>
     <% } %>
     <% if (soldier.isYou) { %>
-      <p class="profile-hero__note">This is how other soldiers see you. <a href="/account/profile">Edit profile</a> · <a href="/hq">Back to HQ</a> · <a href="/medals">Medals</a> · <a href="/account/password">Change password</a></p>
+      <p class="profile-hero__note">This is how other soldiers see you. <a href="/account/profile">Edit profile</a> · <a href="/account/avatar">Avatar</a> · <a href="/hq">Back to HQ</a> · <a href="/medals">Medals</a> · <a href="/account/password">Change password</a></p>
     <% } %>
   </section>
 

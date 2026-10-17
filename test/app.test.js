@@ -376,7 +376,8 @@ test('notifications: welcome, attack alerts, polling, read state, unlocks and th
   assert.equal(poll.player.hospitalized, true);
   // Nothing new after the latest id; the attacker gets no notification for their own attack.
   assert.equal(JSON.parse((await bravo.request(`/notifications/poll?after=${poll.latestId}`, { headers: { accept: 'application/json' } })).text).items.length, 0);
-  assert.equal(JSON.parse((await alpha.request('/notifications/poll?after=0', { headers: { accept: 'application/json' } })).text).items.length, 1); // just the welcome
+  // Just the welcome (a daily order may also complete if today's order is a PvP win).
+  assert.equal(JSON.parse((await alpha.request('/notifications/poll?after=0', { headers: { accept: 'application/json' } })).text).items.filter((n) => n.kind !== 'order').length, 1);
 
   ({ text } = await bravo.request('/hq'));
   assert.match(text, /aria-label="Notifications, 1 unread"/);

@@ -493,6 +493,33 @@ const SCHEMA = `
     PRIMARY KEY (user_id, title_id)
   );
 
+  -- Avatars (src/avatars.js): an uploaded picture, at most one per player, with
+  -- metadata already stripped (src/images.js). Badges live in users.avatar_badge.
+  CREATE TABLE IF NOT EXISTS avatar_uploads (
+    user_id     INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    mime        TEXT    NOT NULL,
+    data        BLOB    NOT NULL,
+    bytes       INTEGER NOT NULL,
+    width       INTEGER NOT NULL,
+    height      INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_avatar_uploads_recent ON avatar_uploads(created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS avatar_reports (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reporter_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    upload_at    INTEGER NOT NULL,
+    reason       TEXT,
+    status       TEXT    NOT NULL DEFAULT 'open',
+    resolution   TEXT,
+    resolved_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    resolved_at  INTEGER,
+    created_at   INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_avatar_reports_status ON avatar_reports(status, created_at DESC);
+
   CREATE TABLE IF NOT EXISTS sessions (
     sid      TEXT PRIMARY KEY,
     sess     TEXT    NOT NULL,
@@ -558,6 +585,10 @@ const ADDED_COLUMNS = [
   ['users', 'chat_muted_until', 'INTEGER'],
   ['users', 'chat_mute_reason', 'TEXT'],
   ['users', 'title', 'TEXT'],
+  ['users', 'avatar_kind', 'TEXT'], // null (starting badge), 'badge' or 'upload'
+  ['users', 'avatar_badge', 'TEXT'], // JSON of badge part ids
+  ['users', 'avatar_v', 'INTEGER NOT NULL DEFAULT 0'], // bumps on every change, for image caching
+  ['users', 'avatar_upload_blocked', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 function migrate(db) {

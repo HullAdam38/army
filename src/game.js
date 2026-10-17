@@ -644,6 +644,7 @@ function playerView(raw, now = Date.now()) {
   const total = p.missions_completed + p.missions_failed;
   return {
     username: p.username,
+    avatarUrl: `/avatars/${p.id}?v=${p.avatar_v || 0}`,
     level: p.level,
     rank: rank.name,
     grade: rank.grade,

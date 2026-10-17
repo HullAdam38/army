@@ -1,6 +1,7 @@
 <%# One chat message. Used by the chat page and by live updates (rendered server-side). %>
 <% const at = new Date(m.created_at); %>
 <li class="chat-msg<%= m.mine ? ' chat-msg--mine' : '' %><%= m.mentionsMe ? ' chat-msg--mention' : '' %><%= m.is_admin ? ' chat-msg--admin' : '' %>" id="m-<%= m.id %>" data-id="<%= m.id %>">
+  <a class="chat-msg__avatar" href="/profile/<%= encodeURIComponent(m.username) %>" tabindex="-1" aria-hidden="true"><%- include('avatar', { url: m.avatarUrl, size: 'xs' }) %></a>
   <div class="chat-msg__head">
     <a class="chat-msg__name" href="/profile/<%= encodeURIComponent(m.username) %>"><% if (m.unit_tag) { %><span class="unit-tag">[<%= m.unit_tag %>]</span> <% } %><%= m.username %></a>
     <% if (m.titleName) { %><span class="callsign-title chat-msg__title"><%= m.titleName %></span><% } %>

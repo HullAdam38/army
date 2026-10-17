@@ -13,7 +13,7 @@ const PAGE_SIZE = 25;
 const { RULES, SEVERITY } = require('../anticheat/rules');
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -47,6 +47,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       openFlags: anti.openFlagCount(),
       openReports: messages.openReportCount(),
       openChatReports: chatService.openReportCount(),
+      openAvatarReports: avatarService ? avatarService.openReportCount() : 0,
     });
   });
 

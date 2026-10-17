@@ -16,7 +16,7 @@ function leaderboardRoutes(players, db) {
     const now = Date.now();
     const shape = (r) => {
       const rank = game.rankFor(r.level);
-      return { ...r, grade: rank.grade, rank: rank.name, online: presence.isOnline(r, now), isYou: r.id === req.player.id };
+      return { ...r, avatarUrl: `/avatars/${r.id}?v=${r.avatar_v || 0}`, grade: rank.grade, rank: rank.name, online: presence.isOnline(r, now), isYou: r.id === req.player.id };
     };
     const { rows, me } = boards.board(key, req.player.id, now);
     res.render('leaderboards', {

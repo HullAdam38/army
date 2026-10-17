@@ -1,0 +1,83 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Moderation</p>
+      <h1 class="page-head__title">Avatars</h1>
+      <p class="page-head__sub">Pictures players have reported, and the latest uploads. Removing a picture puts the player back on their badge and tells them why. You can also stop a player uploading again. Badges are built from fixed parts, so they never need checking. Everything here is in the audit log.</p>
+    </div>
+  </div>
+
+  <nav class="tabs flag-tabs" aria-label="Avatar moderation">
+    <a class="tabs__tab" href="/admin/avatars" <%- tab === 'open' ? 'aria-current="page"' : '' %>>Reported (<%= openReports %>)</a>
+    <a class="tabs__tab" href="/admin/avatars?tab=recent" <%- tab === 'recent' ? 'aria-current="page"' : '' %>>Latest uploads</a>
+    <a class="tabs__tab" href="/admin/avatars?tab=resolved" <%- tab === 'resolved' ? 'aria-current="page"' : '' %>>Resolved</a>
+  </nav>
+
+  <% const removeForm = (id, back) => `
+    <form method="post" action="/admin/avatars/${id}/remove" class="report__actions">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <input type="hidden" name="back" value="${back}">
+      <label class="visually-hidden" for="why-${id}-${back}">Reason</label>
+      <input id="why-${id}-${back}" name="reason" maxlength="200" placeholder="Reason (shown to them)">
+      <label class="chat-menu__check"><input type="checkbox" name="block" value="1"> Block uploads</label>
+      <button class="btn btn--primary btn--sm" type="submit">Remove picture</button>
+    </form>`; %>
+
+  <% if (tab === 'recent') { %>
+    <% if (uploads.length) { %>
+      <ul class="avatar-mod">
+        <% uploads.forEach(function (u) { %>
+          <li class="card avatar-mod__item">
+            <%- include('../partials/avatar', { url: `/avatars/${u.user_id}?v=${u.avatar_v}&kind=upload`, size: 'lg' }) %>
+            <div class="avatar-mod__body">
+              <p><a href="/admin/players/<%= u.user_id %>"><strong><%= u.username %></strong></a> <span class="muted">· <%= u.ago %> · <%= u.width %> × <%= u.height %> · <%= Math.ceil(u.bytes / 1024) %> KB<%= u.avatar_kind === 'upload' ? '' : ' · not in use' %></span>
+                <% if (u.avatar_upload_blocked) { %> <span class="tag tag--hospital">Uploads blocked</span><% } %></p>
+              <%- removeForm(u.user_id, 'recent') %>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="card muted">No pictures uploaded yet.</p>
+    <% } %>
+  <% } else if (reports.length) { %>
+    <ol class="avatar-mod">
+      <% reports.forEach(function (r) { %>
+        <li class="card avatar-mod__item">
+          <%- include('../partials/avatar', { url: tab === 'open' && r.avatar_kind !== 'upload' ? `${r.url}&kind=upload` : r.url, size: 'lg', alt: `${r.username}'s picture` }) %>
+          <div class="avatar-mod__body">
+            <p><a href="/admin/players/<%= r.target_id %>"><strong><%= r.username %></strong></a> <span class="muted">· reported <%= r.times %> time<%= r.times === 1 ? '' : 's' %> · <%= r.ago %></span>
+              <% if (r.avatar_upload_blocked) { %> <span class="tag tag--hospital">Uploads blocked</span><% } %></p>
+            <ul class="avatar-mod__reasons">
+              <% r.reasons.forEach(function (why) { %><li><%= why %></li><% }) %>
+            </ul>
+            <% if (tab === 'open') { %>
+              <%- removeForm(r.target_id, 'open') %>
+              <form method="post" action="/admin/avatars/<%= r.target_id %>/dismiss">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn--ghost btn--sm" type="submit">Dismiss: the picture is fine</button>
+              </form>
+            <% } else { %>
+              <p class="muted report__resolved">Resolved by <%= r.resolver || 'an admin' %> <%= r.resolvedAgo %>: <%= r.resolution %></p>
+              <% if (r.avatar_upload_blocked) { %>
+                <form method="post" action="/admin/avatars/<%= r.target_id %>/uploads">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="blocked" value="0">
+                  <button class="btn btn--ghost btn--sm" type="submit">Allow uploads again</button>
+                </form>
+              <% } %>
+            <% } %>
+          </div>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted"><%= tab === 'open' ? 'No reported pictures.' : 'No resolved reports yet.' %></p>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

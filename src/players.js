@@ -52,7 +52,7 @@ function createPlayerRepo(db) {
         SELECT 1 FROM messages x WHERE x.conversation_id = c.id AND x.created_at > m.last_read_at AND (x.sender_id IS NULL OR x.sender_id != ?1))`),
     byUsername: db.prepare('SELECT * FROM users WHERE username = ?'),
     online: db.prepare(`
-      SELECT username, level, xp, last_seen_at, hospital_until
+      SELECT id, username, level, xp, last_seen_at, hospital_until, avatar_v
       FROM users
       WHERE last_seen_at >= ? AND (signed_out_at IS NULL OR signed_out_at < last_seen_at) AND banned_at IS NULL
       ORDER BY level DESC, xp DESC, username
@@ -228,7 +228,7 @@ function createPlayerRepo(db) {
       const order = PLAYER_SORTS[sort] || PLAYER_SORTS.level;
       const total = db.prepare(`SELECT COUNT(*) AS n FROM users ${clause}`).get(...params).n;
       const rows = db.prepare(`
-        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, deploy_until, pvp_wins, pvp_losses
+        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, deploy_until, pvp_wins, pvp_losses, avatar_v
         FROM users ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset);
       return { rows, total };
     },

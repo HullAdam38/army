@@ -1,0 +1,3 @@
+<%# A player's avatar. `url` from avatarService.urlFor / player.avatarUrl; size: xs (28), sm (40), md (56), lg (96), xl (128). %>
+<% const px = { xs: 28, sm: 40, md: 56, lg: 96, xl: 128 }[locals.size || 'sm']; %>
+<img class="avatar avatar--<%= locals.size || 'sm' %><%= locals.extra ? ` ${extra}` : '' %>" src="<%= url %>" alt="<%= locals.alt || '' %>" width="<%= px %>" height="<%= px %>" <%- locals.eager ? '' : 'loading="lazy"' %> decoding="async">

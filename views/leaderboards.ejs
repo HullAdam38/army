@@ -34,7 +34,7 @@
         <% if (me && me.outside && r === me) { %><li class="board__gap" aria-hidden="true">⋯</li><% } %>
         <li class="board__row<%= m ? ` board__row--${m}` : '' %><%= r.isYou ? ' board__row--you' : '' %>" <%- r.isYou ? 'id="you"' : '' %>>
           <span class="board__pos"><%= m ? '' : '#' %><%= r.position %></span>
-          <span class="stat__grade"><%= r.grade %></span>
+          <%- include('partials/avatar', { url: r.avatarUrl, size: 'sm' }) %>
           <span class="board__who">
             <span class="board__line"><a class="board__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a><% if (r.isYou) { %> <span class="tag">You</span><% } %></span>
             <span class="board__rank"><%= r.rank %> · Lv <%= r.level %><% if (r.online) { %> · <span class="status--online">online</span><% } %></span>
