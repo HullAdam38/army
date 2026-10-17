@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const fs = require('node:fs');
 const crypto = require('node:crypto');
 const express = require('express');
 const session = require('express-session');
@@ -69,6 +70,19 @@ function trustProxySetting(value, production) {
   return value;
 }
 
+/** Short hash of the stylesheet and script, used to bust browser caches. */
+function assetHash() {
+  const hash = crypto.createHash('sha256').update(pkg.version);
+  for (const file of ['css/main.css', 'js/app.js']) {
+    try {
+      hash.update(fs.readFileSync(path.join(__dirname, '..', 'public', file)));
+    } catch {
+      // A missing file just leaves the version out of the hash.
+    }
+  }
+  return hash.digest('hex').slice(0, 12);
+}
+
 function createApp({
   db = openDatabase(),
   secret = process.env.SESSION_SECRET,
@@ -126,7 +140,9 @@ function createApp({
   app.set('trust proxy', trustProxySetting(process.env.TRUST_PROXY, production));
   app.disable('x-powered-by');
 
-  app.locals.assetVersion = pkg.version;
+  // Browsers cache CSS and JS for a week, so the URL carries a hash of their
+  // contents: any change gets a new URL and every player picks it up at once.
+  app.locals.assetVersion = assetHash();
   app.locals.siteName = 'GeneralForces';
   app.locals.year = new Date().getFullYear();
   app.locals.legal = legalSettings();

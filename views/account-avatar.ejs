@@ -65,7 +65,10 @@
               <% }) %>
             </div>
             <% if (locked.length) { %>
-              <p class="av-section__locked"><svg aria-hidden="true"><use href="#i-lock"/></svg><span><%= locked.map((p) => `${p.name}: ${p.how.replace(/^./, (c) => c.toLowerCase())}`).join(' · ') %></span></p>
+              <details class="av-section__locked">
+                <summary><svg aria-hidden="true"><use href="#i-lock"/></svg><%= locked.length %> locked: how to unlock</summary>
+                <ul><% locked.forEach(function (p) { %><li><strong><%= p.name %>:</strong> <%= p.how.replace(/^./, (c) => c.toLowerCase()) %></li><% }) %></ul>
+              </details>
             <% } %>
           </fieldset>
         <% }) %>

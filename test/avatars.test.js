@@ -63,6 +63,11 @@ test('every badge part renders, and banners are escaped', () => {
       const svg = avatars.renderBadge({ ...avatars.DEFAULT_BADGE, [s.key]: p.id }, { level: 40, username: 'Ghost', unitTag: 'ABC' });
       assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[\s\S]*<\/svg>$/, `${s.key}:${p.id}`);
       assert.doesNotMatch(svg, /<script|\bon\w+=|href=/i);
+      // Served as an image file, the SVG must be strict XML: no attribute twice on one element.
+      for (const tag of svg.match(/<[a-z][^>]*>/g)) {
+        const names = [...tag.matchAll(/\s([a-zA-Z:-]+)=/g)].map((m) => m[1]);
+        assert.equal(new Set(names).size, names.length, `${s.key}:${p.id} repeats an attribute in ${tag.slice(0, 60)}`);
+      }
     }
   }
   // Unit tags and callsigns are checked elsewhere, but escape anyway.
@@ -179,7 +184,7 @@ test('avatars end to end: build, upload, report, moderate', async () => {
     let page = (await alpha.request('/account/avatar')).text;
     for (const s of avatars.SECTIONS) assert.match(page, new RegExp(`<legend class="av-section__name">${s.name}</legend>`));
     assert.match(page, /id="av-field-gold" name="field" value="gold"\s+disabled/);
-    assert.match(page, /Gold: reach level 30/);
+    assert.match(page, /<strong>Gold:<\/strong> reach level 30/);
 
     // Live preview doesn't save.
     r = await alpha.request('/avatars/preview?shape=hex&emblem=bolt&banner=callsign');

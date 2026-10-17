@@ -313,9 +313,9 @@ function renderBadge(badgeInput, who = {}, { size = 120 } = {}) {
   }
 
   if (trim.width) {
-    const attrs = `fill="none" stroke="${hex('trimColor')}" stroke-width="${trim.width}" stroke-linejoin="round"${trim.dash ? ` stroke-dasharray="${trim.dash}" stroke-linecap="round"` : ''}`;
-    out.push(`<path d="${shape.d}" ${attrs}/>`);
-    if (trim.inner) out.push(`<path d="${shape.d}" ${attrs} stroke-width="2" transform="translate(60 60) scale(0.86) translate(-60 -60)"/>`);
+    const attrs = (width) => `fill="none" stroke="${hex('trimColor')}" stroke-width="${width}" stroke-linejoin="round"${trim.dash ? ` stroke-dasharray="${trim.dash}" stroke-linecap="round"` : ''}`;
+    out.push(`<path d="${shape.d}" ${attrs(trim.width)}/>`);
+    if (trim.inner) out.push(`<path d="${shape.d}" ${attrs(2)} transform="translate(60 60) scale(0.86) translate(-60 -60)"/>`);
   }
 
   if (hasBanner) {
