@@ -176,6 +176,17 @@
     </section>
   <% } %>
 
+  <% if (theatre) { %>
+    <section id="theatre" class="card unit-theatre reveal" style="--i:2" aria-labelledby="theatre-title">
+      <div class="unit-rally__body">
+        <h2 id="theatre-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-grid"/></svg>Theatre of war</h2>
+        <p class="muted"><% if (theatre.front) { %>Fighting for <strong class="unit-theatre__front"><%= theatre.front.name %></strong> this week: <%= theatre.points.toLocaleString('en-US') %> points so far.<% } else { %>No front this week, so members’ play isn’t scoring on the map.<% } %>
+        <% if (theatre.held.length) { %>Holding <%= theatre.held.map(function (r) { return r.name; }).join(', ') %> (<%= money(theatre.income) %> a day<%= theatre.xpPct ? `, +${theatre.xpPct}% mission XP` : '' %>).<% } %></p>
+      </div>
+      <div class="unit-rally__action"><a class="btn btn--ghost btn--sm" href="/theatre">Open the map <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+    </section>
+  <% } %>
+
   <% if (objectives) { %>
     <section id="objectives" class="card unit-objectives reveal" style="--i:2" aria-labelledby="objectives-title">
       <h2 id="objectives-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Weekly objectives <span class="card__title-meta">New objectives in <span data-until="<%= objectives.endsAt %>">soon</span></span></h2>

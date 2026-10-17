@@ -67,6 +67,7 @@ const can = {
   kick: (actorRole, targetRole) => rankOf(actorRole) >= 3 && rankOf(actorRole) > rankOf(targetRole), // Lieutenant+, below them
   rally: (role) => rankOf(role) >= 3, // Lieutenant+: call a rally order
   raid: (role) => rankOf(role) >= 3, // Lieutenant+: launch a raid
+  front: (role) => rankOf(role) >= 3, // Lieutenant+: choose the theatre of war front
   /** Promote one step: the new rank must be below the actor's (Commanders make Lieutenants, Lieutenants make Sergeants). */
   promote(actorRole, targetRole) {
     const next = promotedRole(targetRole); // null for the Commander, who isn't on the ladder

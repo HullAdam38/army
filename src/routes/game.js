@@ -25,7 +25,7 @@ const titles = require('../titles');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -37,8 +37,9 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     const e = eventService.effects(); // Double XP / Payday multiply everything else
     // …and so do the admin pay and XP settings.
     const rally = units.rallyBonus(unit); // a unit's "Advance!" rally order
+    const region = theatreService && unit ? theatreService.xpBonus(unit.id) : 0; // regions held on the theatre of war
     return {
-      xpBonus: (1 + units.xpBonus(unit) + rally + p.missionXp) * e.xpMult * tuning.get('missionXpMult') - 1,
+      xpBonus: (1 + units.xpBonus(unit) + rally + region + p.missionXp) * e.xpMult * tuning.get('missionXpMult') - 1,
       cashBonus: (1 + rally + p.missionCash) * e.cashMult * tuning.get('missionCashMult') - 1,
     };
   };

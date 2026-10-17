@@ -210,3 +210,105 @@ test('raid maths: health scales with the unit, loot splits by damage', () => {
   assert.deepEqual(loot.players.map((p) => [p.userId, p.cash, p.xp]), [[1, 562, 75], [2, 187, 25]]);
   assert.deepEqual(raids.splitLoot({ cash: 1000, xp: 100 }, []).players, []);
 });
+
+test('theatre of war: fronts, scoring, weekly handover, holder bonus and daily income', async () => {
+  const theatre = require('../src/theatre');
+  const { db, app, server, c, unitId, join, U } = await setup();
+  const DAY = 24 * 60 * 60 * 1000;
+  const monday = Date.parse(`${theatre.weekKey(Date.now())}T12:00:00Z`);
+  const week = (n) => monday + n * 7 * DAY; // midday on the Monday n weeks from this one
+  const holder = (region) => (db.prepare('SELECT unit_id FROM theatre_regions WHERE region = ?').get(region) || {}).unit_id || null;
+  const lastNote = (id) => db.prepare("SELECT message FROM notifications WHERE user_id = ? AND kind = 'unit' ORDER BY id DESC").get(id).message;
+  try {
+    // A rival unit with three members.
+    const rivals = [await join('Rival1'), await join('Rival2'), await join('Rival3')];
+    const rivalId = Number(db.prepare("INSERT INTO units (name, tag, treasury, created_at) VALUES ('Red Fox', 'RF', 0, ?)").run(Date.now()).lastInsertRowid);
+    rivals.forEach((r, i) => db.prepare('UPDATE users SET unit_id = ?, unit_role = ?, unit_joined_at = ? WHERE id = ?').run(rivalId, i ? 'member' : 'leader', Date.now(), r.id));
+
+    let page = (await c.pvt.request('/theatre')).text;
+    assert.match(page, /Theatre of war/);
+    assert.match(page, /has no front this week/);
+    assert.match(page, /Lieutenants and the Commander choose the front/);
+    assert.match((await c.lt.request('/theatre')).text, /<select id="front-region" name="region"/);
+    assert.match((await c.sgt.act('/theatre/front', { region: 'capital' }, '/theatre')).message, /Only Lieutenants/);
+    assert.match((await c.lt.act('/theatre/front', { region: 'atlantis' }, '/theatre')).message, /Pick a region/);
+    assert.match((await c.lt.act('/theatre/front', { region: 'capital' }, '/theatre')).message, /Front opened in Capital District/);
+    assert.match(lastNote(c.pvt.id), /opened a front in Capital District/);
+    assert.match((await c.cmd.act('/theatre/front', { region: 'port' }, '/theatre')).message, /move the front again in 6 hours/);
+    assert.match((await c.cmd.request(U)).text, /Fighting for <strong class="unit-theatre__front">Capital District/);
+
+    // Play scores on the front: missions 1, PvP wins 3, and raid strikes (through the real route) 2.
+    app.theatre.track(c.pvt.id, 'missions', 2);
+    app.theatre.track(c.sgt.id, 'pvp_wins', 1);
+    await c.lt.act(`${U}/raid`, { stronghold: 'outpost' }, U);
+    await c.pvt.act(`${U}/raid/strike`, {}, U);
+    const pts = () => db.prepare('SELECT points FROM theatre_scores WHERE unit_id = ? AND region = ?').get(unitId, 'capital').points;
+    assert.equal(pts(), 2 + 3 + 2);
+    assert.equal(db.prepare('SELECT points FROM theatre_contrib WHERE user_id = ?').get(c.pvt.id).points, 4);
+    page = (await c.pvt.request('/theatre')).text;
+    assert.match(page, /<dt>Unit points<\/dt><dd>7<\/dd>/);
+    assert.match(page, /<dt>Your points<\/dt><dd>4<\/dd>/);
+    // Someone not in a unit scores nothing; a unit with no front scores nothing.
+    app.theatre.track(rivals[0].id, 'missions', 5);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM theatre_scores WHERE unit_id = ?').get(rivalId).n, 0);
+
+    // The rival opens a front in the same region but scores less: [IW] takes it when the week ends.
+    const rivalUnit = db.prepare('SELECT * FROM units WHERE id = ?').get(rivalId);
+    const leader = db.prepare('SELECT * FROM users WHERE id = ?').get(rivals[0].id);
+    db.exec('BEGIN'); app.theatre.setFront({ unit: rivalUnit, role: 'leader', me: leader, regionId: 'capital' }); db.exec('COMMIT');
+    app.theatre.track(rivals[1].id, 'missions', 5);
+    app.theatre.settleDue(week(1));
+    assert.equal(holder('capital'), unitId);
+    assert.match(lastNote(c.pvt.id), /took Capital District/);
+    assert.equal(app.theatre.xpBonus(unitId), 0.03);
+    app.theatre.settleDue(week(1)); // settling twice changes nothing
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM theatre_weeks').get().n, 1);
+
+    // Daily income, once per region per day.
+    const treasury = () => db.prepare('SELECT treasury FROM units WHERE id = ?').get(unitId).treasury;
+    const before = treasury();
+    app.theatre.payIncome(week(1));
+    app.theatre.payIncome(week(1) + 60 * 1000);
+    assert.equal(treasury(), before + 6000);
+    app.theatre.payIncome(week(1) + DAY);
+    assert.equal(treasury(), before + 12000);
+
+    // Week 2: [IW] defends with 9 points (+25% = 11) against 11: a tie keeps the holder.
+    for (const [unit, by, n] of [[unitId, c.cmd.id, 9], [rivalId, rivals[0].id, 11]]) {
+      db.prepare('INSERT INTO theatre_fronts (week, unit_id, region, set_by, set_at) VALUES (?, ?, ?, ?, ?)').run(theatre.weekKey(week(1)), unit, 'capital', by, week(1));
+      app.theatre.track(by, 'missions', n, week(1));
+    }
+    app.theatre.settleDue(week(2));
+    assert.equal(holder('capital'), unitId);
+    // Week 3: 13 beats 9 + 25%, and the region changes hands.
+    for (const [unit, by, n] of [[unitId, c.cmd.id, 9], [rivalId, rivals[0].id, 13]]) {
+      db.prepare('INSERT INTO theatre_fronts (week, unit_id, region, set_by, set_at) VALUES (?, ?, ?, ?, ?)').run(theatre.weekKey(week(2)), unit, 'capital', by, week(2));
+      app.theatre.track(by, 'missions', n, week(2));
+    }
+    app.theatre.settleDue(week(3));
+    assert.equal(holder('capital'), rivalId);
+    assert.match(lastNote(c.pvt.id), /lost Capital District to \[RF\] Red Fox/);
+    assert.match(lastNote(rivals[2].id), /\[RF\] took Capital District/);
+    assert.equal(app.theatre.xpBonus(unitId), 0);
+    assert.match((await c.pvt.request('/theatre')).text, /Red Fox took it from Iron Wolves/);
+
+    // Too small to open a front.
+    db.prepare('UPDATE users SET unit_id = NULL, unit_role = NULL WHERE id = ?').run(rivals[2].id);
+    db.exec('BEGIN');
+    const out = app.theatre.setFront({ unit: rivalUnit, role: 'leader', me: leader, regionId: 'port', now: week(3) });
+    db.exec('COMMIT');
+    assert.match(out.error, /at least 3 members/);
+  } finally {
+    server.close();
+  }
+});
+
+test('theatre maths: deciding a region', () => {
+  const theatre = require('../src/theatre');
+  assert.equal(theatre.decide([], 5), 5);
+  assert.equal(theatre.decide([{ unit_id: 1, points: 0 }], null), null);
+  assert.equal(theatre.decide([{ unit_id: 1, points: 4 }, { unit_id: 2, points: 4 }], null), null, 'a tie between challengers leaves it unheld');
+  assert.equal(theatre.decide([{ unit_id: 1, points: 10 }, { unit_id: 2, points: 12 }], 1), 1, '10 + 25% beats 12');
+  assert.equal(theatre.decide([{ unit_id: 1, points: 10 }, { unit_id: 2, points: 13 }], 1), 2);
+  assert.equal(theatre.xpBonus(theatre.REGIONS.map((r) => r.id)), theatre.MAX_XP_BONUS);
+});

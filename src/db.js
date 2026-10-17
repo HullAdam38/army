@@ -569,6 +569,56 @@ const SCHEMA = `
     PRIMARY KEY (raid_id, user_id)
   );
 
+  -- Theatre of war (src/theatre.js): who holds each region, each unit's weekly front and points.
+  CREATE TABLE IF NOT EXISTS theatre_regions (
+    region     TEXT PRIMARY KEY,
+    unit_id    INTEGER REFERENCES units(id) ON DELETE SET NULL,
+    held_since INTEGER
+  );
+  CREATE TABLE IF NOT EXISTS theatre_fronts (
+    week    TEXT    NOT NULL,
+    unit_id INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    region  TEXT    NOT NULL,
+    set_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    set_at  INTEGER NOT NULL,
+    PRIMARY KEY (week, unit_id)
+  );
+  CREATE TABLE IF NOT EXISTS theatre_scores (
+    week    TEXT    NOT NULL,
+    region  TEXT    NOT NULL,
+    unit_id INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    points  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (week, region, unit_id)
+  );
+  CREATE TABLE IF NOT EXISTS theatre_contrib (
+    week    TEXT    NOT NULL,
+    unit_id INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    points  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (week, unit_id, user_id)
+  );
+  CREATE TABLE IF NOT EXISTS theatre_weeks (
+    week       TEXT PRIMARY KEY,
+    settled_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS theatre_results (
+    week      TEXT    NOT NULL,
+    region    TEXT    NOT NULL,
+    from_unit INTEGER,
+    to_unit   INTEGER,
+    from_name TEXT,
+    to_name   TEXT,
+    points    INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (week, region)
+  );
+  CREATE TABLE IF NOT EXISTS theatre_income (
+    day     TEXT    NOT NULL,
+    region  TEXT    NOT NULL,
+    unit_id INTEGER NOT NULL,
+    amount  INTEGER NOT NULL,
+    PRIMARY KEY (day, region)
+  );
+
   -- The daily high-value target (src/target-service.js), and who has collected on them.
   CREATE TABLE IF NOT EXISTS daily_targets (
     day         TEXT    PRIMARY KEY,

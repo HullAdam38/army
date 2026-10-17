@@ -545,6 +545,17 @@ Rules: `src/raids.js`. Storage, strikes and payouts: `src/raid-service.js`.
 
 Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-service.js`.
 
+## Theatre of war
+
+A map of 8 regions that units fight over week by week (`/theatre`, linked from Units and each unit page).
+
+- **Fronts:** each week (Monday 00:00 UTC to the next Monday) a Lieutenant or the Commander picks one region as the unit's **front**. Members are told. The front can move every 6 hours, and points already scored stay where they were earned. Units need at least 3 members.
+- **Scoring:** members' play scores on the front: 1 point per mission won or training session, 3 per PvP win as the attacker or deployment brought back, and 2 per raid strike. PvP points use the same full-reward rules as daily orders, so linked accounts and repeat wins don't score.
+- **Handover:** when the week ends, the unit with the most points in each region takes it. A holder defending its own region gets +25% on its points there, and a tie never changes hands. Both sides are notified, and the result shows under **Last week**.
+- **Holding a region** pays its daily income into the treasury ($2,500 to $6,000, once per region per UTC day) and some regions give every member a mission XP bonus (up to +6% in total, added alongside the drill ground and rally). Income goes to the treasury, which never pays out to players.
+- Admins scale the income with **Game settings › Economy › Theatre of war income** (`theatreIncomeMult`, 0 turns it off).
+- Rules: `src/theatre.js`. Storage, scoring, settling and income: `src/theatre-service.js`.
+
 ## Weekly unit objectives
 
 Every unit gets three shared objectives each week (Monday 00:00 UTC to the next Monday), picked from five types and shown at the top of the unit page:

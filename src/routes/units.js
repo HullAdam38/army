@@ -17,7 +17,7 @@ const PROMOTION_PERKS = {
   officer: 'You can now remove Sergeants and Privates, promote Privates, call rally orders and launch raids.',
 };
 
-function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null, raidService = null) {
+function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null, raidService = null, theatreService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const urlOf = (unit, hash = '') => `/units/${unit.id}${hash}`;
@@ -199,6 +199,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
       })(),
       raid: member && raidService ? raidService.view(unit, req.player, role, now) : null,
       raidShare: raids.TREASURY_SHARE,
+      theatre: member && theatreService ? theatreService.summary(unit.id, now) : null,
       chain: Object.entries(units.ROLES).map(([key, r]) => ({ key, label: r.label })),
       posts: member ? unitRepo.posts(unit.id).map((p) => ({ ...p, html: bbcode.render(p.body), ago: presence.timeAgo(p.created_at, now), canDelete: p.user_id === req.player.id || units.can.moderate(role) })) : [],
       log: member ? unitRepo.recentLog(unit.id).map((l) => ({ ...l, ago: presence.timeAgo(l.created_at, now) })) : [],

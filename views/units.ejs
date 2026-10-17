@@ -10,6 +10,7 @@
       <p class="page-head__sub">Band together. Unit members can't attack each other, share a message board, and pool cash into upgrades that boost everyone. Units are ranked by strength: the total level of their members.</p>
     </div>
     <div class="page-head__actions">
+    <a class="btn btn--ghost" href="/theatre"><svg class="btn__icon" aria-hidden="true"><use href="#i-grid"/></svg>Theatre of war</a>
     <a class="btn btn--ghost" href="/wars"><svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Wars<%= warCount ? ` · ${warCount} active` : '' %></a>
     <% if (mine) { %>
       <a class="btn btn--primary" href="/units/<%= mine.id %>">Your unit: [<%= mine.tag %>] <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>

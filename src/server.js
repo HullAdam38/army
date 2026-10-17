@@ -50,6 +50,7 @@ const { createSettingsService } = require('./settings-service');
 const { settingsRoutes } = require('./routes/settings');
 const { createObjectiveService } = require('./objective-service');
 const { createRaidService } = require('./raid-service');
+const { createTheatreService } = require('./theatre-service');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
@@ -57,6 +58,7 @@ const { multipart } = require('./multipart');
 const { createPushService } = require('./push-service');
 const { alertRoutes, pushRenewRoute } = require('./routes/alerts');
 const { adminRoutes } = require('./routes/admin');
+const { theatreRoutes } = require('./routes/theatre');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
 const { createDailyService } = require('./daily-service');
@@ -125,11 +127,17 @@ function createApp({
   // Weekly unit objectives count the same actions as daily orders, plus deployments and donations.
   const objectiveService = createObjectiveService(db, players, unitRepo);
   app.objectives = objectiveService; // exposed for tests
+  // The theatre of war scores the same play on each unit's weekly front, plus raid strikes.
+  const theatreService = createTheatreService(db, players, unitRepo);
+  theatreService.schedule();
+  app.theatre = theatreService; // exposed for tests
   const OBJECTIVE_METRICS = { missions_won: 'missions', pvp_wins: 'pvp_wins', training: 'training' };
   daily.onProgress((userId, type, amount, now) => {
-    if (OBJECTIVE_METRICS[type]) objectiveService.track(userId, OBJECTIVE_METRICS[type], amount, now);
+    if (!OBJECTIVE_METRICS[type]) return;
+    objectiveService.track(userId, OBJECTIVE_METRICS[type], amount, now);
+    theatreService.track(userId, OBJECTIVE_METRICS[type], amount, now);
   });
-  const raidService = createRaidService(db, players, unitRepo);
+  const raidService = createRaidService(db, players, unitRepo, { onStrike: (userId, now) => theatreService.track(userId, 'raid_strikes', 1, now) });
   raidService.schedule();
   app.raids = raidService; // exposed for tests
   const targetService = createTargetService(db, players);
@@ -146,7 +154,10 @@ function createApp({
   const operationService = createOperationService(db, players);
   const baseService = createBaseService(db, players);
   baseService.schedule();
-  const deploymentService = createDeploymentService(db, players, { effects, onReturn: (userId, now) => objectiveService.track(userId, 'deployments', 1, now) });
+  const deploymentService = createDeploymentService(db, players, { effects, onReturn: (userId, now) => {
+    objectiveService.track(userId, 'deployments', 1, now);
+    theatreService.track(userId, 'deployments', 1, now);
+  } });
   deploymentService.schedule();
   app.deployments = deploymentService; // exposed for tests
   const seasonService = createSeasonService(db, players);
@@ -232,7 +243,7 @@ function createApp({
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService));
@@ -252,7 +263,8 @@ function createApp({
   app.use(avatarRoutes(players, avatarService, adminRepo));
   app.use(alertRoutes(players, pushService));
   app.use(messageRoutes(players, messageService, pushService));
-  app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService, raidService));
+  app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService, raidService, theatreService));
+  app.use(theatreRoutes(players, unitRepo, theatreService));
   app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo));

@@ -12,7 +12,7 @@ const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
  * Unit raids backed by the database. launch() and strike() run inside the
  * caller's transaction; finishDue() settles raids that have run out of time.
  */
-function createRaidService(db, players, unitRepo) {
+function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) {
   const stmts = {
     active: db.prepare("SELECT * FROM raids WHERE unit_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"),
     byId: db.prepare('SELECT * FROM raids WHERE id = ?'),
@@ -118,6 +118,7 @@ function createRaidService(db, players, unitRepo) {
       const dealt = Math.min(hit.damage, raid.hp);
       stmts.damage.run(dealt, raid.id);
       stmts.hit.run(raid.id, userId, dealt, now);
+      onStrike(userId, now);
       const after = stmts.byId.get(raid.id);
       const s = strongholdOf(raid);
       if (after.hp <= 0) {

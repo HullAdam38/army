@@ -23,6 +23,7 @@ const SETTINGS = [
   { key: 'warPrizeMult', group: 'economy', label: 'Unit war prizes', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies what a unit wins at the end of a war.' },
   { key: 'unitObjectiveRewardMult', group: 'economy', label: 'Unit objective rewards', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies what a completed weekly unit objective pays into the treasury and the XP each helping member gets. Applies to objectives set after you change it.' },
   { key: 'raidRewardMult', group: 'economy', label: 'Unit raid loot', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies the cash and XP a defeated raid stronghold pays out. Applies to raids launched after you change it.' },
+  { key: 'theatreIncomeMult', group: 'economy', label: 'Theatre of war income', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies the daily treasury income units get for each region they hold on the theatre of war map. 0 turns it off.' },
   { key: 'targetBonusMult', group: 'economy', label: 'High-value target bonus', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies the bonus for beating the daily high-value target, and what the target earns for each attack they fight off.' },
   { key: 'depositFeePct', group: 'economy', label: 'Bank deposit fee', type: 'number', unit: '%', min: 0, max: 10, step: 0.1, default: 2, help: 'The base fee for banking cash. Each Vault level still takes 0.5 points off.' },
 

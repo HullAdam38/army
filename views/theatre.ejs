@@ -1,0 +1,138 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+<% const num = (n) => Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/units"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All units</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Theatre of operations</p>
+      <h1 class="page-head__title">Theatre of war</h1>
+      <p class="page-head__sub">Units fight for <%= t.regions.length %> regions. Each week your unit picks one region as its front, and everything members do scores points there. When the week ends, the unit with the most points takes the region. Holding one pays the treasury every day.</p>
+    </div>
+    <div class="page-head__actions">
+      <a class="btn btn--ghost" href="/wars"><svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Unit wars</a>
+    </div>
+  </div>
+
+  <div class="theatre-top">
+    <section class="card theatre-map reveal" style="--i:1" aria-labelledby="map-title">
+      <h2 id="map-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-grid"/></svg>The map <span class="card__title-meta">Week ends in <span data-until="<%= t.endsAt %>">a few days</span></span></h2>
+      <svg class="theatre-map__svg" viewBox="0 0 400 260" role="img" aria-labelledby="map-title map-desc">
+        <desc id="map-desc">Map of the regions. <%= t.regions.map(function (r) { return r.name + ': ' + (r.holder ? 'held by [' + r.holder.tag + '] ' + r.holder.name : 'unheld'); }).join('. ') %>.</desc>
+        <% t.regions.forEach(function (r) { %>
+          <a href="#r-<%= r.id %>" class="theatre-region<%= r.holder ? '' : ' is-unheld' %><%= r.mine ? ' is-mine' : '' %><%= r.front ? ' is-front' : '' %>">
+            <title><%= r.name %>: <%= r.holder ? `[${r.holder.tag}] ${r.holder.name}` : 'unheld' %></title>
+            <polygon points="<%= r.points %>"<% if (r.color) { %> style="fill:<%= r.color %>"<% } %>/>
+          </a>
+        <% }) %>
+        <% t.regions.forEach(function (r) { %>
+          <text class="theatre-map__name" x="<%= r.label[0] %>" y="<%= r.label[1] %>" text-anchor="middle"><%= r.name %></text>
+          <text class="theatre-map__short" x="<%= r.label[0] %>" y="<%= r.label[1] %>" text-anchor="middle"><%= r.short %></text>
+          <text class="theatre-map__tag" x="<%= r.label[0] %>" y="<%= r.label[1] + 14 %>" text-anchor="middle"><%= r.holder ? `[${r.holder.tag}]` : '—' %><%= r.front ? ' ◎' : '' %></text>
+        <% }) %>
+      </svg>
+      <ul class="theatre-legend">
+        <% t.legend.forEach(function (l) { %>
+          <li><span class="theatre-legend__swatch" style="background:<%= l.color %>"></span><a href="/units/<%= l.unitId %>">[<%= l.tag %>] <%= l.name %></a> <span class="muted">· <%= l.count %></span></li>
+        <% }) %>
+        <li><span class="theatre-legend__swatch is-unheld"></span><span class="muted">Unheld</span></li>
+        <% if (t.mine && t.mine.front) { %><li><span class="theatre-legend__mark" aria-hidden="true">◎</span><span class="muted">Your front</span></li><% } %>
+      </ul>
+    </section>
+
+    <section id="front" class="card theatre-front reveal" style="--i:1" aria-labelledby="front-title">
+      <h2 id="front-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Your front</h2>
+      <% if (!t.mine) { %>
+        <p class="muted">Join a unit to fight for the map. <a href="/units">Find a unit</a>.</p>
+      <% } else { const m = t.mine; %>
+        <% if (m.front) { %>
+          <p class="theatre-front__now">[<%= m.unit.tag %>] is fighting for <a href="#r-<%= m.front.id %>"><strong><%= m.front.name %></strong></a> this week.</p>
+        <% } else { %>
+          <p class="theatre-front__now is-idle">[<%= m.unit.tag %>] has no front this week, so nothing members do is scoring.</p>
+        <% } %>
+        <dl class="theatre-front__stats">
+          <div><dt>Unit points</dt><dd><%= num(m.points) %></dd></div>
+          <div><dt>Your points</dt><dd><%= num(m.myPoints) %></dd></div>
+          <div><dt>Regions held</dt><dd><%= m.held.length %></dd></div>
+          <div><dt>Daily income</dt><dd><%= money(m.income) %></dd></div>
+        </dl>
+        <% if (m.xpPct) { %><p class="muted small">Your regions give every member +<%= m.xpPct %>% mission XP.</p><% } %>
+        <% if (m.canSet) { %>
+          <form method="post" action="/theatre/front" class="theatre-front__form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="field">
+              <label for="front-region"><%= m.front ? 'Move the front' : 'Open a front' %></label>
+              <select id="front-region" name="region" required>
+                <% t.regions.forEach(function (r) { %>
+                  <option value="<%= r.id %>" <%- m.front && m.front.id === r.id ? 'selected' : '' %>><%= r.name %><%= r.mine ? ' (yours)' : r.holder ? ` ([${r.holder.tag}])` : '' %></option>
+                <% }) %>
+              </select>
+            </div>
+            <button class="btn btn--primary" type="submit"><%= m.front ? 'Move front' : 'Open front' %></button>
+          </form>
+          <p class="muted small">Points already scored stay where they were earned. You can move the front every <%= rules.cooldownHours %> hours.</p>
+        <% } else { %>
+          <p class="muted small">Lieutenants and the Commander choose the front.</p>
+        <% } %>
+        <% if (m.top.length) { %>
+          <h3 class="theatre__sub">Top scorers this week</h3>
+          <ol class="theatre-front__top">
+            <% m.top.forEach(function (c) { %>
+              <li><%- include('partials/avatar', { url: avatarUrl(c.user_id, c.avatar_v), size: 'xs' }) %><a href="/profile/<%= encodeURIComponent(c.username) %>"><%= c.username %></a><span class="muted"><%= num(c.points) %></span></li>
+            <% }) %>
+          </ol>
+        <% } %>
+      <% } %>
+    </section>
+  </div>
+
+  <section class="card theatre-rules reveal" style="--i:2" aria-labelledby="rules-title">
+    <h2 id="rules-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-star"/></svg>How points are scored</h2>
+    <ul class="theatre-rules__list">
+      <% rules.points.forEach(function (p) { %><li><strong><%= p.points %></strong> per <%= p.label %></li><% }) %>
+    </ul>
+    <p class="muted small">A unit defending a region it holds gets +<%= rules.holderPct %>% on its points there. A tie never changes hands. Units need <%= rules.minMembers %> members to open a front. Region XP bonuses stack up to +<%= rules.maxXpPct %>%.</p>
+  </section>
+
+  <section class="reveal" style="--i:2" aria-labelledby="regions-title">
+    <h2 id="regions-title" class="section-title">Regions</h2>
+    <ol class="theatre-regions">
+      <% t.regions.forEach(function (r) { %>
+        <li id="r-<%= r.id %>" class="card theatre-card<%= r.mine ? ' is-mine' : '' %><%= r.front ? ' is-front' : '' %>">
+          <div class="theatre-card__head">
+            <span class="theatre-legend__swatch<%= r.color ? '' : ' is-unheld' %>" <% if (r.color) { %>style="background:<%= r.color %>"<% } %>></span>
+            <h3 class="theatre-card__name"><%= r.name %></h3>
+            <% if (r.front) { %><span class="tag">Your front</span><% } %>
+          </div>
+          <p class="theatre-card__holder"><% if (r.holder) { %>Held by <a href="/units/<%= r.holder.unitId %>">[<%= r.holder.tag %>] <%= r.holder.name %></a><% } else { %><span class="muted">Unheld</span><% } %></p>
+          <p class="theatre-card__perks"><%= money(r.income) %> a day<%= r.xp ? ` · +${Math.round(r.xp * 100)}% mission XP` : '' %></p>
+          <% if (r.standings.length) { %>
+            <ol class="theatre-card__standings">
+              <% r.standings.forEach(function (s, i) { %>
+                <li class="<%= s.mine ? 'is-mine' : '' %>"><span class="theatre-card__pos"><%= i + 1 %></span><a href="/units/<%= s.unitId %>">[<%= s.tag %>] <%= s.name %></a><span class="theatre-card__pts"><%= num(s.points) %><%= s.isHolder ? '*' : '' %></span></li>
+              <% }) %>
+            </ol>
+            <% if (r.standings.some(function (s) { return s.isHolder; })) { %><p class="muted small">* includes the holder’s +<%= rules.holderPct %>%</p><% } %>
+          <% } else { %>
+            <p class="muted small"><%= r.contenders ? `${r.contenders} unit${r.contenders === 1 ? '' : 's'} fighting here, no points yet.` : 'Nobody is fighting for it this week.' %></p>
+          <% } %>
+        </li>
+      <% }) %>
+    </ol>
+  </section>
+
+  <% if (t.lastWeek.length) { %>
+    <section class="card reveal" style="--i:3" aria-labelledby="last-title">
+      <h2 id="last-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-calendar"/></svg>Last week</h2>
+      <ul class="theatre-results">
+        <% t.lastWeek.forEach(function (r) { %>
+          <li><strong><%= r.region.name %></strong>: <%= r.from_unit === r.to_unit ? `held by ${r.to_name}` : r.from_name ? `${r.to_name} took it from ${r.from_name}` : `taken by ${r.to_name}` %> <span class="muted">(<%= num(r.points) %> points)</span></li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>
