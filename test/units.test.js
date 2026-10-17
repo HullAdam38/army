@@ -39,6 +39,28 @@ test('unit names, tags and permissions', () => {
   assert.equal(units.can.kick('officer', 'officer'), false);
   assert.equal(units.can.kick('member', 'member'), false);
   assert.equal(units.can.manage('officer'), false);
+  // The chain of command: Commander > Lieutenant > Sergeant > Private.
+  assert.deepEqual(['leader', 'officer', 'sergeant', 'member'].map(units.roleLabel), ['Commander', 'Lieutenant', 'Sergeant', 'Private']);
+  assert.equal(units.can.kick('sergeant', 'member'), false); // Sergeants recruit, they don't remove
+  assert.equal(units.can.review('sergeant'), true);
+  assert.equal(units.can.promote('leader', 'member'), true);
+  assert.equal(units.can.promote('leader', 'sergeant'), true); // Commander makes Lieutenants
+  assert.equal(units.can.promote('leader', 'officer'), false); // command is handed over, not promoted to
+  assert.equal(units.can.promote('officer', 'member'), true); // Lieutenant makes Sergeants…
+  assert.equal(units.can.promote('officer', 'sergeant'), false); // …but not other Lieutenants
+  assert.equal(units.can.promote('sergeant', 'member'), false);
+  assert.equal(units.can.promote('officer', 'leader'), false); // nobody "promotes" the Commander (it would wrap to Private)
+  assert.equal(units.can.promote('leader', 'leader'), false);
+  assert.equal(units.promotedRole('leader'), null);
+  assert.equal(units.can.demote('officer', 'sergeant'), true);
+  assert.equal(units.can.demote('officer', 'officer'), false);
+  assert.equal(units.can.demote('leader', 'member'), false);
+  assert.deepEqual([units.can.rally('officer'), units.can.rally('sergeant')], [true, false]);
+  // Rallies cost more for bigger, higher-level units; tiny units pay as if they had 3 members.
+  assert.equal(units.rallyCost(10, 20), 12500);
+  assert.equal(units.rallyCost(1, 1), units.rallyCost(3, 1));
+  assert.equal(units.rallyBonus({ rally_until: Date.now() + 1000 }), units.RALLY.bonus);
+  assert.equal(units.rallyBonus({ rally_until: Date.now() - 1 }), 0);
 
   assert.deepEqual(units.nextUpgrade({ drill: 0 }, 'drill'), { key: 'drill', level: 1, cost: 3000 });
   assert.equal(units.nextUpgrade({ barracks: 3 }, 'barracks'), null);
@@ -183,7 +205,11 @@ test('units end to end: found, apply, accept, donate, upgrade, board, roles, lea
 
     // Roles.
     assert.match((await recruit.flash(`/units/${unitId}/members/${id('Wolfe')}/kick`)).message, /below your rank/);
-    assert.match((await lead.flash(`/units/${unitId}/members/${id('Rookie')}/promote`)).message, /now an officer/);
+    assert.match((await lead.flash(`/units/${unitId}/members/${id('Rookie')}/promote`)).message, /now a Sergeant/);
+    assert.match((await lead.flash(`/units/${unitId}/members/${id('Rookie')}/demote`)).message, /now a Private/);
+    await lead.flash(`/units/${unitId}/members/${id('Rookie')}/promote`);
+    assert.match((await lead.flash(`/units/${unitId}/members/${id('Rookie')}/promote`)).message, /now a Lieutenant/);
+    assert.match((await lead.flash(`/units/${unitId}/members/${id('Rookie')}/promote`)).message, /any further/);
     assert.match((await lead.flash(`/units/${unitId}/transfer`, { to: String(id('Rookie')), confirm: 'nope' })).message, /Type Rookie/);
     assert.match((await lead.flash(`/units/${unitId}/leave`)).message, /Hand command/);
     assert.match((await lead.flash(`/units/${unitId}/transfer`, { to: String(id('Rookie')), confirm: 'rookie' })).message, /Rookie now commands/);

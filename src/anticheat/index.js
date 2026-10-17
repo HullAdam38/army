@@ -10,8 +10,8 @@ const admin = require('../admin');
 const DEVICE_COOKIE = 'ef.dev';
 const perks = require('../perks');
 const events = require('../events');
-// The most a single mission can pay: the best mission's top roll with every rank perk and a Payday event.
-const MAX_MISSION_CASH = Math.ceil(Math.max(...MISSIONS.map((m) => m.cash[1])) * (1 + perks.MAX_CASH_BONUS) * events.MAX_CASH_MULT);
+// The most a single mission can pay: the best mission's top roll with every rank perk, a unit rally and a Payday event.
+const MAX_MISSION_CASH = Math.ceil(Math.max(...MISSIONS.map((m) => m.cash[1])) * (1 + perks.MAX_CASH_BONUS + require('../units').RALLY.bonus) * events.MAX_CASH_MULT);
 const MAX_PVP_CASH = pvp.CASH_CAP_PER_LEVEL * admin.MAX_LEVEL;
 
 /** Which game action a POST path is, or null for ones we don't time (sign-in, admin…). */

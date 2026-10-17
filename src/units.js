@@ -17,11 +17,27 @@ const MAX_POST = 2000; // BBCode tags count towards these limits
 const MAX_APPLY_MESSAGE = 500;
 const MAX_DESCRIPTION = 1000;
 
+// The chain of command, top to bottom. ('officer' is stored for Lieutenants.)
 const ROLES = {
-  leader: { label: 'Commander', rank: 3 },
-  officer: { label: 'Officer', rank: 2 },
-  member: { label: 'Member', rank: 1 },
+  leader: { label: 'Commander', rank: 4 },
+  officer: { label: 'Lieutenant', rank: 3 },
+  sergeant: { label: 'Sergeant', rank: 2 },
+  member: { label: 'Private', rank: 1 },
 };
+// Promotions go one step at a time; Commander is only handed over, never promoted to.
+const LADDER = ['member', 'sergeant', 'officer'];
+
+// Rally orders: a Lieutenant or the Commander spends treasury to boost every member for an hour.
+const RALLY = {
+  label: 'Advance!',
+  bonus: 0.15, // +15% mission and operation cash and XP
+  durationMs: 60 * 60 * 1000,
+  cooldownMs: 12 * 60 * 60 * 1000,
+};
+/** Treasury cost of a rally, by unit size and members' average level. */
+const rallyCost = (members, avgLevel) => Math.round((250 + 50 * Math.max(1, avgLevel)) * Math.max(3, members) / 100) * 100;
+/** The rally bonus active for a unit right now (0 if none). */
+const rallyBonus = (unit, now = Date.now()) => (unit && unit.rally_until > now ? RALLY.bonus : 0);
 
 const UPGRADES = {
   barracks: {
@@ -45,11 +61,25 @@ const roleLabel = (role) => (ROLES[role] ? ROLES[role].label : role);
 
 /** What a member with `role` may do. */
 const can = {
-  review: (role) => rankOf(role) >= 2, // accept / reject applications
-  moderate: (role) => rankOf(role) >= 2, // delete other members' posts
-  manage: (role) => role === 'leader', // settings, upgrades, promotions, disband
-  kick: (actorRole, targetRole) => rankOf(actorRole) >= 2 && rankOf(actorRole) > rankOf(targetRole),
+  review: (role) => rankOf(role) >= 2, // Sergeant+: accept / reject applications
+  moderate: (role) => rankOf(role) >= 2, // Sergeant+: delete other members' posts
+  manage: (role) => role === 'leader', // settings, upgrades, war, disband, handing over command
+  kick: (actorRole, targetRole) => rankOf(actorRole) >= 3 && rankOf(actorRole) > rankOf(targetRole), // Lieutenant+, below them
+  rally: (role) => rankOf(role) >= 3, // Lieutenant+: call a rally order
+  raid: (role) => rankOf(role) >= 3, // Lieutenant+: launch a raid
+  /** Promote one step: the new rank must be below the actor's (Commanders make Lieutenants, Lieutenants make Sergeants). */
+  promote(actorRole, targetRole) {
+    const next = promotedRole(targetRole); // null for the Commander, who isn't on the ladder
+    return Boolean(next) && rankOf(actorRole) >= 3 && rankOf(next) < rankOf(actorRole);
+  },
+  /** Demote one step, only someone below the actor. */
+  demote: (actorRole, targetRole) => LADDER.indexOf(targetRole) > 0 && rankOf(actorRole) >= 3 && rankOf(targetRole) < rankOf(actorRole),
 };
+function promotedRole(role) {
+  const i = LADDER.indexOf(role);
+  return i === -1 ? null : LADDER[i + 1] || null;
+}
+const demotedRole = (role) => (LADDER.indexOf(role) > 0 ? LADDER[LADDER.indexOf(role) - 1] : null);
 
 const squash = (s) => String(s || '').trim().replace(/\s+/g, ' ');
 
@@ -158,6 +188,8 @@ module.exports = {
   MIN_DONATION,
   POST_COOLDOWN_MS,
   REQUIREMENTS,
+  LADDER,
+  RALLY,
   ROLES,
   UPGRADES,
   applyBlocker,
@@ -171,6 +203,10 @@ module.exports = {
   rankOf,
   requirementList,
   roleLabel,
+  promotedRole,
+  demotedRole,
+  rallyBonus,
+  rallyCost,
   unmetRequirement,
   validateUnit,
   xpBonus,

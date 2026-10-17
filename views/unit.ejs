@@ -87,6 +87,31 @@
     </section>
   <% } %>
 
+  <% if (member) { %>
+    <section id="rally" class="card unit-rally reveal<%= rally.active ? ' is-active' : '' %>" style="--i:2" aria-labelledby="rally-title">
+      <div class="unit-rally__body">
+        <h2 id="rally-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Rally order: <%= rally.label %></h2>
+        <% if (rally.active) { %>
+          <p class="unit-rally__live"><strong>Rally under way.</strong> Every member gets +<%= rally.pct %>% mission and operation cash and XP for <span data-until="<%= rally.active %>">the next hour</span>.</p>
+        <% } else { %>
+          <p class="muted">A Lieutenant or the Commander can spend <strong><%= money(rally.cost) %></strong> from the treasury to give every member +<%= rally.pct %>% mission and operation cash and XP for an hour. Members get an alert. One rally every 12 hours.</p>
+        <% } %>
+      </div>
+      <% if (!rally.active) { %>
+        <div class="unit-rally__action">
+          <% if (rally.readyAt > Date.now()) { %>
+            <p class="muted small">Next rally in <span data-until="<%= rally.readyAt %>">a while</span></p>
+          <% } else if (rally.canCall) { %>
+            <form method="post" action="/units/<%= unit.id %>/rally" data-confirm="Spend <%= money(rally.cost) %> from the treasury on a rally?"><%- csrf %><button class="btn btn--primary btn--sm" type="submit" <%- unit.treasury < rally.cost ? 'disabled' : '' %>>Call a rally · <%= money(rally.cost) %></button></form>
+            <% if (unit.treasury < rally.cost) { %><p class="muted small">The treasury needs <%= money(rally.cost - unit.treasury) %> more.</p><% } %>
+          <% } else { %>
+            <p class="muted small">Ask a Lieutenant or the Commander to call one.</p>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+  <% } %>
+
   <% if (objectives) { %>
     <section id="objectives" class="card unit-objectives reveal" style="--i:2" aria-labelledby="objectives-title">
       <h2 id="objectives-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Weekly objectives <span class="card__title-meta">New objectives in <span data-until="<%= objectives.endsAt %>">soon</span></span></h2>
@@ -133,12 +158,13 @@
               <% } else if (m.online) { %><span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online</span>
               <% } else { %><span class="status"><span class="status-dot status-dot--off" aria-hidden="true"></span><%= m.lastSeen %></span><% } %>
             </span>
-            <% if (!m.isYou && (can.manage || m.canKick)) { %>
+            <% if (!m.isYou && (m.canPromote || m.canDemote || m.canKick)) { %>
               <span class="unit-roster__actions">
-                <% if (can.manage && m.unit_role === 'member') { %>
-                  <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/promote"><%- csrf %><button class="btn btn--ghost btn--xs" type="submit">Promote</button></form>
-                <% } else if (can.manage && m.unit_role === 'officer') { %>
-                  <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/demote"><%- csrf %><button class="btn btn--ghost btn--xs" type="submit">Demote</button></form>
+                <% if (m.canPromote) { %>
+                  <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/promote"><%- csrf %><button class="btn btn--ghost btn--xs" type="submit" title="Promote to <%= m.promoteTo %>">Promote</button></form>
+                <% } %>
+                <% if (m.canDemote) { %>
+                  <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/demote"><%- csrf %><button class="btn btn--ghost btn--xs" type="submit" title="Demote to <%= m.demoteTo %>">Demote</button></form>
                 <% } %>
                 <% if (m.canKick) { %>
                   <form method="post" action="/units/<%= unit.id %>/members/<%= m.id %>/kick" data-confirm="Remove <%= m.username %> from the unit?"><%- csrf %><button class="btn btn--ghost btn--xs btn--danger" type="submit">Remove</button></form>

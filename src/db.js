@@ -680,6 +680,8 @@ const ADDED_COLUMNS = [
   ['users', 'push_prefs', 'TEXT'], // JSON: alert categories and quiet hours (src/push.js)
   ['users', 'energy_push_for', 'INTEGER'], // energy_updated_at already alerted as "energy full"
   ['users', 'app_seen_at', 'INTEGER'], // last time they played in the installed app
+  ['units', 'rally_until', 'INTEGER'], // an "Advance!" rally order is active until then
+  ['units', 'rally_at', 'INTEGER'], // when the last rally was called (for the cooldown)
 ];
 
 function migrate(db) {

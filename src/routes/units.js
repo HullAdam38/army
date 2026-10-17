@@ -10,6 +10,12 @@ const bbcode = require('../bbcode');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
+// What each rank unlocks, told to members when they're promoted.
+const PROMOTION_PERKS = {
+  sergeant: 'You can now review applications and moderate the unit board.',
+  officer: 'You can now remove Sergeants and Privates, promote Privates, call rally orders and launch raids.',
+};
+
 function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
@@ -137,6 +143,10 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
         lastSeen: presence.timeAgo(m.last_seen_at, now),
         isYou: m.id === req.player.id,
         canKick: member && m.id !== req.player.id && units.can.kick(role, m.unit_role),
+        canPromote: member && m.id !== req.player.id && units.can.promote(role, m.unit_role),
+        canDemote: member && m.id !== req.player.id && units.can.demote(role, m.unit_role),
+        promoteTo: units.roleLabel(units.promotedRole(m.unit_role)),
+        demoteTo: units.roleLabel(units.demotedRole(m.unit_role)),
       };
     });
     const members = roster.filter((m) => !m.banned_at).length;
@@ -175,6 +185,18 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
       })),
       applications: units.can.review(role) ? unitRepo.pendingForUnit(unit.id).map((a) => ({ ...a, html: bbcode.render(a.message), ago: presence.timeAgo(a.created_at, now) })) : [],
       objectives: objectiveService ? objectiveService.view(unit.id, now) : null,
+      rally: (() => {
+        const avg = roster.reduce((n, m) => n + m.level, 0) / Math.max(1, roster.length);
+        return {
+          ...units.RALLY,
+          pct: Math.round(units.RALLY.bonus * 100),
+          active: unit.rally_until > now ? unit.rally_until : null,
+          readyAt: Math.max(now, (unit.rally_at || 0) + units.RALLY.cooldownMs),
+          cost: units.rallyCost(roster.length, avg),
+          canCall: units.can.rally(role),
+        };
+      })(),
+      chain: Object.entries(units.ROLES).map(([key, r]) => ({ key, label: r.label })),
       posts: member ? unitRepo.posts(unit.id).map((p) => ({ ...p, html: bbcode.render(p.body), ago: presence.timeAgo(p.created_at, now), canDelete: p.user_id === req.player.id || units.can.moderate(role) })) : [],
       log: member ? unitRepo.recentLog(unit.id).map((l) => ({ ...l, ago: presence.timeAgo(l.created_at, now) })) : [],
       apply: member ? null : {
@@ -253,20 +275,26 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
         players.log(target.id, 'unit', `Removed from ${unit.name} [${unit.tag}].`);
         players.notify(target.id, 'unit', `You were removed from ${unit.name}.`, '/units');
         return { ok: `${target.username} has been removed.` };
-      case 'promote':
-        if (!units.can.manage(role)) return { error: 'Only the Commander can promote.' };
-        if (target.unit_role !== 'member') return { error: `${target.username} is already an officer.` };
-        unitRepo.setRole(unit.id, target.id, 'officer');
-        unitRepo.log(unit.id, 'promote', `${target.username} was made an officer.`);
-        players.notify(target.id, 'unit', `You were made an officer of ${unit.name}. You can now review applications.`, link);
-        return { ok: `${target.username} is now an officer.` };
-      case 'demote':
-        if (!units.can.manage(role)) return { error: 'Only the Commander can demote.' };
-        if (target.unit_role !== 'officer') return { error: `${target.username} isn’t an officer.` };
-        unitRepo.setRole(unit.id, target.id, 'member');
-        unitRepo.log(unit.id, 'demote', `${target.username} is no longer an officer.`);
-        players.notify(target.id, 'unit', `You are no longer an officer of ${unit.name}.`, link);
-        return { ok: `${target.username} is now a member.` };
+      case 'promote': {
+        if (!units.can.promote(role, target.unit_role)) {
+          return { error: units.rankOf(role) < 3 ? 'Only Lieutenants and the Commander can promote.' : `You can’t promote ${target.username} any further.` };
+        }
+        const next = units.promotedRole(target.unit_role);
+        const label = units.roleLabel(next);
+        unitRepo.setRole(unit.id, target.id, next);
+        unitRepo.log(unit.id, 'promote', `${me.username} promoted ${target.username} to ${label}.`);
+        players.notify(target.id, 'unit', `You were promoted to ${label} in ${unit.name}. ${PROMOTION_PERKS[next] || ''}`.trim(), link);
+        return { ok: `${target.username} is now a ${label}.` };
+      }
+      case 'demote': {
+        if (!units.can.demote(role, target.unit_role)) return { error: `You can only demote Sergeants and Lieutenants below your rank.` };
+        const prev = units.demotedRole(target.unit_role);
+        const label = units.roleLabel(prev);
+        unitRepo.setRole(unit.id, target.id, prev);
+        unitRepo.log(unit.id, 'demote', `${me.username} demoted ${target.username} to ${label}.`);
+        players.notify(target.id, 'unit', `You were demoted to ${label} in ${unit.name}.`, link);
+        return { ok: `${target.username} is now a ${label}.` };
+      }
       case 'transfer':
         if (!units.can.manage(role)) return { error: 'Only the Commander can hand over command.' };
         if (String(req.body.confirm || '').trim().toLowerCase() !== target.username.toLowerCase()) {
@@ -276,7 +304,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
         unitRepo.setRole(unit.id, me.id, 'officer');
         unitRepo.log(unit.id, 'transfer', `${me.username} handed command to ${target.username}.`);
         notifyAll(unitRepo.memberIds(unit.id), `${target.username} is now Commander of ${unit.name}.`, link, me.id);
-        return { ok: `${target.username} now commands ${unit.name}. You are an officer.` };
+        return { ok: `${target.username} now commands ${unit.name}. You are a Lieutenant.` };
       default:
         return { error: 'Unknown action.' };
     }
@@ -286,6 +314,22 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
     router.post(`/units/:id/members/:userId/${action}`, requireAuth, loadUnit, memberAction(action, (req) => req.params.userId));
   }
   router.post('/units/:id/transfer', requireAuth, loadUnit, memberAction('transfer', (req) => req.body.to));
+
+  // Rally order: a Lieutenant or the Commander spends treasury on an hour of "Advance!" for every member.
+  router.post('/units/:id/rally', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
+    const now = Date.now();
+    if (!units.can.rally(role)) return { error: 'Only Lieutenants and the Commander can call a rally.' };
+    if (unit.rally_until > now) return { error: 'A rally is already under way.' };
+    const ready = (unit.rally_at || 0) + units.RALLY.cooldownMs;
+    if (ready > now) return { error: `Your unit can call another rally in ${Math.ceil((ready - now) / 3600000)} hour${Math.ceil((ready - now) / 3600000) === 1 ? '' : 's'}.` };
+    const roster = unitRepo.members(unit.id);
+    const cost = units.rallyCost(roster.length, roster.reduce((n, m) => n + m.level, 0) / Math.max(1, roster.length));
+    if (!unitRepo.startRally(unit.id, cost, now, now + units.RALLY.durationMs)) return { error: `A rally costs ${money(cost)} from the treasury, which has ${money(unit.treasury)}.` };
+    const pct = Math.round(units.RALLY.bonus * 100);
+    unitRepo.log(unit.id, 'rally', `${me.username} called a rally (${money(cost)}): ${units.RALLY.label} +${pct}% mission cash and XP for an hour.`);
+    notifyAll(unitRepo.memberIds(unit.id), `${units.roleLabel(role)} ${me.username} called a rally: ${units.RALLY.label} +${pct}% mission and operation cash and XP for the next hour. Move out!`, `/missions`, me.id);
+    return { ok: `Rally called: +${pct}% mission cash and XP for every member for the next hour.` };
+  }, `${urlOf(req.unit)}#rally`));
 
   router.post('/units/:id/donate', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
     if (!role) return { error: 'Only members can donate.' };

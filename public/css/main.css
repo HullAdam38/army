@@ -1983,6 +1983,8 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .unit-role { font-family: var(--font-ui); font-weight: 600; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .unit-role--leader { color: var(--accent); }
 .unit-role--officer { color: var(--olive); }
+.unit-role--sergeant { color: var(--xp); }
+.unit-role--member { color: var(--text-muted); }
 
 .unit-apps { margin-bottom: 20px; }
 .unit-apps__list { display: grid; gap: 8px; padding: 0; list-style: none; }
@@ -3303,4 +3305,15 @@ section[id], li[id] { scroll-margin-top: 190px; }
   .retention { min-width: 0; font-size: 0.82rem; border-spacing: 1px; }
   .retention th, .retention td { padding: 5px 4px; }
   .retention thead th { font-size: 0.64rem; letter-spacing: 0.04em; }
+}
+
+/* Unit rally orders */
+.unit-rally { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-bottom: 20px; }
+.unit-rally.is-active { border-color: rgb(255 107 26 / 0.6); background: linear-gradient(90deg, rgb(255 107 26 / 0.14), transparent 70%), var(--surface); }
+.unit-rally__body { flex: 1; min-width: min(100%, 18rem); }
+.unit-rally__body .card__title { margin-bottom: 4px; }
+.unit-rally__live strong { color: var(--accent); }
+.unit-rally__action { display: grid; justify-items: end; gap: 4px; }
+@media (max-width: 560px) {
+  .unit-rally__action { justify-items: stretch; width: 100%; }
 }

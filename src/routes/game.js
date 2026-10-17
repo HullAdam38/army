@@ -36,9 +36,10 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     const p = perks.perksFor(user.level);
     const e = eventService.effects(); // Double XP / Payday multiply everything else
     // …and so do the admin pay and XP settings.
+    const rally = units.rallyBonus(unit); // a unit's "Advance!" rally order
     return {
-      xpBonus: (1 + units.xpBonus(unit) + p.missionXp) * e.xpMult * tuning.get('missionXpMult') - 1,
-      cashBonus: (1 + p.missionCash) * e.cashMult * tuning.get('missionCashMult') - 1,
+      xpBonus: (1 + units.xpBonus(unit) + rally + p.missionXp) * e.xpMult * tuning.get('missionXpMult') - 1,
+      cashBonus: (1 + rally + p.missionCash) * e.cashMult * tuning.get('missionCashMult') - 1,
     };
   };
 

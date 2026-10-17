@@ -38,6 +38,7 @@ function createUnitRepo(db) {
     donated: db.prepare('UPDATE users SET unit_donated = unit_donated + ? WHERE id = ?'),
     treasury: db.prepare('UPDATE units SET treasury = treasury + ? WHERE id = ?'),
     spend: db.prepare('UPDATE units SET treasury = treasury - ?1 WHERE id = ?2 AND treasury >= ?1'),
+    rally: db.prepare('UPDATE units SET rally_until = ?, rally_at = ? WHERE id = ?'),
     upgrade: {
       barracks: db.prepare('UPDATE units SET barracks = barracks + 1 WHERE id = ? AND barracks = ?'),
       drill: db.prepare('UPDATE units SET drill = drill + 1 WHERE id = ? AND drill = ?'),
@@ -108,6 +109,12 @@ function createUnitRepo(db) {
     leave: (unitId, userId, now = Date.now()) => stmts.leave.run(now, userId, unitId).changes > 0,
     kick: (unitId, userId) => stmts.kick.run(userId, unitId).changes > 0,
     setRole: (unitId, userId, role) => stmts.setRole.run(role, userId, unitId).changes > 0,
+    /** Starts a rally if the treasury can pay for it. False if it can't. */
+    startRally(unitId, cost, now, until) {
+      if (!stmts.spend.run(cost, unitId).changes) return false;
+      stmts.rally.run(until, now, unitId);
+      return true;
+    },
     /** Pays into the treasury from the game itself (e.g. a completed weekly objective). */
     addTreasury: (unitId, amount) => stmts.treasury.run(amount, unitId),
     donate(unitId, userId, amount) {
