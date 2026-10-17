@@ -57,7 +57,7 @@ ssh -T git@github.com
 The installer lives in the repository, so clone a copy into your home folder just to run it. The installer then puts the real copy in `/var/www/html`.
 
 ```bash
-git clone git@github.com:HullAdam38/army.git ~/eliteforces-setup
+git clone --branch claude/determined-keller-i7bgjo git@github.com:HullAdam38/army.git ~/eliteforces-setup
 sudo EMAIL=you@example.com bash ~/eliteforces-setup/deploy/install.sh
 ```
 
@@ -71,7 +71,7 @@ The defaults match your setup, so you shouldn't need any settings. If you ever d
 |---|---|
 | `DOMAIN` | `generalforces.com` |
 | `APP_DIR` | `/var/www/html` |
-| `BRANCH` | `main` |
+| `BRANCH` | `claude/determined-keller-i7bgjo` (change to `main` if you merge into it) |
 | `REPO` | `git@github.com:HullAdam38/army.git` |
 
 After it finishes you can delete the setup copy: `rm -rf ~/eliteforces-setup`.
@@ -114,17 +114,6 @@ The script:
 4. restarts the game and checks it came back up.
 
 If the game doesn't come back, it prints the log and the exact command to return to the previous version.
-
-### Which branch the server follows
-
-`update.sh` pulls whichever branch `/var/www/html` has checked out. New installs use `main`. To move an older install (one that followed `claude/determined-keller-i7bgjo`) over to `main`:
-
-```bash
-OWNER="$(stat -c %U /var/www/html)"
-sudo -u "$OWNER" git -C /var/www/html fetch origin main
-sudo -u "$OWNER" git -C /var/www/html checkout -B main --track origin/main
-bash /var/www/html/deploy/update.sh
-```
 
 ## Everyday commands
 

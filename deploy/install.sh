@@ -7,7 +7,7 @@
 #   DOMAIN     the site's domain                      (default: generalforces.com)
 #   APP_DIR    where the code lives                   (default: /var/www/html)
 #   REPO       the GitHub repository to pull          (default: git@github.com:HullAdam38/army.git)
-#   BRANCH     the branch to run                      (default: main)
+#   BRANCH     the branch to run                      (default: claude/determined-keller-i7bgjo)
 #   EMAIL      for Let's Encrypt expiry notices       (asked for if not set)
 #   DEPLOY_USER the Linux user who owns the code      (default: whoever ran sudo; run as root and
 #               it creates 'eliteadmin' and gives it root's GitHub deploy key)
@@ -22,7 +22,7 @@ set -euo pipefail
 DOMAIN="${DOMAIN:-generalforces.com}"
 APP_DIR="${APP_DIR:-/var/www/html}"
 REPO="${REPO:-git@github.com:HullAdam38/army.git}"
-BRANCH="${BRANCH:-main}"
+BRANCH="${BRANCH:-claude/determined-keller-i7bgjo}"
 DEPLOY_USER="${DEPLOY_USER:-${SUDO_USER:-}}"
 SERVICE_USER=eliteforces
 DATA_DIR=/var/lib/eliteforces

@@ -16,7 +16,7 @@ A text-based military strategy game for players aged 18+. You enlist, spend ener
 ### Linux Mint / Ubuntu / Debian (one command)
 
 ```bash
-git clone https://github.com/HullAdam38/army.git generalforces
+git clone -b claude/determined-keller-i7bgjo https://github.com/HullAdam38/army.git generalforces
 cd generalforces
 bash scripts/setup-linux.sh
 npm run dev        # then open http://localhost:3000
