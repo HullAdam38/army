@@ -92,7 +92,7 @@ function createMessageService(db, players) {
       stmts.addMember.run(id, sender.id, now);
       stmts.addMember.run(id, recipient.id, 0);
       stmts.insert.run(id, sender.id, b.body, now);
-      return { id, recipient: recipient.username };
+      return { id, recipient: recipient.username, recipientId: recipient.id, subject: s.subject };
     },
 
     /** Replies in a conversation. Call inside players.transaction(). */
@@ -108,7 +108,7 @@ function createMessageService(db, players) {
       stmts.insert.run(conversationId, sender.id, b.body, now);
       stmts.touch.run(now, conversationId);
       stmts.markRead.run(now, conversationId, sender.id);
-      return { ok: true, recipient: other.username };
+      return { ok: true, recipient: other.username, recipientId: other.id };
     },
 
     inbox(userId, { limit = 25, offset = 0 } = {}) {

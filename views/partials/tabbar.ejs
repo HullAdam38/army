@@ -20,6 +20,7 @@
     { key: 'base', href: '/base', label: 'Base', icon: 'i-crest' },
     { key: 'leaderboards', href: '/leaderboards', label: 'Rankings', icon: 'i-podium' },
     { key: 'events', href: '/events', label: 'Events', icon: 'i-calendar', badge: liveEvents.length ? 'Live' : null },
+    { key: 'alerts', href: '/account/alerts', label: 'Alerts', icon: 'i-bell' },
     { key: 'profile', href: '/profile/' + encodeURIComponent(player.username), label: 'Profile', icon: 'i-body', avatar: player.avatarUrl },
   ];
   if (isAdmin) more.push({ key: 'admin', href: '/admin', label: 'Admin', icon: 'i-lock', admin: true });

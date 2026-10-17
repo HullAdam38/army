@@ -5,11 +5,6 @@
   document.documentElement.classList.add('js');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---------- Desktop alerts preference (this device only) ---------- */
-  const ALERTS_KEY = 'gf.desktopAlerts';
-  const alertsOn = () => { try { return localStorage.getItem(ALERTS_KEY) === '1'; } catch (err) { return false; } };
-  const setAlertsOn = (on) => { try { localStorage.setItem(ALERTS_KEY, on ? '1' : '0'); } catch (err) { /* private mode */ } };
-
   /* ---------- Password visibility toggles ---------- */
   document.querySelectorAll('[data-toggle-password]').forEach((btn) => {
     const input = document.getElementById(btn.dataset.togglePassword);
@@ -554,17 +549,6 @@
       setTimeout(() => el.remove(), 12600);
     };
 
-    // Desktop alerts (opt-in on the Notifications page): shown only while the game's tab is in the background.
-    const desktopAlert = (items) => {
-      if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted' || !alertsOn()) return;
-      items.slice(-MAX_TOASTS).forEach((item) => {
-        try {
-          const n = new Notification(item.kind === 'chat' ? 'You were mentioned' : 'GeneralForces', { body: item.message, icon: '/favicon.svg', tag: `gf-${item.id}` });
-          n.onclick = () => { window.focus(); if (item.link) location.href = item.link; n.close(); };
-        } catch (err) { /* some browsers only allow notifications from a service worker */ }
-      });
-    };
-
     let lastPoll = 0;
     const poll = async () => {
       // Background tabs check less often, so the title and desktop alerts still update.
@@ -572,7 +556,8 @@
       lastPoll = Date.now();
       polling = true;
       try {
-        const res = await fetch(`/notifications/poll?after=${latestId}`, {
+        // `visible` tells the server you're playing, so it holds back push alerts to your phone.
+        const res = await fetch(`/notifications/poll?after=${latestId}${document.hidden ? '' : '&visible=1'}`, {
           headers: { Accept: 'application/json' },
           credentials: 'same-origin',
         });
@@ -593,7 +578,6 @@
           // A mention in the channel you're reading is already on screen.
           const shown = data.items.filter((i) => !(i.kind === 'chat' && i.link && i.link.split('#')[0] === location.pathname));
           shown.slice(-MAX_TOASTS).forEach(toast);
-          desktopAlert(shown);
           if (shown.length > MAX_TOASTS) {
             toast({ kind: 'system', message: `+${shown.length - MAX_TOASTS} more`, link: '/notifications' });
           }
@@ -793,27 +777,119 @@
     input.addEventListener('change', check);
     form.addEventListener('submit', (e) => { if (!check()) e.preventDefault(); });
   });
-  /* ---------- Notifications page: desktop alerts switch ---------- */
-  const alertsBox = document.querySelector('[data-desktop-alerts]');
-  if (alertsBox && 'Notification' in window && window.isSecureContext) {
-    const btn = alertsBox.querySelector('[data-desktop-alerts-toggle]');
-    const status = alertsBox.querySelector('[data-desktop-alerts-status]');
-    const intro = status.textContent;
-    const render = () => {
-      const on = alertsOn() && Notification.permission === 'granted';
-      btn.textContent = on ? 'Turn off' : 'Turn on';
-      btn.disabled = Notification.permission === 'denied';
-      status.textContent = Notification.permission === 'denied'
-        ? 'Your browser is blocking notifications from this site. Allow them in the browser’s site settings, then come back here.'
-        : on ? 'On for this device. You’ll get a browser pop-up for mentions, attacks and other alerts while the game is in a background tab.' : intro;
-    };
-    btn.addEventListener('click', async () => {
-      if (alertsOn() && Notification.permission === 'granted') { setAlertsOn(false); return render(); }
-      const result = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
-      setAlertsOn(result === 'granted');
-      render();
+  /* ---------- Installable app: service worker, install button, offline page ---------- */
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* the game works without it */ });
+  }
+  if (document.body.classList.contains('page-offline')) {
+    window.addEventListener('online', () => location.reload());
+  }
+  const installBtn = document.querySelector('[data-install]');
+  if (installBtn) {
+    if (standalone) {
+      document.querySelector('[data-install-text]').hidden = true;
+      document.querySelector('[data-install-done]').hidden = false;
+    }
+    let deferred = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferred = e;
+      installBtn.hidden = false;
+      // One tap does it, so the step-by-step instructions aren't needed.
+      document.querySelector('[data-install-text]').textContent = 'Install GeneralForces like an app: its own icon, full screen, no browser bars.';
     });
-    alertsBox.hidden = false;
-    render();
+    installBtn.addEventListener('click', async () => {
+      if (!deferred) return;
+      deferred.prompt();
+      await deferred.userChoice.catch(() => null);
+      deferred = null;
+      installBtn.hidden = true;
+    });
+    window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
+  }
+
+  /* ---------- App & alerts page: push notifications on this device ---------- */
+  const tzInput = document.querySelector('[data-tz]');
+  const zone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (err) { return ''; } })();
+  if (tzInput && zone) {
+    tzInput.value = zone;
+    const label = document.querySelector('[data-tz-label]');
+    if (label) label.textContent = zone;
+  }
+  const pushBox = document.querySelector('[data-push]');
+  if (pushBox) {
+    const status = pushBox.querySelector('[data-push-status]');
+    const toggle = pushBox.querySelector('[data-push-toggle]');
+    const csrfInput = document.querySelector('input[name="_csrf"]');
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext;
+    const keyBytes = (b64) => {
+      const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+      const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+      return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+    };
+    const post = (url, body) => fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrfInput ? csrfInput.value : '' },
+      body: JSON.stringify(body),
+    });
+    const say = (text) => { status.textContent = text; };
+
+    const render = async () => {
+      if (!supported) {
+        return say(isIos && !standalone
+          ? 'On iPhone and iPad, alerts work from the installed app: add GeneralForces to your Home Screen (see above), open it from there, then turn alerts on here.'
+          : 'This browser doesn’t support push alerts. Try Chrome, Edge, Firefox or Safari.');
+      }
+      if (Notification.permission === 'denied') {
+        toggle.hidden = true;
+        return say('Your browser is blocking notifications from GeneralForces. Allow them in the browser’s site settings (or your phone’s app settings), then reload this page.');
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      const listed = sub && [...document.querySelectorAll('[data-endpoint]')].find((el) => el.dataset.endpoint === sub.endpoint);
+      if (sub && !listed) {
+        // Subscribed in this browser but unknown to the server (e.g. removed from another device): re-register.
+        await post('/push/subscribe', { subscription: sub.toJSON(), tz: zone });
+      }
+      if (listed) { const tag = listed.querySelector('[data-this-device]'); if (tag) tag.hidden = false; }
+      toggle.hidden = false;
+      toggle.textContent = sub ? 'Turn off alerts' : 'Turn on alerts';
+      toggle.classList.toggle('btn--primary', !sub);
+      toggle.classList.toggle('btn--ghost', Boolean(sub));
+      say(sub ? 'Alerts are on for this device.' : 'Alerts are off for this device. Turn them on to hear about mentions, attacks and more while you’re away.');
+      return sub;
+    };
+
+    toggle.addEventListener('click', async () => {
+      toggle.disabled = true;
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const current = await reg.pushManager.getSubscription();
+        if (current) {
+          await post('/push/unsubscribe', { endpoint: current.endpoint });
+          await current.unsubscribe();
+        } else {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') { await render(); return; }
+          const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(pushBox.dataset.publicKey) });
+          const res = await post('/push/subscribe', { subscription: sub.toJSON(), tz: zone });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            await sub.unsubscribe();
+            say(data.error || 'Couldn’t turn alerts on. Try again in a moment.');
+            return;
+          }
+        }
+        location.reload(); // show the updated device list
+      } catch (err) {
+        say('Couldn’t change alerts on this device. Try again, or check the browser’s notification settings.');
+      } finally {
+        toggle.disabled = false;
+      }
+    });
+    render().catch(() => say('Couldn’t check alerts on this device.'));
   }
 })();

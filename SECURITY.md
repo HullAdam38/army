@@ -19,6 +19,8 @@ This document records the security review done before launch, and the settings a
 | Headers | CSP, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Cross-Origin-Opener-Policy`, `Permissions-Policy`; HSTS and `upgrade-insecure-requests` in production over HTTPS. |
 | Admin | Granted only from the server's command line (`npm run admin`), never via the website. `/admin` returns 404 to everyone else. Every admin action is written to an audit log with a reason. Admins can't ban themselves or other admins from the web. |
 | Privacy | Emails, cash on hand, bank balances, purchases, hospital payments and training stats are never shown to other players. Public combat ratings are gear-only; true stats are revealed only through paid scouting, to the scout alone. |
+| Push alerts | Subscriptions are only accepted for the browsers' own push services (Google, Mozilla, Apple, Microsoft, over HTTPS on port 443), so the server can't be steered into calling internal or other addresses. Subscribing needs the CSRF token. A replaced subscription is accepted without one only from a JSON request that names the old endpoint, a secret only that browser and the server know. Push payloads link only to paths on this site. |
+| Uploads | Avatar pictures: the type is read from the bytes (PNG, JPEG, WebP only), metadata stripped, 1 MB cap; served with `nosniff` and a sandboxing CSP. |
 | Dependencies | `npm audit`: 0 known vulnerabilities at review time. |
 
 ## Anti-cheat

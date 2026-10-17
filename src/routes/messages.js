@@ -1,13 +1,14 @@
 'use strict';
 
 const express = require('express');
+const bbcode = require('../bbcode');
 const rules = require('../messages');
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
 
 const PAGE_SIZE = 25;
 
-function messageRoutes(players, messages) {
+function messageRoutes(players, messages, push = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const limits = { body: rules.MAX_BODY, subject: rules.MAX_SUBJECT, reason: rules.MAX_REPORT_REASON };
@@ -56,6 +57,7 @@ function messageRoutes(players, messages) {
       req.flash('error', out.error);
       return res.redirect('/messages/new');
     }
+    if (push) push.message(out.recipientId, `${req.player.username}: ${out.subject}`, out.id);
     req.flash('success', `Message sent to ${out.recipient}.`);
     res.redirect(`/messages/${out.id}`);
   });
@@ -121,6 +123,8 @@ function messageRoutes(players, messages) {
     if (out.error) {
       req.session.replyDraft = { id, body: String(req.body.body || '').slice(0, rules.MAX_BODY) };
       req.flash('error', out.error);
+    } else if (push) {
+      push.message(out.recipientId, `${req.player.username} replied: ${bbcode.toPlain(String(req.body.body || '')).slice(0, 120)}`, id);
     }
     res.redirect(`/messages/${id}#${out.error ? 'reply' : 'latest'}`);
   });

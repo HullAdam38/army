@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "GeneralForces",
+  "short_name": "GeneralForces",
+  "description": "Text-based military strategy. Run missions, fight other players and climb from Recruit to Grand Marshal.",
+  "start_url": "/hq",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d100e",
+  "theme_color": "#0d100e",
+  "categories": ["games"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Missions", "url": "/missions", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Chat", "url": "/chat", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Players", "url": "/players", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

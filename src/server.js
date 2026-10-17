@@ -51,6 +51,8 @@ const { settingsRoutes } = require('./routes/settings');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
 const { multipart } = require('./multipart');
+const { createPushService } = require('./push-service');
+const { alertRoutes, pushRenewRoute } = require('./routes/alerts');
 const { adminRoutes } = require('./routes/admin');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
@@ -89,6 +91,7 @@ function createApp({
   production = process.env.NODE_ENV === 'production',
   scanHours = Number(process.env.ANTICHEAT_SCAN_HOURS) || 6,
   tutorial = true, // tests of other systems turn tutorial rewards off so cash stays predictable
+  pushSender = null, // tests pass a fake push sender; null uses web-push
 } = {}) {
   if (!secret) {
     if (production) throw new Error('SESSION_SECRET must be set in production.');
@@ -98,13 +101,20 @@ function createApp({
 
   const app = express();
   const players = createPlayerRepo(db);
+  app.players = players; // exposed for tests
   // Admin game settings load first: every rule below reads them (src/tuning.js).
   const settingsService = createSettingsService(db);
   settingsService.load();
   const anti = createAntiCheat(db, players, { secret, settings: settingsService });
   app.anti = anti; // exposed for tests and maintenance scripts
   anti.schedule(scanHours);
-  const eventService = createEventService(db);
+  // Push alerts listen to every in-game notification, so they're set up early.
+  const pushService = createPushService(db, players, { sender: pushSender });
+  pushService.schedule();
+  app.push = pushService; // exposed for tests
+  const eventService = createEventService(db, {
+    onAnnounce: (message, link) => pushService.broadcast('news', message, link).catch((err) => console.error('[push] broadcast failed', err)),
+  });
   eventService.schedule();
   const effects = (now) => eventService.effects(now);
   const daily = createDailyService(db, players, { effects });
@@ -156,6 +166,13 @@ function createApp({
 
   app.use(compression());
   app.use(createSecurityHeaders({ production }));
+  // The service worker (installable app, offline page, push). Browsers must
+  // always check it for updates, so it skips the week-long static cache.
+  const swSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf8').replace('__ASSET_VERSION__', app.locals.assetVersion);
+  app.get('/sw.js', (req, res) => {
+    res.set({ 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-cache' });
+    res.send(swSource);
+  });
   app.use(
     express.static(path.join(__dirname, '..', 'public'), {
       maxAge: production ? '7d' : 0,
@@ -188,6 +205,7 @@ function createApp({
   app.use(flash);
   // File uploads are read before the CSRF check, which needs their _csrf field.
   app.use(multipart({ paths: ['/account/avatar/upload'], maxBytes: MAX_UPLOAD_BYTES }));
+  app.use(pushRenewRoute(pushService));
   app.use(eventService.locals());
   app.use(csrf);
   app.use(actionRateLimit());
@@ -202,7 +220,7 @@ function createApp({
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService));
-  app.use(notificationRoutes(players));
+  app.use(notificationRoutes(players, pushService));
   app.use(bankRoutes(players));
   app.use(trainingRoutes(players, daily));
   app.use(leaderboardRoutes(players, db));
@@ -216,11 +234,12 @@ function createApp({
   app.use(chatRoutes(players, chatService, unitRepo, adminRepo));
   app.use(settingsRoutes(players, settingsService, adminRepo));
   app.use(avatarRoutes(players, avatarService, adminRepo));
-  app.use(messageRoutes(players, messageService));
+  app.use(alertRoutes(players, pushService));
+  app.use(messageRoutes(players, messageService, pushService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService));
   app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
-  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService));
+  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

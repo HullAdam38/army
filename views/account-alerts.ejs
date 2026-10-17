@@ -1,0 +1,98 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/notifications"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Notifications</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Signals</p>
+      <h1 class="page-head__title">App &amp; alerts</h1>
+      <p class="page-head__sub">Put GeneralForces on your home screen, and get alerts on your phone or computer when something happens, even with the game closed.</p>
+    </div>
+  </div>
+
+  <section class="card alerts-card reveal" style="--i:1" id="app" aria-labelledby="app-title">
+    <img class="alerts-card__icon" src="/icons/icon-192.png" alt="" width="56" height="56">
+    <div class="alerts-card__body">
+      <h2 class="card__title" id="app-title">Get the app</h2>
+      <p class="muted" data-install-text>Install GeneralForces like an app: it gets its own icon and opens full screen. In Chrome or Edge, open the browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>. On iPhone or iPad, open this site in Safari, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+      <p class="muted" data-install-done hidden>You’re using the app. To remove it, delete it from your home screen like any other app.</p>
+      <button class="btn btn--primary btn--sm alerts-card__action" type="button" data-install hidden>Install app</button>
+    </div>
+  </section>
+
+  <section class="card alerts-card reveal" style="--i:2" id="device" aria-labelledby="device-title" data-push data-public-key="<%= publicKey %>">
+    <svg class="alerts-card__glyph" aria-hidden="true"><use href="#i-bell"/></svg>
+    <div class="alerts-card__body">
+      <h2 class="card__title" id="device-title">Alerts on this device</h2>
+      <p class="muted" data-push-status>Turning alerts on needs JavaScript and a browser that supports push notifications.</p>
+      <div class="alerts-card__actions">
+        <button class="btn btn--primary btn--sm" type="button" data-push-toggle hidden>Turn on alerts</button>
+        <form method="post" action="/account/alerts/test" data-push-test <%- devices.length ? '' : 'hidden' %>>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Send a test alert</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="card reveal" style="--i:3" id="settings" aria-labelledby="settings-title">
+    <h2 class="card__title" id="settings-title">What to alert me about</h2>
+    <p class="muted">These apply to every device you turn alerts on for. You won’t get alerts while you have the game open in front of you: they show in the game instead.</p>
+    <form method="post" action="/account/alerts" class="alerts-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="tz" value="<%= prefs.tz %>" data-tz>
+      <fieldset class="alerts-cats">
+        <legend class="visually-hidden">Alert categories</legend>
+        <% categories.forEach(function (c) { %>
+          <label class="alerts-cat">
+            <input type="checkbox" name="categories" value="<%= c.id %>" <%- prefs.categories.includes(c.id) ? 'checked' : '' %>>
+            <span class="alerts-cat__name"><%= c.name %></span>
+            <span class="alerts-cat__help"><%= c.help %></span>
+          </label>
+        <% }) %>
+      </fieldset>
+      <fieldset class="alerts-quiet">
+        <legend class="alerts-quiet__legend">Quiet hours</legend>
+        <label class="alerts-quiet__toggle"><input type="checkbox" name="quiet" value="on" <%- prefs.quietFrom !== null ? 'checked' : '' %>> No alerts between</label>
+        <span class="alerts-quiet__range">
+          <label class="visually-hidden" for="quiet-from">Quiet hours start</label>
+          <select id="quiet-from" name="quietFrom">
+            <% hours.forEach(function (h) { %><option value="<%= h.value %>" <%- (prefs.quietFrom ?? 23) === h.value ? 'selected' : '' %>><%= h.label %></option><% }) %>
+          </select>
+          and
+          <label class="visually-hidden" for="quiet-to">Quiet hours end</label>
+          <select id="quiet-to" name="quietTo">
+            <% hours.forEach(function (h) { %><option value="<%= h.value %>" <%- (prefs.quietTo ?? 7) === h.value ? 'selected' : '' %>><%= h.label %></option><% }) %>
+          </select>
+        </span>
+        <p class="muted alerts-quiet__tz">Your time zone: <span data-tz-label><%= prefs.tz %></span></p>
+      </fieldset>
+      <div class="compose__actions">
+        <button class="btn btn--primary" type="submit">Save alert settings</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card reveal" style="--i:4" id="devices" aria-labelledby="devices-title">
+    <h2 class="card__title" id="devices-title">Your devices</h2>
+    <% if (devices.length) { %>
+      <ul class="alerts-devices" data-push-devices>
+        <% devices.forEach(function (d) { %>
+          <li class="alerts-device" data-endpoint="<%= d.endpoint %>">
+            <span class="alerts-device__name"><%= d.device %><span class="tag alerts-device__this" data-this-device hidden>This device</span></span>
+            <span class="muted alerts-device__meta">Added <%= new Date(d.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) %><%= d.last_sent_at ? ` · last alert ${new Date(d.last_sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : '' %><%= d.last_error ? ' · last alert failed' : '' %></span>
+            <form method="post" action="/account/alerts/devices/<%= d.id %>/delete">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn--ghost btn--sm" type="submit">Remove</button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">No devices yet. Turn alerts on above, on each phone or computer you play on.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

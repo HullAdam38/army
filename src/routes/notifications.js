@@ -5,7 +5,7 @@ const game = require('../game');
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
 
-function notificationRoutes(players) {
+function notificationRoutes(players, push = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -22,6 +22,8 @@ function notificationRoutes(players) {
   router.get('/notifications/poll', requireAuth, (req, res) => {
     const after = Math.max(0, Math.floor(Number(req.query.after)) || 0);
     const items = players.notificationsAfter(req.player.id, after);
+    // A visible game tab means they're playing: hold back push alerts meanwhile.
+    if (push && req.query.visible === '1') push.markVisible(req.player.id);
     res.set('Cache-Control', 'no-store');
     res.json({
       unread: res.locals.unreadCount,

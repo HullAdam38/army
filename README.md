@@ -5,6 +5,7 @@ A text-based military strategy game for players aged 18+. You enlist, spend ener
 ## Stack
 
 - **Server:** Node.js (22.13+) and Express 5, with EJS server-rendered views
+- **Push:** the `web-push` package sends alerts through the browsers' push services (see Installable app and push alerts).
 - **Data:** SQLite through Node's built-in `node:sqlite` module, so nothing needs compiling on install. Players, the activity log and sessions are all stored in one file.
 - **Auth:** bcrypt password hashes (cost 12), session cookies (`httpOnly`, `sameSite=lax`, `secure` in production), a new session ID on login, CSRF tokens on every POST, and IP rate limiting on login and register
 - **Frontend:** hand-written CSS with design tokens (no build step) and a small vanilla JS file for progressive enhancement. Every page works without JavaScript.
@@ -622,7 +623,24 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
 - **Live updates:** while a game page is open and visible, the browser polls `/notifications/poll?after=<id>` every 20 seconds. New items appear as pop-ups, and the stat bar refreshes so health and cash changes show immediately.
 - **The combat feed** on HQ shows the latest fights across the whole game.
 
-`src/notify.js` builds promotion and unlock messages. To add a new type, call `players.notify(userId, kind, message, link)` and give the kind an icon and colour in `views/notifications.ejs` and `main.css`.
+`src/notify.js` builds promotion and unlock messages. To add a new type, call `players.notify(userId, kind, message, link)` and give the kind an icon and colour in `views/notifications.ejs` and `main.css`. If it should reach players' phones, map the kind to a push category in `KIND_CATEGORY` in `src/push.js`.
+
+## Installable app and push alerts
+
+**Profile › Alerts** (`/account/alerts`, also linked from the Notifications page) is where players set this up.
+
+- **Installable app:** `public/manifest.webmanifest`, icons in `public/icons/`, and a service worker (`public/sw.js`). Chrome, Edge and Android show an **Install app** button. On iPhone and iPad the page explains Share › Add to Home Screen. Installed, the game opens full screen with its own icon.
+- **Service worker:** served by the app at `/sw.js` with `Cache-Control: no-cache` and the asset version filled in, so it updates with every release. It never caches game pages. When there's no connection it shows `public/offline.html`, which reloads itself once you're back online.
+- **Push alerts** reach a phone or computer even with the game closed. Players turn them on per device and choose categories:
+  - chat mentions, private messages, attacks, bounties, deployments, unit and wars, events and announcements (on by default once a player enables alerts);
+  - energy full and progress (off by default).
+  - Optional quiet hours in the player's own time zone.
+  - Nothing is pushed while the player has the game open in front of them (a visible tab told the server within the last 50 seconds). Pushes are capped at 30 per player per hour, and a newer alert of the same kind replaces an older undelivered one.
+  - Every `players.notify()` call goes through `src/push-service.js`; private messages and "energy full" (checked every 2 minutes, once per refill) are sent from there directly. Event launches and admin announcements go to everyone who wants "Events and announcements".
+- **Keys:** the server's VAPID key pair is generated on first use and kept in the `app_keys` table, so nothing needs configuring. Push services are given a contact address: `PUSH_CONTACT` if set (a `mailto:` or `https://` URL), otherwise `mailto:` plus `LEGAL_CONTACT_EMAIL`.
+- **Safety:** the server only sends to the browsers' real push services (Google, Mozilla, Apple, Microsoft), so a forged subscription can't make it call other addresses. Subscriptions the push service reports as gone (404/410) are deleted. Each player keeps at most 10 devices.
+
+iPhone and iPad support push only from the installed app (iOS 16.4 and later), so players there add the game to their Home Screen first.
 
 ## Combat system (built for PvP)
 
@@ -697,6 +715,9 @@ src/
   images.js          checks uploaded pictures and strips their metadata (pure)
   multipart.js       reads file-upload forms
   avatar-service.js  avatar storage, uploads, reports
+  push.js            push alert categories, preferences, quiet hours, allowed push services (pure)
+  push-service.js    push subscriptions, VAPID keys, sending alerts, energy-full check
+  routes/alerts.js   App & alerts page, subscribe/unsubscribe, test alert
   routes/avatars.js  avatar images, the builder, uploads, admin moderation
   chat.js            chat rules: channels, limits, mentions, mutes (pure)
   chat-service.js    chat storage, history, live polling, reports, mutes

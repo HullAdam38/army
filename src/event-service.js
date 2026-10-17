@@ -7,7 +7,7 @@ const bbcode = require('./bbcode');
  * World events backed by the database: scheduling, the effects live right now,
  * and start announcements. effects() is cheap and safe to call on every action.
  */
-function createEventService(db) {
+function createEventService(db, { onAnnounce = null } = {}) {
   const LIVE = 'cancelled_at IS NULL AND starts_at <= ?1 AND ends_at > ?1';
   const stmts = {
     insert: db.prepare('INSERT INTO events (type, title, message, starts_at, ends_at, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'),
@@ -75,7 +75,9 @@ function createEventService(db) {
         if (!stmts.announced.run(now, e.id).changes) continue;
         const def = events.TYPES[e.type];
         const hours = Math.round((e.ends_at - now) / events.HOUR);
-        stmts.broadcast.run(`Event live: ${e.title}! ${def.summary} Ends in ${hours >= 1 ? `${hours} hour${hours === 1 ? '' : 's'}` : 'under an hour'}.`, now);
+        const message = `Event live: ${e.title}! ${def.summary} Ends in ${hours >= 1 ? `${hours} hour${hours === 1 ? '' : 's'}` : 'under an hour'}.`;
+        stmts.broadcast.run(message, now);
+        if (onAnnounce) onAnnounce(message, '/events');
         n += 1;
       }
       return n;

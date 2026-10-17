@@ -3105,7 +3105,47 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .bell--chat.is-mentioned svg { color: var(--accent); }
 .chat__unread--mention { color: var(--accent-ink); background: var(--accent); font-weight: 800; }
 .toast--chat { border-left-color: var(--accent); }
-.desktop-alerts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 16px; }
-.desktop-alerts[hidden] { display: none; }
-.desktop-alerts__text { flex: 1; min-width: min(100%, 16rem); }
-.desktop-alerts .card__title { margin-bottom: 4px; }
+
+/* App & alerts */
+.alerts-link { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; color: var(--text); text-decoration: none; transition: border-color 0.2s; }
+.alerts-link:hover { border-color: var(--line-strong); }
+.alerts-link > svg { flex: none; width: 22px; height: 22px; color: var(--accent); }
+.alerts-link > span { display: grid; gap: 2px; min-width: 0; }
+.alerts-link .alerts-link__arrow { width: 16px; height: 16px; margin-left: auto; color: var(--text-faint); }
+.alerts-card { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.alerts-card__icon { flex: none; border-radius: 22%; }
+.alerts-card__glyph { flex: none; width: 56px; height: 56px; padding: 14px; color: var(--accent); background: var(--bg-raised); border: 1px solid var(--line); border-radius: 22%; }
+.alerts-card__body { flex: 1; min-width: 0; }
+.alerts-card .card__title { margin-bottom: 4px; }
+.alerts-card__action { margin-top: 12px; }
+.alerts-card__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.alerts-card__actions [hidden] { display: none; }
+.alerts-form { display: grid; gap: 16px; margin-top: 12px; }
+.alerts-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: 8px; margin: 0; padding: 0; border: 0; }
+.alerts-cat { position: relative; display: grid; gap: 2px; padding: 10px 12px 10px 38px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+.alerts-cat:has(input:checked) { border-color: rgb(255 107 26 / 0.55); }
+.alerts-cat input { position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; accent-color: var(--accent); }
+.alerts-cat__name { font-family: var(--font-ui); font-weight: 700; }
+.alerts-cat__help { font-size: 0.84rem; color: var(--text-muted); }
+.alerts-quiet { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); }
+.alerts-quiet__legend { padding: 0 6px; font-family: var(--font-ui); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.alerts-quiet__toggle { display: inline-flex; align-items: center; gap: 8px; }
+.alerts-quiet__toggle input { accent-color: var(--accent); }
+.alerts-quiet__range { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.alerts-quiet__tz { flex-basis: 100%; font-size: 0.84rem; }
+.alerts-devices { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.alerts-device { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 10px 12px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.alerts-device__name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-ui); font-weight: 700; }
+.alerts-device__name [hidden] { display: none; }
+.alerts-device__meta { grid-column: 1; font-size: 0.84rem; }
+.alerts-device form { grid-column: 2; grid-row: 1 / span 2; }
+@media (max-width: 480px) {
+  .alerts-card { gap: 12px; }
+  .alerts-card__icon, .alerts-card__glyph { width: 44px; height: 44px; }
+  .alerts-card__glyph { padding: 10px; }
+}
+
+/* Offline page (served by the service worker when there's no connection) */
+.offline { display: grid; justify-items: center; gap: 10px; min-height: 100vh; align-content: center; padding: 32px 16px; text-align: center; }
+.offline__icon { border-radius: 22%; margin-bottom: 8px; }
+.offline__text { max-width: 28rem; color: var(--text-muted); }

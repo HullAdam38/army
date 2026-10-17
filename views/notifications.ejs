@@ -11,14 +11,11 @@
     </div>
   </div>
 
-  <%# Shown by the script only where the browser supports notifications. %>
-  <section class="card desktop-alerts reveal" style="--i:1" data-desktop-alerts hidden aria-labelledby="alerts-title">
-    <div class="desktop-alerts__text">
-      <h2 class="card__title" id="alerts-title">Desktop alerts</h2>
-      <p class="muted" data-desktop-alerts-status>Get a pop-up from your browser when you're mentioned in chat or attacked, while the game is open in a background tab. This setting is for this device only.</p>
-    </div>
-    <button class="btn btn--ghost btn--sm" type="button" data-desktop-alerts-toggle>Turn on</button>
-  </section>
+  <a class="card alerts-link reveal" style="--i:1" href="/account/alerts">
+    <svg aria-hidden="true"><use href="#i-bell"/></svg>
+    <span><strong>App &amp; alerts</strong><span class="muted">Install the app and get alerts on your phone, even with the game closed.</span></span>
+    <svg class="alerts-link__arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+  </a>
 
   <% if (items.length) { %>
     <ol class="notes reveal" style="--i:1">

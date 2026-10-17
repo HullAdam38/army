@@ -13,7 +13,7 @@ const PAGE_SIZE = 25;
 const { RULES, SEVERITY } = require('../anticheat/rules');
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -183,6 +183,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
     if (!message) req.flash('error', 'Write a message first.');
     else {
       const count = adminRepo.broadcast(`Announcement: ${message}`);
+      if (push) push.broadcast('news', `Announcement: ${message}`, '/notifications').catch((err) => console.error('[push] broadcast failed', err));
       adminRepo.log(req.player.id, null, 'broadcast', message);
       req.flash('success', `Announcement sent to ${count} ${count === 1 ? 'player' : 'players'}.`);
     }

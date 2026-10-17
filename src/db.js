@@ -496,6 +496,27 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_chat_mentions_user ON chat_mentions(user_id, channel, message_id);
 
+  -- Push notifications (src/push-service.js): one row per browser/device a player
+  -- turned alerts on for. The endpoint is the browser push service's address.
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint      TEXT    NOT NULL UNIQUE,
+    p256dh        TEXT    NOT NULL,
+    auth          TEXT    NOT NULL,
+    device        TEXT,
+    created_at    INTEGER NOT NULL,
+    last_sent_at  INTEGER,
+    last_error    TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+
+  -- Server-generated keys that must survive restarts (e.g. the push VAPID key pair).
+  CREATE TABLE IF NOT EXISTS app_keys (
+    name   TEXT PRIMARY KEY,
+    value  TEXT NOT NULL
+  );
+
   -- Titles (src/titles.js): which ones a player has earned.
   CREATE TABLE IF NOT EXISTS user_titles (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -600,6 +621,8 @@ const ADDED_COLUMNS = [
   ['users', 'avatar_badge', 'TEXT'], // JSON of badge part ids
   ['users', 'avatar_v', 'INTEGER NOT NULL DEFAULT 0'], // bumps on every change, for image caching
   ['users', 'avatar_upload_blocked', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'push_prefs', 'TEXT'], // JSON: alert categories and quiet hours (src/push.js)
+  ['users', 'energy_push_for', 'INTEGER'], // energy_updated_at already alerted as "energy full"
 ];
 
 function migrate(db) {

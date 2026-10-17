@@ -123,6 +123,8 @@ function createPlayerRepo(db) {
       WHERE hospital_until > ? AND banned_at IS NULL ORDER BY hospital_until DESC LIMIT ?`),
   };
 
+  const notifyListeners = [];
+
   return {
     findById: (id) => stmts.byId.get(id),
     findByLogin: (login) => stmts.byLogin.get(login, login),
@@ -247,7 +249,10 @@ function createPlayerRepo(db) {
     notify(userId, kind, message, link = null) {
       stmts.notify.run(userId, kind, message, link, Date.now());
       stmts.pruneNotifications.run(userId, 200); // keep each inbox bounded
+      for (const fn of notifyListeners) fn(userId, kind, message, link);
     },
+    /** Calls `fn(userId, kind, message, link)` after every notification (push alerts hook in here). */
+    onNotify: (fn) => { notifyListeners.push(fn); },
     unreadCount: (userId) => stmts.unread.get(userId).n,
     notifications: (userId, limit = 50) => stmts.notifications.all(userId, limit),
     notificationsAfter: (userId, afterId) => stmts.notificationsAfter.all(userId, afterId),
