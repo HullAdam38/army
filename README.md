@@ -69,6 +69,11 @@ Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. F
 - broadcast an announcement to every player
 - search players by callsign or email
 - adjust cash, set level, restore energy and health, or release from hospital
+- **edit a player:** change their callsign (they're told why) or email, adjust their bank balance, grant XP (levels up as if earned), set trained stats (Endurance also changes max health), give or take gear (taken gear is unequipped first), remove them from their unit (not its Commander), clear their title, or sign them out on every device. Another admin's callsign and email can only be changed on the server. Every change needs a reason and goes in the audit log; money changes go through the ledger as `admin-cash` / `admin-bank`.
+- **Units** (`/admin/units`): search every unit, see members, treasury, upgrades and war record, and add to or take from a treasury (noted in the unit's log). Rename or disband from the unit's own page.
+- **Economy** (`/admin/economy`): money on hand, banked and in unit treasuries; sources and sinks by ledger reason over 24 hours and 7 days; top earners today; the richest players; and how much admins have added or removed this week.
+- **Audit log** (`/admin/audit`): every admin action, filterable by action, by admin, or by player and text.
+- A menu across the top of every admin page links all of these.
 - message a single player
 - suspend or unsuspend a player (signs them out immediately)
 - **reset a password:** issues a temporary password like `K7QF-M2XP-9TRA`, shown once and valid for 24 hours. The player is signed out everywhere and must choose a new password at their next sign-in. Admin accounts can't be reset from the website.

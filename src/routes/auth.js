@@ -165,4 +165,4 @@ function authRoutes(players, anti) {
   return router;
 }
 
-module.exports = { authRoutes, passwordProblem, validateRegistration };
+module.exports = { EMAIL_RE, USERNAME_RE, authRoutes, passwordProblem, validateRegistration };

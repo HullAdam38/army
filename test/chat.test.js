@@ -201,7 +201,7 @@ test('chat in the app: channels, posting with and without JS, moderation', async
     db.prepare("UPDATE users SET is_admin = 1 WHERE username = 'Ace'").run();
     page = (await ace.request('/admin/chat')).text;
     assert.match(page, /reported[\s\S]*Rook[\s\S]*Reason: “rude”/);
-    assert.match((await ace.request('/admin')).text, /Chat <span class="count-badge">1<\/span>/);
+    assert.match((await ace.request('/admin')).text, /Chat reports <span class="count-badge">1<\/span>/);
     const reportId = db.prepare('SELECT id FROM chat_reports').get().id;
     await ace.post(`/admin/chat/reports/${reportId}`, { action: 'mute', duration: '24h', note: 'be nice' });
     const rookRow = db.prepare("SELECT chat_muted_until, chat_mute_reason FROM users WHERE username = 'Rook'").get();

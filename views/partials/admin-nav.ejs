@@ -1,0 +1,18 @@
+<%# The admin area's menu. Pass `active` (a key below). %>
+<nav class="admin-nav" aria-label="Admin">
+  <% [
+    ['overview', '/admin', 'Overview'],
+    ['players', '/admin/players', 'Players'],
+    ['units', '/admin/units', 'Units'],
+    ['economy', '/admin/economy', 'Economy'],
+    ['audit', '/admin/audit', 'Audit log'],
+    ['settings', '/admin/settings', 'Game settings'],
+    ['events', '/admin/events', 'Events'],
+    ['reports', '/admin/reports', 'Messages'],
+    ['chat', '/admin/chat', 'Chat'],
+    ['avatars', '/admin/avatars', 'Avatars'],
+    ['flags', '/admin/flags', 'Anti-cheat'],
+  ].forEach(function ([key, href, label]) { %>
+    <a class="admin-nav__link" href="<%= href %>" <%- active === key ? 'aria-current="page"' : '' %>><%= label %></a>
+  <% }) %>
+</nav>

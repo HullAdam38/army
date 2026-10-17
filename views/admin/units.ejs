@@ -1,0 +1,61 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'units' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Units</h1>
+      <p class="page-head__sub"><%= total %> unit<%= total === 1 ? '' : 's' %><%= q ? ` matching “${q}”` : '' %>, richest treasury first. Rename or disband a unit from its own page (admin box at the bottom).</p>
+    </div>
+  </div>
+  <form class="directory-search admin-search" method="get" action="/admin/units" role="search">
+    <label class="visually-hidden" for="q">Unit name or tag</label>
+    <input id="q" name="q" type="search" value="<%= q %>" placeholder="Name or tag…" autocomplete="off">
+    <button class="btn btn--ghost btn--sm" type="submit">Search</button>
+  </form>
+
+  <% if (rows.length) { %>
+    <ol class="admin-units">
+      <% rows.forEach(function (u) { %>
+        <li class="card admin-unit" id="unit-<%= u.id %>">
+          <div class="admin-unit__head">
+            <a class="admin-unit__name" href="/units/<%= u.id %>"><span class="unit-tag">[<%= u.tag %>]</span> <%= u.name %></a>
+            <span class="muted">Commander <%= u.leader || '—' %> · <%= u.members %> member<%= u.members === 1 ? '' : 's' %> · founded <%= u.founded %></span>
+          </div>
+          <dl class="admin-unit__stats">
+            <div><dt>Treasury</dt><dd><%= money(u.treasury) %></dd></div>
+            <div><dt>Barracks / Drill</dt><dd><%= u.barracks %> / <%= u.drill %></dd></div>
+            <div><dt>Wars W–L–D</dt><dd><%= u.war_wins %>–<%= u.war_losses %>–<%= u.war_draws %></dd></div>
+          </dl>
+          <details class="admin-unit__edit">
+            <summary>Adjust treasury</summary>
+            <form method="post" action="/admin/units/<%= u.id %>/treasury" class="form admin-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="q" value="<%= q %>">
+              <div class="field-row">
+                <div class="field"><label for="amt-<%= u.id %>">Amount (negative removes)</label><input id="amt-<%= u.id %>" name="amount" inputmode="numeric" placeholder="5000 or -5000" required></div>
+                <div class="field"><label for="why-<%= u.id %>">Reason (shown in the unit log)</label><input id="why-<%= u.id %>" name="reason" maxlength="200" placeholder="War result correction" required></div>
+              </div>
+              <button class="btn btn--primary btn--sm" type="submit">Apply</button>
+            </form>
+          </details>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted"><%= q ? 'No units match.' : 'No units yet.' %></p>
+  <% } %>
+
+  <% if (pages > 1) { %>
+    <nav class="pager" aria-label="Pages">
+      <% const link = (p) => `/admin/units?${new URLSearchParams({ ...(q && { q }), page: String(p) })}`; %>
+      <% if (page > 1) { %><a class="btn btn--ghost btn--sm" href="<%= link(page - 1) %>" rel="prev">Previous</a><% } else { %><span></span><% } %>
+      <span class="pager__info">Page <%= page %> of <%= pages %></span>
+      <% if (page < pages) { %><a class="btn btn--ghost btn--sm" href="<%= link(page + 1) %>" rel="next">Next</a><% } else { %><span></span><% } %>
+    </nav>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

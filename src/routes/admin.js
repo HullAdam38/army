@@ -8,12 +8,28 @@ const presence = require('../presence');
 const { loadoutView } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
 const bbcode = require('../bbcode');
+const { ITEMS, ITEMS_BY_ID, SLOTS } = require('../items');
+const { EMAIL_RE, USERNAME_RE } = require('./auth');
+const { announceLevels } = require('../notify');
 
 const PAGE_SIZE = 25;
+const timeLeft = (ms) => {
+  const mins = Math.ceil(ms / 60000);
+  return mins < 60 ? `${mins}m` : mins < 48 * 60 ? `${Math.ceil(mins / 60)}h` : `${Math.ceil(mins / 1440)}d`;
+};
 const { RULES, SEVERITY } = require('../anticheat/rules');
+// Friendly names for ledger reasons on the economy page.
+const REASON_LABELS = {
+  mission: 'Missions', operation: 'Operations', pvp: 'PvP (cash taken)', deployment: 'Deployments', 'supply-drop': 'Supply drops',
+  'season-reward': 'Season rewards', medal: 'Medal rewards', tutorial: 'Basic training rewards', 'unit-objective': 'Unit objectives',
+  'target-bonus': 'High-value target', 'bounty-claim': 'Bounties collected', 'bounty-placed': 'Bounties posted', 'bounty-refund': 'Bounty refunds',
+  armory: 'Armory (gear)', supplies: 'Armory (supplies)', training: 'Training', scout: 'Scouting', base: 'Forward base', 'base-refund': 'Forward base refunds',
+  'hospital-treatment': 'Hospital treatment', 'hospital-discharge': 'Hospital discharge', 'unit-donation': 'Unit donations', 'unit-founded': 'Units founded',
+  signup: 'Starting cash', 'bank-deposit': 'Bank deposits (fees)', 'bank-withdraw': 'Bank withdrawals', reversal: 'Anti-cheat reversals', 'daily-order': 'Daily orders', 'daily-bonus': 'Daily commendation',
+};
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -88,8 +104,26 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       flags: anti.flagsForUser(t.id),
       activity: anti.activityProfile(t.id, now),
       RULES, SEVERITY,
+      ...editorData(t, now),
     });
   });
+
+  /** Inventory, unit, title and moderation state for the player editor. */
+  function editorData(t, now) {
+    const owned = players.ownedItemIds(t.id);
+    const equipped = new Set(Object.values(players.equipment(t.id)));
+    const unit = unitRepo && t.unit_id ? unitRepo.findById(t.unit_id) : null;
+    const av = avatarService ? avatarService.findUser(t.id) : null;
+    return {
+      inventory: ITEMS.filter((i) => owned.has(i.id)).map((i) => ({ ...i, equipped: equipped.has(i.id) })),
+      grantable: SLOTS.map((s) => ({ ...s, items: ITEMS.filter((i) => i.slot === s.id && !owned.has(i.id)) })).filter((s) => s.items.length),
+      unit,
+      titleName: t.title ? require('../titles').nameOf(t.title) : null,
+      statCap: require('../training').statCap(t.level),
+      muted: t.chat_muted_until && t.chat_muted_until > now ? { left: timeLeft(t.chat_muted_until - now), reason: t.chat_mute_reason } : null,
+      avatar: av ? { url: `/avatars/${t.id}?v=${av.avatar_v || 0}`, kind: av.avatar_kind || 'starter', uploadsBlocked: Boolean(av.avatar_upload_blocked) } : null,
+    };
+  }
 
   /** Runs a pure admin change inside a transaction, saves it and records it. */
   function applyChange(action, change) {
@@ -100,6 +134,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
         if (out.error) return out;
         players.save(out.player, { reason: `admin-${action}`, ref: `admin:${req.player.id}` });
         adminRepo.log(req.player.id, fresh.id, action, out.summary);
+        if (out.levelsGained && out.levelsGained.length) announceLevels(players, fresh.id, out.levelsGained);
         return out;
       });
       req.flash(outcome.error ? 'error' : 'success', outcome.error || outcome.summary);
@@ -110,6 +145,96 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   router.post('/admin/players/:id/cash', loadTarget, applyChange('cash', (p, b) => admin.adjustCash(p, b.amount, b.reason)));
   router.post('/admin/players/:id/level', loadTarget, applyChange('level', (p, b) => admin.setLevel(p, b.level, b.reason)));
   router.post('/admin/players/:id/restore', loadTarget, applyChange('restore', (p) => admin.restore(p)));
+  router.post('/admin/players/:id/bank', loadTarget, applyChange('bank', (p, b) => admin.adjustBank(p, b.amount, b.reason)));
+  router.post('/admin/players/:id/xp', loadTarget, applyChange('xp', (p, b) => admin.grantXp(p, b.amount, b.reason)));
+  router.post('/admin/players/:id/stats', loadTarget, applyChange('stats', (p, b) => admin.setStats(p, b, b.reason)));
+
+  // Callsign or email. Other admins' details can only be changed on the server.
+  router.post('/admin/players/:id/identity', loadTarget, (req, res) => {
+    const field = req.body.field === 'email' ? 'email' : 'username';
+    const reason = admin.cleanReason(req.body.reason);
+    const t = req.target;
+    const v = admin.validateIdentity({ [field]: req.body.value }, { USERNAME_RE, EMAIL_RE });
+    let error = v.error;
+    if (!error && t.is_admin && t.id !== req.player.id) error = 'Another admin’s callsign and email can only be changed on the server.';
+    if (!error && !reason) error = 'Give a reason; it goes in the audit log.';
+    if (!error && v[field] === t[field]) error = `That’s already their ${field === 'email' ? 'email' : 'callsign'}.`;
+    if (!error && !(field === 'email' ? adminRepo.setEmail(t.id, v.email) : adminRepo.setUsername(t.id, v.username))) {
+      error = `Another account already uses that ${field === 'email' ? 'email' : 'callsign'}.`;
+    }
+    if (error) {
+      req.flash('error', error);
+    } else if (field === 'username') {
+      adminRepo.log(req.player.id, t.id, 'rename', `Callsign ${t.username} → ${v.username}. Reason: ${reason}`);
+      players.notify(t.id, 'system', `HQ changed your callsign from ${t.username} to ${v.username}: ${reason}`);
+      req.flash('success', `${t.username} is now ${v.username}.`);
+    } else {
+      adminRepo.log(req.player.id, t.id, 'email', `Email changed (was ${t.email}). Reason: ${reason}`);
+      req.flash('success', `${t.username}’s email is now ${v.email}.`);
+    }
+    back(res, t);
+  });
+
+  // Give or take a gear item.
+  router.post('/admin/players/:id/items', loadTarget, (req, res) => {
+    const item = ITEMS_BY_ID.get(String(req.body.item || ''));
+    const reason = admin.cleanReason(req.body.reason);
+    const owned = players.ownedItemIds(req.target.id);
+    if (!item) req.flash('error', 'Pick an item.');
+    else if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else if (req.body.action === 'remove') {
+      if (!adminRepo.removeItem(req.target.id, item.id)) req.flash('error', `${req.target.username} doesn’t own ${item.name}.`);
+      else {
+        adminRepo.log(req.player.id, req.target.id, 'item-remove', `Took away ${item.name}. Reason: ${reason}`);
+        req.flash('success', `${item.name} removed.`);
+      }
+    } else if (owned.has(item.id)) {
+      req.flash('error', `${req.target.username} already owns ${item.name}.`);
+    } else {
+      players.addItem(req.target.id, item.id);
+      adminRepo.log(req.player.id, req.target.id, 'item-grant', `Gave ${item.name}. Reason: ${reason}`);
+      players.notify(req.target.id, 'system', `HQ issued you a ${item.name}. Equip it in the Armory.`, '/armory');
+      req.flash('success', `${item.name} given to ${req.target.username}.`);
+    }
+    res.redirect(`/admin/players/${req.target.id}#inventory`);
+  });
+
+  // Take a player out of their unit (not its Commander: transfer command or disband from the unit page).
+  router.post('/admin/players/:id/unit-remove', loadTarget, (req, res) => {
+    const t = req.target;
+    const reason = admin.cleanReason(req.body.reason);
+    const unit = unitRepo && t.unit_id ? unitRepo.findById(t.unit_id) : null;
+    if (!unit) req.flash('error', `${t.username} isn’t in a unit.`);
+    else if (t.unit_role === 'leader') req.flash('error', 'That’s the unit’s Commander. Transfer command or disband the unit from its page first.');
+    else if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else {
+      unitRepo.kick(unit.id, t.id);
+      unitRepo.log(unit.id, 'leave', `${t.username} was removed by HQ.`);
+      adminRepo.log(req.player.id, t.id, 'unit-remove', `Removed from [${unit.tag}] ${unit.name}. Reason: ${reason}`);
+      players.notify(t.id, 'unit', `HQ removed you from ${unit.name}: ${reason}`, '/units');
+      req.flash('success', `${t.username} was removed from ${unit.name}.`);
+    }
+    back(res, t);
+  });
+
+  router.post('/admin/players/:id/clear-title', loadTarget, (req, res) => {
+    if (adminRepo.clearTitle(req.target.id)) {
+      adminRepo.log(req.player.id, req.target.id, 'clear-title', `Cleared the title “${req.target.title}”.`);
+      req.flash('success', 'Title cleared. They can pick another one they’ve earned.');
+    }
+    back(res, req.target);
+  });
+
+  // Sign a player out on every device (e.g. after a suspected account compromise).
+  router.post('/admin/players/:id/sign-out', loadTarget, (req, res) => {
+    if (req.target.id === req.player.id) req.flash('error', 'Use Sign out for your own account.');
+    else {
+      players.endSessions(req.target.id);
+      adminRepo.log(req.player.id, req.target.id, 'sign-out', 'Signed out on every device.');
+      req.flash('success', `${req.target.username} is signed out everywhere.`);
+    }
+    back(res, req.target);
+  });
 
   router.post('/admin/players/:id/ban', loadTarget, (req, res) => {
     const reason = admin.cleanReason(req.body.reason);
@@ -208,6 +333,85 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   };
 
   // Reported private messages. Admins only ever see messages someone reported.
+  // ----- Units -----
+  router.get('/admin/units', (req, res) => {
+    const q = String(req.query.q || '').trim().slice(0, 24);
+    const page = Math.max(1, Math.floor(Number(req.query.page)) || 1);
+    const { rows, total } = adminRepo.units(q, PAGE_SIZE, (page - 1) * PAGE_SIZE);
+    res.render('admin/units', {
+      title: 'Admin · Units',
+      nav: 'admin',
+      q, page, total,
+      pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      rows: rows.map((u) => ({ ...u, founded: new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })),
+    });
+  });
+
+  router.post('/admin/units/:id/treasury', (req, res, next) => {
+    const unit = adminRepo.unitById(Number(req.params.id));
+    if (!unit) return next('router');
+    const amount = Number(String(req.body.amount || '').replace(/[$,\s]/g, ''));
+    const reason = admin.cleanReason(req.body.reason);
+    const back = `/admin/units${req.body.q ? `?q=${encodeURIComponent(String(req.body.q))}` : ''}#unit-${unit.id}`;
+    if (!Number.isInteger(amount) || amount === 0 || Math.abs(amount) > 10_000_000) req.flash('error', 'Enter a non-zero whole amount up to $10,000,000, e.g. 5000 or -5000.');
+    else if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else if (!adminRepo.adjustTreasury(unit.id, amount)) req.flash('error', `The ${unit.name} treasury only has $${unit.treasury.toLocaleString('en-US')}.`);
+    else {
+      const money = (n) => `$${Math.abs(n).toLocaleString('en-US')}`;
+      adminRepo.log(req.player.id, null, 'unit-treasury', `[${unit.tag}] ${unit.name}: ${amount > 0 ? 'added' : 'removed'} ${money(amount)} (now ${money(unit.treasury + amount)}). Reason: ${reason}`);
+      if (unitRepo) unitRepo.log(unit.id, 'donation', `HQ ${amount > 0 ? 'added' : 'removed'} ${money(amount)} ${amount > 0 ? 'to' : 'from'} the treasury: ${reason}`);
+      req.flash('success', `${unit.name} treasury ${amount > 0 ? '+' : '−'}${money(amount)}.`);
+    }
+    res.redirect(back);
+  });
+
+  // ----- Economy -----
+  router.get('/admin/economy', (req, res) => {
+    const now = Date.now();
+    const e = adminRepo.economy({ now });
+    const stats = adminRepo.stats({ now, dayStart: new Date(now).setHours(0, 0, 0, 0), onlineSince: now - presence.ONLINE_WINDOW_MS });
+    res.render('admin/economy', {
+      title: 'Admin · Economy',
+      nav: 'admin',
+      stats,
+      ...e,
+      sources: e.flows.filter((f) => f.week > 0),
+      sinks: e.flows.filter((f) => f.week < 0),
+      transfers: e.flows.filter((f) => f.week === 0),
+      label: (reason) => REASON_LABELS[reason] || (reason.startsWith('admin-') ? `Admin: ${reason.slice(6)}` : reason),
+    });
+  });
+
+  // ----- Audit log -----
+  router.get('/admin/audit', (req, res) => {
+    const now = Date.now();
+    const action = String(req.query.action || '').slice(0, 40);
+    const adminId = Math.max(0, Math.floor(Number(req.query.admin)) || 0);
+    const q = String(req.query.q || '').trim().slice(0, 60);
+    const page = Math.max(1, Math.floor(Number(req.query.page)) || 1);
+    const AUDIT_PAGE = 50;
+    const out = adminRepo.audit({ action, adminId, q, limit: AUDIT_PAGE, offset: (page - 1) * AUDIT_PAGE });
+    const params = (extra) => {
+      const p = new URLSearchParams();
+      if (action) p.set('action', action);
+      if (adminId) p.set('admin', String(adminId));
+      if (q) p.set('q', q);
+      for (const [k, v] of Object.entries(extra)) p.set(k, v);
+      return `/admin/audit?${p}`;
+    };
+    res.render('admin/audit', {
+      title: 'Admin · Audit log',
+      nav: 'admin',
+      action, adminId, q, page,
+      total: out.total,
+      pages: Math.max(1, Math.ceil(out.total / AUDIT_PAGE)),
+      rows: out.rows.map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now), when: new Date(a.created_at).toISOString().slice(0, 16).replace('T', ' ') })),
+      actions: out.actions,
+      admins: out.admins,
+      pageUrl: (n) => params({ page: String(n) }),
+    });
+  });
+
   router.get('/admin/reports', (req, res) => {
     const now = Date.now();
     const status = req.query.status === 'resolved' ? 'resolved' : 'open';

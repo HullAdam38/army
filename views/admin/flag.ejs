@@ -3,6 +3,7 @@
 <% const sev = SEVERITY[f.severity]; const ev = f.evidence; %>
 
 <main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'flags' }) %>
   <a class="back-link" href="/admin/flags"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Suspicious activity</a>
 
   <section class="card flag-hero flag-hero--<%= sev %>" aria-labelledby="flag-title">

@@ -1,0 +1,71 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const money = (n) => (n < 0 ? '−' : '') + '$' + Math.abs(Number(n)).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'economy' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Economy</h1>
+      <p class="page-head__sub">Where money comes from and where it goes, from the ledger every cash and bank change is written to. Sources create money; sinks remove it; PvP and bounties mostly move it between players.</p>
+    </div>
+  </div>
+
+  <dl class="admin-stats">
+    <div><dt>Cash on hand</dt><dd><%= money(stats.cash) %></dd></div>
+    <div><dt>Banked</dt><dd><%= money(stats.banked) %></dd></div>
+    <div><dt>Unit treasuries</dt><dd><%= money(treasuries.n) %></dd></div>
+    <div><dt>Total money</dt><dd><%= money(stats.cash + stats.banked + treasuries.n) %></dd></div>
+    <div><dt>Players</dt><dd><%= stats.players %></dd></div>
+    <div><dt>Per player</dt><dd><%= money(Math.round((stats.cash + stats.banked) / Math.max(1, stats.players))) %></dd></div>
+    <div class="<%= adminMoney.entries ? 'stat-alert' : '' %>"><dt>Admin changes, 7 days</dt><dd><%= money(adminMoney.n) %> <span class="small muted">(<%= adminMoney.entries %>)</span></dd></div>
+  </dl>
+
+  <div class="admin-grid">
+    <% [['Sources', sources, 'Created money in the last 7 days.'], ['Sinks', sinks, 'Removed money in the last 7 days.']].forEach(function ([title, list, blurb]) { %>
+      <section class="card" aria-labelledby="flow-<%= title %>">
+        <h2 class="card__title" id="flow-<%= title %>"><%= title %></h2>
+        <p class="muted admin-flow__blurb"><%= blurb %></p>
+        <% if (list.length) { %>
+          <table class="admin-flow">
+            <thead><tr><th scope="col">Reason</th><th scope="col" class="num">24 hours</th><th scope="col" class="num">7 days</th></tr></thead>
+            <tbody>
+              <% list.forEach(function (f) { %>
+                <tr><th scope="row"><%= label(f.reason) %> <span class="muted small"><%= f.entries %></span></th><td class="num"><%= money(f.day) %></td><td class="num"><strong><%= money(f.week) %></strong></td></tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %><p class="muted">Nothing yet.</p><% } %>
+      </section>
+    <% }) %>
+
+    <section class="card" aria-labelledby="earners-title">
+      <h2 class="card__title" id="earners-title">Top earners, last 24 hours</h2>
+      <p class="muted admin-flow__blurb">Money in from play (bank moves and admin changes left out). Unusual names here are worth a look.</p>
+      <% if (topEarners.length) { %>
+        <ol class="admin-list admin-rank"><% topEarners.forEach(function (u) { %>
+          <li><a href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a> <span class="muted">Lv <%= u.level %></span><span class="admin-rank__value"><%= money(u.earned) %></span></li>
+        <% }) %></ol>
+      <% } else { %><p class="muted">Nobody has earned anything today.</p><% } %>
+    </section>
+
+    <section class="card" aria-labelledby="rich-title">
+      <h2 class="card__title" id="rich-title">Richest players</h2>
+      <p class="muted admin-flow__blurb">Cash on hand plus bank.</p>
+      <% if (richest.length) { %>
+        <ol class="admin-list admin-rank"><% richest.forEach(function (u) { %>
+          <li><a href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a> <span class="muted">Lv <%= u.level %></span><span class="admin-rank__value"><%= money(u.worth) %></span></li>
+        <% }) %></ol>
+      <% } else { %><p class="muted">No players yet.</p><% } %>
+    </section>
+
+    <% if (transfers.length) { %>
+      <section class="card admin-grid__wide" aria-labelledby="flow-even">
+        <h2 class="card__title" id="flow-even">Balanced out</h2>
+        <p class="muted"><% transfers.forEach(function (f, i) { %><%= label(f.reason) %> (<%= f.entries %>)<%= i < transfers.length - 1 ? ' · ' : '' %><% }) %></p>
+      </section>
+    <% } %>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

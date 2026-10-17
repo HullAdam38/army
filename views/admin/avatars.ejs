@@ -2,7 +2,7 @@
 <%- include('../partials/header') %>
 
 <main id="main" class="container game-main">
-  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <%- include('../partials/admin-nav', { active: 'avatars' }) %>
   <div class="page-head">
     <div>
       <p class="eyebrow">Moderation</p>

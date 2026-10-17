@@ -3,7 +3,7 @@
 <% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
 
 <main id="main" class="container game-main">
-  <a class="back-link" href="/admin"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Admin</a>
+  <%- include('../partials/admin-nav', { active: 'players' }) %>
   <div class="page-head">
     <div>
       <h1 class="page-head__title">Players</h1>

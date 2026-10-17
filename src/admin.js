@@ -7,7 +7,7 @@
 
 const crypto = require('node:crypto');
 const game = require('./game');
-const { MAX_HEALTH_PER_ENDURANCE } = require('./training');
+const { MAX_HEALTH_PER_ENDURANCE, statCap } = require('./training');
 
 const MAX_LEVEL = 120;
 const MAX_CASH_CHANGE = 10_000_000;
@@ -59,6 +59,69 @@ function setLevel(player, levelInput, reasonInput) {
   };
 }
 
+/** Adds or removes money in the bank (never below zero). */
+function adjustBank(player, amountInput, reasonInput) {
+  const amount = parseWhole(amountInput);
+  const reason = cleanReason(reasonInput);
+  if (amount === null || amount === 0) return { error: 'Enter a non-zero whole amount, e.g. 500 or -500.' };
+  if (Math.abs(amount) > MAX_CASH_CHANGE) return { error: `Changes are capped at ${money(MAX_CASH_CHANGE)} at a time.` };
+  if (!reason) return { error: 'Give a reason; it goes in the audit log.' };
+  if (player.bank_balance + amount < 0) return { error: `${player.username} only has ${money(player.bank_balance)} in the bank.` };
+  return {
+    player: { ...player, bank_balance: player.bank_balance + amount },
+    summary: `${amount > 0 ? 'Added' : 'Removed'} ${money(Math.abs(amount))} in the bank (now ${money(player.bank_balance + amount)}). Reason: ${reason}`,
+  };
+}
+
+const MAX_XP_GRANT = 1_000_000;
+
+/** Grants XP, with level-ups as if earned in play. */
+function grantXp(player, amountInput, reasonInput) {
+  const amount = parseWhole(amountInput);
+  const reason = cleanReason(reasonInput);
+  if (amount === null || amount < 1 || amount > MAX_XP_GRANT) return { error: `XP must be a whole number from 1 to ${MAX_XP_GRANT.toLocaleString('en-US')}.` };
+  if (!reason) return { error: 'Give a reason; it goes in the audit log.' };
+  const p = { ...player };
+  const levels = game.grantXp(p, amount);
+  if (p.level > MAX_LEVEL) return { error: `That would take them past level ${MAX_LEVEL}.` };
+  return {
+    player: p,
+    levelsGained: levels,
+    summary: `Granted ${amount.toLocaleString('en-US')} XP${levels.length ? ` (level ${player.level} → ${p.level})` : ''}. Reason: ${reason}`,
+  };
+}
+
+/** Sets trained Strength, Agility and Endurance (each 0 to the level's cap). Endurance changes max health. */
+function setStats(player, input, reasonInput) {
+  const reason = cleanReason(reasonInput);
+  const cap = statCap(player.level);
+  const next = {};
+  for (const [field, label] of [['stat_str', 'Strength'], ['stat_agi', 'Agility'], ['stat_end', 'Endurance']]) {
+    const n = parseWhole(input[field]);
+    if (n === null || n < 0 || n > cap) return { error: `${label} must be a whole number from 0 to ${cap} at level ${player.level}.` };
+    next[field] = n;
+  }
+  if (!reason) return { error: 'Give a reason; it goes in the audit log.' };
+  const healthChange = (next.stat_end - (player.stat_end || 0)) * MAX_HEALTH_PER_ENDURANCE;
+  const maxHealth = player.max_health + healthChange;
+  return {
+    player: { ...player, ...next, max_health: maxHealth, health: Math.min(maxHealth, Math.max(1, player.health + Math.max(0, healthChange))) },
+    summary: `Set trained stats ${player.stat_str || 0}/${player.stat_agi || 0}/${player.stat_end || 0} → ${next.stat_str}/${next.stat_agi}/${next.stat_end} (Str/Agi/End). Reason: ${reason}`,
+  };
+}
+
+/** Checks a new callsign or email. Returns { username } / { email } or { error }. */
+function validateIdentity({ username, email }, { USERNAME_RE, EMAIL_RE }) {
+  if (username !== undefined) {
+    const u = String(username).trim();
+    if (!USERNAME_RE.test(u)) return { error: 'Callsigns are 3–20 characters: letters, numbers, _ or -.' };
+    return { username: u };
+  }
+  const e = String(email || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(e) || e.length > 254) return { error: 'Enter a valid email address.' };
+  return { email: e };
+}
+
 /** Full energy and health, out of hospital. */
 function restore(player) {
   const now = Date.now();
@@ -83,4 +146,4 @@ function generateTempPassword() {
   return [chars.slice(0, 4), chars.slice(4, 8), chars.slice(8)].map((g) => g.join('')).join('-');
 }
 
-module.exports = { TEMP_PASSWORD_TTL_MS, generateTempPassword, MAX_LEVEL, adjustCash, cleanReason, restore, setLevel };
+module.exports = { TEMP_PASSWORD_TTL_MS, generateTempPassword, MAX_LEVEL, adjustBank, adjustCash, cleanReason, grantXp, restore, setLevel, setStats, validateIdentity };

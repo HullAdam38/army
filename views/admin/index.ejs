@@ -3,19 +3,18 @@
 <% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
 
 <main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'overview' }) %>
   <div class="page-head reveal" style="--i:0">
     <div>
       <p class="eyebrow">Command</p>
       <h1 class="page-head__title">Admin</h1>
-      <p class="page-head__sub">Every change you make here is recorded in the audit log below.</p>
+      <p class="page-head__sub">Every change you make here is recorded in the <a href="/admin/audit">audit log</a>.</p>
     </div>
     <div class="admin-head-actions">
-      <a class="btn btn--ghost" href="/admin/settings">Game settings</a>
-      <a class="btn btn--ghost" href="/admin/events">Events</a>
-      <a class="btn btn--ghost" href="/admin/reports">Reported messages<% if (openReports) { %> <span class="count-badge"><%= openReports %></span><% } %></a>
-      <a class="btn btn--ghost" href="/admin/chat">Chat<% if (openChatReports) { %> <span class="count-badge"><%= openChatReports %></span><% } %></a>
-      <a class="btn btn--ghost" href="/admin/avatars">Avatars<% if (openAvatarReports) { %> <span class="count-badge"><%= openAvatarReports %></span><% } %></a>
-      <a class="btn btn--ghost" href="/admin/flags">Suspicious activity<% if (openFlags) { %> <span class="count-badge"><%= openFlags %></span><% } %></a>
+      <% if (openReports) { %><a class="btn btn--ghost" href="/admin/reports">Reported messages <span class="count-badge"><%= openReports %></span></a><% } %>
+      <% if (openChatReports) { %><a class="btn btn--ghost" href="/admin/chat">Chat reports <span class="count-badge"><%= openChatReports %></span></a><% } %>
+      <% if (openAvatarReports) { %><a class="btn btn--ghost" href="/admin/avatars">Reported avatars <span class="count-badge"><%= openAvatarReports %></span></a><% } %>
+      <% if (openFlags) { %><a class="btn btn--ghost" href="/admin/flags">Suspicious activity <span class="count-badge"><%= openFlags %></span></a><% } %>
       <a class="btn btn--primary" href="/admin/players">Find a player <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
     </div>
   </div>

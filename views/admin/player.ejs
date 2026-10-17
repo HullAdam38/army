@@ -3,14 +3,15 @@
 <% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
 
 <main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'players' }) %>
   <a class="back-link" href="/admin/players"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All players</a>
 
   <section class="card profile-hero" aria-labelledby="who">
-    <span class="stat__grade stat__grade--xl"><%= rank.grade %></span>
+    <% if (avatar) { %><%- include('../partials/avatar', { url: avatar.url, size: 'lg', eager: true, alt: `${t.username}'s avatar` }) %><% } else { %><span class="stat__grade stat__grade--xl"><%= rank.grade %></span><% } %>
     <div class="profile-hero__body">
       <p class="eyebrow">Player #<%= t.id %></p>
       <h1 id="who" class="profile-hero__name"><%= t.username %></h1>
-      <p class="profile-hero__rank"><%= rank.name %> · Level <%= t.level %><% if (t.is_admin) { %> · <span class="tag">Admin</span><% } %></p>
+      <p class="profile-hero__rank"><%= rank.name %> (<%= rank.grade %>) · Level <%= t.level %><% if (t.is_admin) { %> · <span class="tag">Admin</span><% } %></p>
       <ul class="profile-hero__meta">
         <li><%= t.email %></li>
         <li><a href="/profile/<%= encodeURIComponent(t.username) %>">Public profile</a></li>
@@ -67,6 +68,149 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button class="btn btn--ghost btn--sm" type="submit">Restore <%= t.username %></button>
       </form>
+    </section>
+
+    <% const canEditIdentity = !t.is_admin || isSelf; %>
+    <section class="card" aria-labelledby="identity-title">
+      <h2 id="identity-title" class="card__title">Callsign &amp; email</h2>
+      <% if (!canEditIdentity) { %>
+        <p class="muted">Another admin’s callsign and email can only be changed on the server.</p>
+      <% } else { %>
+        <form method="post" action="/admin/players/<%= t.id %>/identity" class="form admin-form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="field" value="username">
+          <div class="field-row">
+            <div class="field"><label for="new-name">Callsign</label><input id="new-name" name="value" value="<%= t.username %>" minlength="3" maxlength="20" pattern="[A-Za-z0-9_\-]{3,20}" required autocomplete="off"></div>
+            <div class="field"><label for="name-reason">Reason (shown to them)</label><input id="name-reason" name="reason" maxlength="200" placeholder="Offensive callsign" required></div>
+          </div>
+          <button class="btn btn--ghost btn--sm" type="submit">Rename</button>
+        </form>
+        <form method="post" action="/admin/players/<%= t.id %>/identity" class="form admin-form admin-form--gap">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="field" value="email">
+          <div class="field-row">
+            <div class="field"><label for="new-email">Email (they sign in with it)</label><input id="new-email" name="value" type="email" value="<%= t.email %>" maxlength="254" required autocomplete="off"></div>
+            <div class="field"><label for="email-reason">Reason</label><input id="email-reason" name="reason" maxlength="200" placeholder="Player asked by email" required></div>
+          </div>
+          <button class="btn btn--ghost btn--sm" type="submit">Change email</button>
+        </form>
+      <% } %>
+    </section>
+
+    <section class="card" aria-labelledby="bank-title">
+      <h2 id="bank-title" class="card__title">Adjust bank</h2>
+      <form method="post" action="/admin/players/<%= t.id %>/bank" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field-row">
+          <div class="field"><label for="bank-amount">Amount (negative removes)</label><input id="bank-amount" name="amount" inputmode="numeric" placeholder="500 or -500" required></div>
+          <div class="field"><label for="bank-reason">Reason</label><input id="bank-reason" name="reason" maxlength="200" placeholder="Refund" required></div>
+        </div>
+        <button class="btn btn--primary btn--sm" type="submit">Apply</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="xp-title">
+      <h2 id="xp-title" class="card__title">Grant XP</h2>
+      <form method="post" action="/admin/players/<%= t.id %>/xp" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field-row">
+          <div class="field"><label for="xp-amount">XP</label><input id="xp-amount" name="amount" inputmode="numeric" placeholder="1000" required></div>
+          <div class="field"><label for="xp-reason">Reason</label><input id="xp-reason" name="reason" maxlength="200" placeholder="Event prize" required></div>
+        </div>
+        <p class="field__hint">Levels up as if earned in play, with the usual promotion notices. Use Set level to go down.</p>
+        <button class="btn btn--primary btn--sm" type="submit">Grant</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="stats-title">
+      <h2 id="stats-title" class="card__title">Trained stats</h2>
+      <form method="post" action="/admin/players/<%= t.id %>/stats" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field-row field-row--3">
+          <div class="field"><label for="st-str">Strength</label><input id="st-str" name="stat_str" type="number" min="0" max="<%= statCap %>" value="<%= t.stat_str || 0 %>" required></div>
+          <div class="field"><label for="st-agi">Agility</label><input id="st-agi" name="stat_agi" type="number" min="0" max="<%= statCap %>" value="<%= t.stat_agi || 0 %>" required></div>
+          <div class="field"><label for="st-end">Endurance</label><input id="st-end" name="stat_end" type="number" min="0" max="<%= statCap %>" value="<%= t.stat_end || 0 %>" required></div>
+        </div>
+        <div class="field"><label for="st-reason">Reason</label><input id="st-reason" name="reason" maxlength="200" placeholder="Training bug refund" required></div>
+        <p class="field__hint">Each stat can go up to <%= statCap %> at level <%= t.level %>. Endurance also changes max health.</p>
+        <button class="btn btn--primary btn--sm" type="submit">Save stats</button>
+      </form>
+    </section>
+
+    <section class="card admin-grid__wide" id="inventory" aria-labelledby="inv-title">
+      <h2 id="inv-title" class="card__title">Gear</h2>
+      <% if (inventory.length) { %>
+        <ul class="admin-gear">
+          <% inventory.forEach(function (i) { %><li><span><%= i.name %></span><span class="muted">Lv <%= i.minLevel %> · <%= i.slot %><%= i.equipped ? ' · equipped' : '' %></span></li><% }) %>
+        </ul>
+      <% } else { %>
+        <p class="muted">Owns no gear.</p>
+      <% } %>
+      <div class="admin-gear__forms">
+        <% if (grantable.length) { %>
+          <form method="post" action="/admin/players/<%= t.id %>/items" class="form admin-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="action" value="grant">
+            <div class="field"><label for="give-item">Give an item</label>
+              <select id="give-item" name="item" required>
+                <% grantable.forEach(function (s) { %><optgroup label="<%= s.label %>"><% s.items.forEach(function (i) { %><option value="<%= i.id %>"><%= i.name %> (Lv <%= i.minLevel %>)</option><% }) %></optgroup><% }) %>
+              </select>
+            </div>
+            <div class="field"><label for="give-reason">Reason</label><input id="give-reason" name="reason" maxlength="200" placeholder="Lost item after bug" required></div>
+            <button class="btn btn--ghost btn--sm" type="submit">Give</button>
+          </form>
+        <% } %>
+        <% if (inventory.length) { %>
+          <form method="post" action="/admin/players/<%= t.id %>/items" class="form admin-form" data-confirm="Take this item away? It's unequipped first.">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="action" value="remove">
+            <div class="field"><label for="take-item">Take an item</label>
+              <select id="take-item" name="item" required>
+                <% inventory.forEach(function (i) { %><option value="<%= i.id %>"><%= i.name %><%= i.equipped ? ' (equipped)' : '' %></option><% }) %>
+              </select>
+            </div>
+            <div class="field"><label for="take-reason">Reason</label><input id="take-reason" name="reason" maxlength="200" placeholder="Bought through an exploit" required></div>
+            <button class="btn btn--ghost btn--sm btn--danger" type="submit">Take away</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="unit-title">
+      <h2 id="unit-title" class="card__title">Unit</h2>
+      <% if (unit) { %>
+        <p><a href="/units/<%= unit.id %>"><strong>[<%= unit.tag %>] <%= unit.name %></strong></a> <span class="muted">· <%= t.unit_role %></span></p>
+        <% if (t.unit_role === 'leader') { %>
+          <p class="muted">They’re the Commander. To remove them, transfer command or disband the unit from its page.</p>
+        <% } else { %>
+          <form method="post" action="/admin/players/<%= t.id %>/unit-remove" class="form admin-form admin-form--gap" data-confirm="Remove <%= t.username %> from <%= unit.name %>?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="field"><label for="unit-reason">Reason (shown to them)</label><input id="unit-reason" name="reason" maxlength="200" required></div>
+            <button class="btn btn--ghost btn--sm" type="submit">Remove from unit</button>
+          </form>
+        <% } %>
+      <% } else { %>
+        <p class="muted">Not in a unit.</p>
+      <% } %>
+    </section>
+
+    <section class="card" aria-labelledby="mod-title">
+      <h2 id="mod-title" class="card__title">Title, chat &amp; sessions</h2>
+      <ul class="admin-list admin-modlist">
+        <li>Title: <% if (titleName) { %><strong><%= titleName %></strong>
+          <form method="post" action="/admin/players/<%= t.id %>/clear-title" class="admin-inline-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn--ghost btn--xs" type="submit">Clear</button></form>
+          <% } else { %><span class="muted">none</span><% } %></li>
+        <li>Chat: <% if (muted) { %><strong>muted</strong>, <%= muted.left %> left<%= muted.reason ? ` (${muted.reason})` : '' %>
+          <form method="post" action="/admin/chat/unmute/<%= t.id %>" class="admin-inline-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn--ghost btn--xs" type="submit">Unmute</button></form>
+          <% } else { %><span class="muted">not muted</span> · <a href="/admin/chat">chat moderation</a><% } %></li>
+        <% if (avatar) { %><li>Avatar: <%= avatar.kind === 'upload' ? 'uploaded picture' : avatar.kind === 'badge' ? 'badge' : 'starting badge' %><%= avatar.uploadsBlocked ? ' · uploads blocked' : '' %> · <a href="/admin/avatars?tab=recent">avatar moderation</a></li><% } %>
+      </ul>
+      <% if (!isSelf) { %>
+        <form method="post" action="/admin/players/<%= t.id %>/sign-out" class="admin-inline" data-confirm="Sign <%= t.username %> out on every device?">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Sign out everywhere</button>
+        </form>
+      <% } %>
     </section>
 
     <section class="card" aria-labelledby="pw-title">

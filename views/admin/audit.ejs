@@ -1,0 +1,56 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'audit' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Audit log</h1>
+      <p class="page-head__sub">Every admin action, newest first. <%= total.toLocaleString('en-US') %> match<%= total === 1 ? 'es' : '' %>.</p>
+    </div>
+  </div>
+
+  <form class="admin-filters" method="get" action="/admin/audit" role="search">
+    <div class="field"><label for="f-action">Action</label>
+      <select id="f-action" name="action">
+        <option value="">All actions</option>
+        <% actions.forEach(function (a) { %><option value="<%= a %>" <%- a === action ? 'selected' : '' %>><%= a %></option><% }) %>
+      </select>
+    </div>
+    <div class="field"><label for="f-admin">Admin</label>
+      <select id="f-admin" name="admin">
+        <option value="">Any admin</option>
+        <% admins.forEach(function (a) { %><option value="<%= a.id %>" <%- a.id === adminId ? 'selected' : '' %>><%= a.username %></option><% }) %>
+      </select>
+    </div>
+    <div class="field"><label for="f-q">Player or text</label><input id="f-q" name="q" type="search" value="<%= q %>" placeholder="Callsign or words…" autocomplete="off"></div>
+    <div class="admin-filters__actions">
+      <button class="btn btn--primary btn--sm" type="submit">Filter</button>
+      <% if (action || adminId || q) { %><a class="btn btn--ghost btn--sm" href="/admin/audit">Clear</a><% } %>
+    </div>
+  </form>
+
+  <% if (rows.length) { %>
+    <ol class="audit card">
+      <% rows.forEach(function (a) { %>
+        <li class="audit__row">
+          <span class="audit__action audit__action--<%= a.action %>"><%= a.action %></span>
+          <span class="audit__text"><strong><%= a.admin_name %></strong><% if (a.target_id) { %> → <a href="/admin/players/<%= a.target_id %>"><%= a.target_name || `#${a.target_id}` %></a><% } %>: <%= a.details %></span>
+          <time class="audit__time" datetime="<%= new Date(a.created_at).toISOString() %>" title="<%= a.when %> UTC"><%= a.ago %></time>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted">No admin actions match.</p>
+  <% } %>
+
+  <% if (pages > 1) { %>
+    <nav class="pager" aria-label="Pages">
+      <% if (page > 1) { %><a class="btn btn--ghost btn--sm" href="<%= pageUrl(page - 1) %>" rel="prev">Newer</a><% } else { %><span></span><% } %>
+      <span class="pager__info">Page <%= page %> of <%= pages %></span>
+      <% if (page < pages) { %><a class="btn btn--ghost btn--sm" href="<%= pageUrl(page + 1) %>" rel="next">Older</a><% } else { %><span></span><% } %>
+    </nav>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

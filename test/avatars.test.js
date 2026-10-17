@@ -279,7 +279,7 @@ test('avatars end to end: build, upload, report, moderate', async () => {
     assert.equal((await bravo.request('/admin/avatars')).res.status, 404);
     db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(bravo.id);
     page = (await bravo.request('/admin')).text;
-    assert.match(page, /Avatars <span class="count-badge">1<\/span>/);
+    assert.match(page, /Reported avatars <span class="count-badge">1<\/span>/);
     page = (await bravo.request('/admin/avatars')).text;
     assert.match(page, /rude picture/);
     assert.ok((await bravo.request('/admin/avatars?tab=recent')).text.includes('80 × 80'));
