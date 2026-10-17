@@ -83,8 +83,11 @@ function jpeg(buf) {
       width = buf.readUInt16BE(pos + 7);
     }
     if (marker === 0xda) {
-      // Start of scan: the compressed picture follows to the end of the file.
-      keep.push(buf.subarray(pos));
+      // Start of scan: compressed picture data follows. Inside it a 0xFF byte is
+      // always followed by 0x00 or a restart marker, so the first FF D9 is the
+      // end of the image. Anything after it (a hidden file, say) is dropped.
+      const eoi = buf.indexOf(Buffer.from([0xff, 0xd9]), end);
+      keep.push(buf.subarray(pos, eoi === -1 ? buf.length : eoi + 2));
       pos = buf.length;
       break;
     }

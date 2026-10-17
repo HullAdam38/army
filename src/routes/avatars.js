@@ -27,21 +27,27 @@ function avatarRoutes(players, avatarService, adminRepo) {
     res.send(body);
   };
 
+  // The signed-in viewer, unless their account is gone or suspended.
+  const viewerOf = (req) => {
+    const user = req.session.userId && players.findById(req.session.userId);
+    return user && !user.banned_at ? user : null;
+  };
+
   // Live preview for the badge builder: the badge described by the query, unsaved.
   router.get('/avatars/preview', (req, res) => {
-    if (!req.session.userId || !players.findById(req.session.userId)) return res.sendStatus(401);
+    if (!viewerOf(req)) return res.sendStatus(401);
     sendImage(res, { mime: 'image/svg+xml', body: avatarService.preview(req.session.userId, req.query) }, 'private, no-store');
   });
 
   // Avatars are for signed-in players only, like the profiles they sit on.
   router.get('/avatars/:id', (req, res, next) => {
     if (!/^\d{1,10}$/.test(req.params.id)) return next();
-    if (!req.session.userId) return res.sendStatus(401);
+    const viewer = viewerOf(req);
+    if (!viewer) return res.sendStatus(401);
     const id = Number(req.params.id);
     // Owners and admins can see an uploaded picture even while it isn't in use.
     if (req.query.kind === 'upload') {
-      const viewer = players.findById(req.session.userId);
-      const up = viewer && (viewer.id === id || viewer.is_admin) ? avatarService.uploaded(id) : null;
+      const up = viewer.id === id || viewer.is_admin ? avatarService.uploaded(id) : null;
       if (!up) return res.sendStatus(404);
       return sendImage(res, up, 'private, no-cache');
     }

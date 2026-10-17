@@ -169,11 +169,19 @@ test('unit objectives and the high-value target through the app', async () => {
     assert.equal(app.target.afterFight({ battleId: 3, attackerId: other.id, defenderId: targetId, attackerWon: true, rewards: { attacker: 0, defender: 0 } }), null);
     // Fights against anyone else don't count.
     assert.equal(app.target.afterFight({ battleId: 4, attackerId: other.id, defenderId: hunter.id, attackerWon: true, rewards: { attacker: 1, defender: 1 } }), null);
-    // The target earns for each attack they fight off, up to the daily cap.
+    // Accounts that share a device or network never collect, win or lose.
+    assert.equal(app.target.afterFight({ battleId: 5, attackerId: other.id, defenderId: targetId, attackerWon: true, rewards: { attacker: 1, defender: 1 }, linked: true }), null);
+    assert.equal(app.target.afterFight({ battleId: 6, attackerId: other.id, defenderId: targetId, attackerWon: false, rewards: { attacker: 1, defender: 1 }, linked: true }), null);
+    // The target earns for each attacker they hold off: once per attacker per day, up to the cap.
     const tCash = user(targetId).cash;
-    let paid = 0;
-    for (let i = 0; i < target.MAX_DEFENSE_PAYOUTS + 3; i += 1) {
-      if (app.target.afterFight({ battleId: 10 + i, attackerId: other.id, defenderId: targetId, attackerWon: false, rewards: { attacker: 1, defender: 1 } })) paid += 1;
+    assert.ok(app.target.afterFight({ battleId: 7, attackerId: other.id, defenderId: targetId, attackerWon: false, rewards: { attacker: 1, defender: 1 } }));
+    assert.equal(app.target.afterFight({ battleId: 8, attackerId: other.id, defenderId: targetId, attackerWon: false, rewards: { attacker: 1, defender: 1 } }), null);
+    const extras = Array.from({ length: target.MAX_DEFENSE_PAYOUTS + 2 }, (_, i) => Number(db.prepare(
+      'INSERT INTO users (username, email, password_hash, cash, energy_updated_at, health_updated_at, created_at) VALUES (?, ?, ?, 0, ?, ?, ?)',
+    ).run(`Extra${i}`, `extra${i}@x.com`, 'x', Date.now(), Date.now(), Date.now()).lastInsertRowid));
+    let paid = 1;
+    for (const [i, id] of extras.entries()) {
+      if (app.target.afterFight({ battleId: 100 + i, attackerId: id, defenderId: targetId, attackerWon: false, rewards: { attacker: 1, defender: 1 } })) paid += 1;
     }
     assert.equal(paid, target.MAX_DEFENSE_PAYOUTS);
     assert.equal(user(targetId).cash, tCash + target.MAX_DEFENSE_PAYOUTS * target.defenseBonus(user(targetId).level));

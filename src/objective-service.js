@@ -18,8 +18,9 @@ function createObjectiveService(db, players, unitRepo) {
     nudge: db.prepare('UPDATE unit_objectives SET nudged_at = ? WHERE week = ? AND unit_id = ? AND slot = ? AND nudged_at IS NULL'),
     contrib: db.prepare(`INSERT INTO unit_objective_contrib (week, unit_id, user_id, type, amount) VALUES (?, ?, ?, ?, ?)
                          ON CONFLICT(week, unit_id, user_id, type) DO UPDATE SET amount = amount + excluded.amount`),
+    // Helpers who did a real share (see MIN_SHARE), are still members and aren't suspended.
     helpers: db.prepare(`SELECT c.user_id FROM unit_objective_contrib c JOIN users u ON u.id = c.user_id
-                         WHERE c.week = ? AND c.unit_id = ? AND c.type = ? AND c.amount > 0 AND u.unit_id = c.unit_id AND u.banned_at IS NULL`),
+                         WHERE c.week = ? AND c.unit_id = ? AND c.type = ? AND c.amount >= ? AND u.unit_id = c.unit_id AND u.banned_at IS NULL`),
     top: db.prepare(`SELECT c.user_id, u.username, u.avatar_v, c.type, c.amount FROM unit_objective_contrib c JOIN users u ON u.id = c.user_id
                      WHERE c.week = ? AND c.unit_id = ? AND c.amount > 0 ORDER BY c.amount DESC`),
     members: db.prepare('SELECT COUNT(*) AS n, AVG(level) AS level FROM users WHERE unit_id = ? AND banned_at IS NULL'),
@@ -51,7 +52,8 @@ function createObjectiveService(db, players, unitRepo) {
     const what = objectives.describe(o);
     const link = `/units/${unitId}#objectives`;
     // XP to each current member who helped with this one.
-    const helped = new Set(stmts.helpers.all(week, unitId, o.type).map((r) => r.user_id));
+    const minShare = Math.max(1, Math.ceil(o.target * objectives.MIN_SHARE));
+    const helped = new Set(stmts.helpers.all(week, unitId, o.type, minShare).map((r) => r.user_id));
     for (const id of helped) {
       const found = players.findById(id);
       if (!found) continue;

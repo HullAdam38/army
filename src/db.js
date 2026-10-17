@@ -557,6 +557,13 @@ const SCHEMA = `
     PRIMARY KEY (day, attacker_id)
   );
   CREATE INDEX IF NOT EXISTS idx_daily_target_claims_battle ON daily_target_claims(battle_id);
+  -- Attackers the target has been paid for holding off (once each per day).
+  CREATE TABLE IF NOT EXISTS daily_target_defenses (
+    day          TEXT    NOT NULL,
+    attacker_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    battle_id    INTEGER NOT NULL,
+    PRIMARY KEY (day, attacker_id)
+  );
 
   -- Titles (src/titles.js): which ones a player has earned.
   CREATE TABLE IF NOT EXISTS user_titles (

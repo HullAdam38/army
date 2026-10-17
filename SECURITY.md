@@ -65,11 +65,32 @@ Admin player pages show a **24-hour activity chart** (actions per hour). Real pl
 5. **Sign-in forgot where you were going** (always went to HQ). Fixed, with stricter redirect checks.
 6. **No cap on actions per player.** Added 120/minute.
 
+### Second review (avatars, uploads, push alerts, admin tools, objectives, high-value target)
+
+Checked: the upload reader and image checks, how avatars are served, push subscriptions and the CSRF-free renew route, the service worker, every new admin action, and the new payouts. Each fix has a test in `test/security-review.test.js` or `test/objectives.test.js` that fails without it.
+
+7. **High-value target bonuses could be farmed with a second account** (medium). A target's defence bonus only excluded accounts that share a device, and a device is a cookie. So an alt on the same network (cookies cleared), or a friend, could lose on purpose 10 times a day, paying the target about 20 deployment-hours of cash daily. Both target payouts now refuse accounts linked by device *or* network, and a defence pays at most once per attacker per day.
+8. **Upload bodies were read before checking the player was signed in** (low). Anyone could make the server buffer about 1 MB per request before the CSRF check refused it. Now only signed-in sessions have uploads read.
+9. **JPEGs kept anything after their end-of-image marker** (low, hardening). A file could carry a hidden second file. They're served with `nosniff` and a sandboxing CSP, so browsers wouldn't run it, but the extra bytes are now dropped.
+10. **Weekly-objective XP for token contributions** (low). A $1 donation made a member a "helper" of a War chest objective and earned them the completion XP. Helpers now need at least 2% of the target.
+11. **Avatar images were served to suspended or deleted accounts' sessions** (low). They now need a valid, unsuspended account. That also covers a suspended admin's session viewing unused uploads.
+
+Looked at and fine as it is:
+- **The push renew route skips CSRF** because a service worker can't send the token. It needs a JSON body (so another site can't send it without a blocked preflight) and the old push address, which is a secret only that browser and the server know.
+- **Push only goes to Google, Mozilla, Apple and Microsoft**, so subscriptions can't be used to make the server call other addresses. Links in alerts stay on the site, and the service worker checks that again before opening one.
+- **Admin pages** all return 404 to non-admins, need the CSRF token, escape what they show, and record a reason in the audit log. Admin rights, and other admins' callsigns and emails, can only be changed on the server.
+- **Uploaded pictures** have their type read from the bytes and their metadata stripped. They're served with the exact image type, `nosniff`, `Content-Disposition: inline` and a CSP sandbox.
+- **Badge SVGs** are built only from fixed parts plus escaped game data (grade, level, callsign, unit tag).
+- **New payouts** use their own ledger reasons (`target-bonus`, `unit-objective`), so the existing payout checks still apply. Claims are single database writes guarded by keys or conditions, so double clicks or parallel requests can't pay twice.
+- **Spam:** mentions notify at most once per sender every 10 minutes, and push alerts are capped at 30 per player per hour.
+
 ## Known limits (fine for launch, worth revisiting)
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.
 - **Privacy notice:** mention in your terms that sign-ins (device ID, hashed IP) and gameplay are monitored for cheating and kept for up to 90 days.
 - **No self-service password reset or email verification** yet, because the game doesn't send email. Admins can issue a 24-hour temporary password (shown once, never logged), which forces the player to choose a new password at their next sign-in and signs them out everywhere. Players can change their own password, which signs out their other devices; wrong current-password attempts are throttled (5 per 15 min).
+- **Colluding real players can still trade small favours,** for example a friend on a different network losing to the high-value target once a day, or feeding a weekly objective. The caps keep it small, and anti-cheat's farming checks still watch PvP pairs.
+- **Upload, report and push limits live in memory** like the other rate limits, so a restart resets them.
 - **Battle reports are visible to any signed-in player** by design (they show the cash taken in that fight).
 - **SQLite** suits one server comfortably. Back up `data/` regularly (see below).
 

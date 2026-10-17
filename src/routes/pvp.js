@@ -48,7 +48,8 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
       players.save(out.defender, { reason: 'pvp', ref: `battle:${id}` });
       const link = `/battles/${id}`;
       // Season rating: only full-reward fights are ranked (see seasons.isRanked).
-      const season = seasonService.recordFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, linked: anti.linked(attacker.id, defender.id, now), now });
+      const linked = anti.linked(attacker.id, defender.id, now); // same device or network
+      const season = seasonService.recordFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, linked, now });
       const defRating = season.ranked ? ` Season rating ${signed(season.defender.delta)} (${season.defender.rating}).` : '';
       const a = attacker.username;
       const d = defender.username;
@@ -82,7 +83,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
         ? bountyService.claim({ claimerId: attacker.id, targetId: defender.id, battleId: id, now })
         : null;
       // The daily high-value target: a bonus for beating them, or for them holding the line.
-      const hvt = targetService ? targetService.afterFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, now }) : null;
+      const hvt = targetService ? targetService.afterFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, linked, now }) : null;
       // Only a full-reward win counts: no linked accounts, no repeat wins on one target.
       if (r.attackerWon && rewards.attacker === 1) daily.progress(attacker.id, 'pvp_wins', 1, { now });
       announceLevels(players, attacker.id, r.levelsGained.attacker);

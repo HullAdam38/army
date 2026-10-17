@@ -25,6 +25,8 @@ function createTargetService(db, players) {
     claimCount: db.prepare('SELECT COUNT(*) AS n FROM daily_target_claims WHERE day = ?'),
     beaten: db.prepare('UPDATE daily_targets SET beaten = beaten + 1 WHERE day = ?'),
     defended: db.prepare('UPDATE daily_targets SET defenses = defenses + 1 WHERE day = ? AND defenses < ?'),
+    defenseFrom: db.prepare('INSERT OR IGNORE INTO daily_target_defenses (day, attacker_id, battle_id) VALUES (?, ?, ?)'),
+    pruneDefenses: db.prepare('DELETE FROM daily_target_defenses WHERE day < ?'),
     prune: db.prepare('DELETE FROM daily_target_claims WHERE day < ?'),
   };
 
@@ -92,12 +94,14 @@ function createTargetService(db, players) {
     },
 
     /**
-     * Pays out after a fight with today's target. Only full-reward fights count
-     * (no linked accounts, no repeat wins). Returns { claim } / { defense } / null.
+     * Pays out after a fight with today's target. Only full-reward fights between
+     * unlinked accounts count: `linked` is true when they share a device or a
+     * network (anti.linked), since a second account could otherwise feed the
+     * target wins or deliberate losses. Returns { claim } / { defense } / null.
      */
-    afterFight({ battleId, attackerId, defenderId, attackerWon, rewards, now = Date.now() }) {
+    afterFight({ battleId, attackerId, defenderId, attackerWon, rewards, linked = false, now = Date.now() }) {
       const t = stmts.day.get(target.dayKey(now));
-      if (!t || t.user_id !== defenderId) return null;
+      if (!t || t.user_id !== defenderId || linked) return null;
       if (attackerWon && rewards.attacker === 1) {
         const b = target.bonus(t.level);
         if (!stmts.claim.run(t.day, attackerId, battleId, b.cash, b.xp, now).changes) return null; // already collected today
@@ -106,7 +110,9 @@ function createTargetService(db, players) {
         players.log(attackerId, 'success', `Beat the high-value target ${t.username}: +${money(b.cash)}, +${b.xp} XP bonus.`, `/battles/${battleId}`);
         return { claim: b };
       }
-      if (!attackerWon && rewards.defender === 1 && stmts.defended.run(t.day, target.MAX_DEFENSE_PAYOUTS).changes) {
+      // A defence pays once per attacker per day, so one friend losing on purpose can't fill the cap.
+      if (!attackerWon && rewards.defender === 1 && t.defenses < target.MAX_DEFENSE_PAYOUTS
+        && stmts.defenseFrom.run(t.day, attackerId, battleId).changes && stmts.defended.run(t.day, target.MAX_DEFENSE_PAYOUTS).changes) {
         const cash = target.defenseBonus(t.level);
         pay(defenderId, cash, 0, `battle:${battleId}`, now);
         players.log(defenderId, 'success', `Held off an attack as the high-value target: +${money(cash)}.`, `/battles/${battleId}`);
@@ -122,7 +128,9 @@ function createTargetService(db, players) {
       const timer = setInterval(() => {
         try {
           today();
-          stmts.prune.run(target.dayKey(Date.now() - 30 * 24 * 60 * 60 * 1000));
+          const cutoff = target.dayKey(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          stmts.prune.run(cutoff);
+          stmts.pruneDefenses.run(cutoff);
         } catch (err) { console.error('[target] daily pick failed', err); }
       }, 10 * 60 * 1000);
       timer.unref();

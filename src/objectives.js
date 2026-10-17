@@ -11,6 +11,7 @@ const tuning = require('./tuning');
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const PER_UNIT = 3;
 const NUDGE_AT = 0.8; // members hear when an objective is this close
+const MIN_SHARE = 0.02; // XP goes to members who did at least this share (so $1 donations don't count)
 const MIN_MEMBERS = 3; // targets assume at least this many, so tiny units still have to work for it
 const MAX_MEMBERS = 30;
 
@@ -77,6 +78,7 @@ const describe = (o) => {
 };
 
 module.exports = {
+  MIN_SHARE,
   NUDGE_AT,
   PER_UNIT,
   TYPES,

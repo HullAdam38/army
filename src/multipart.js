@@ -10,6 +10,9 @@
  * reply instead of a dropped connection) but nothing past the limit is kept:
  * req.uploadTooLarge is set, and any fields that arrived complete before the
  * file (such as _csrf) are still parsed.
+ *
+ * Only signed-in sessions get their uploads read: anyone else's request is
+ * left unparsed, so it fails the CSRF check without being buffered.
  */
 
 const HARD_CAP = 25 * 1024 * 1024; // past this the connection is cut
@@ -55,6 +58,7 @@ function multipart({ paths, maxBytes }) {
   const wanted = new Set(paths);
   return (req, res, next) => {
     if (req.method !== 'POST' || !wanted.has(req.path)) return next();
+    if (!req.session || !req.session.userId) return next();
     const boundary = boundaryOf(req.get('content-type'));
     if (!boundary) return next();
     const keep = maxBytes + 64 * 1024; // room for the other fields and part headers
