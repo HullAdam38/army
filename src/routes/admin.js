@@ -11,6 +11,7 @@ const bbcode = require('../bbcode');
 const { ITEMS, ITEMS_BY_ID, SLOTS } = require('../items');
 const { EMAIL_RE, USERNAME_RE } = require('./auth');
 const { announceLevels } = require('../notify');
+const { createStatsService } = require('../stats-service');
 
 const PAGE_SIZE = 25;
 const timeLeft = (ms) => {
@@ -333,6 +334,13 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   };
 
   // Reported private messages. Admins only ever see messages someone reported.
+  // ----- Player stats -----
+  const stats = createStatsService(adminRepo.db);
+  router.get('/admin/stats', (req, res) => {
+    const range = req.query.range === 'all' ? 'all' : 'month';
+    res.render('admin/stats', { title: 'Admin · Player stats', nav: 'admin', s: stats.overview(Date.now(), { range }), RETENTION: stats.RETENTION });
+  });
+
   // ----- Units -----
   router.get('/admin/units', (req, res) => {
     const q = String(req.query.q || '').trim().slice(0, 24);

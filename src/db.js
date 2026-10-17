@@ -565,6 +565,14 @@ const SCHEMA = `
     PRIMARY KEY (day, attacker_id)
   );
 
+  -- Days each player was active (UTC dates), for Admin › Player stats.
+  CREATE TABLE IF NOT EXISTS player_days (
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    day      TEXT    NOT NULL,
+    PRIMARY KEY (user_id, day)
+  );
+  CREATE INDEX IF NOT EXISTS idx_player_days_day ON player_days(day);
+
   -- Titles (src/titles.js): which ones a player has earned.
   CREATE TABLE IF NOT EXISTS user_titles (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -671,6 +679,7 @@ const ADDED_COLUMNS = [
   ['users', 'avatar_upload_blocked', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'push_prefs', 'TEXT'], // JSON: alert categories and quiet hours (src/push.js)
   ['users', 'energy_push_for', 'INTEGER'], // energy_updated_at already alerted as "energy full"
+  ['users', 'app_seen_at', 'INTEGER'], // last time they played in the installed app
 ];
 
 function migrate(db) {
@@ -681,6 +690,19 @@ function migrate(db) {
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_hospital ON users(hospital_until)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_unit ON users(unit_id)');
+  // First run with player_days: rebuild active days from the history the game already keeps.
+  if (!db.prepare('SELECT 1 FROM player_days LIMIT 1').get() && db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
+    const day = (col) => `strftime('%Y-%m-%d', ${col} / 1000, 'unixepoch')`;
+    db.exec(`
+      INSERT OR IGNORE INTO player_days (user_id, day) SELECT id, ${day('created_at')} FROM users;
+      INSERT OR IGNORE INTO player_days (user_id, day) SELECT id, ${day('last_seen_at')} FROM users WHERE last_seen_at IS NOT NULL;
+      INSERT OR IGNORE INTO player_days (user_id, day) SELECT DISTINCT user_id, ${day('created_at')} FROM ledger;
+      INSERT OR IGNORE INTO player_days (user_id, day) SELECT DISTINCT attacker_id, ${day('created_at')} FROM battles;
+      INSERT OR IGNORE INTO player_days (user_id, day) SELECT DISTINCT user_id, ${day('created_at')} FROM sign_ins;
+      INSERT OR IGNORE INTO player_days (user_id, day) SELECT DISTINCT user_id, ${day('created_at')} FROM actions;
+      INSERT OR IGNORE INTO player_days (user_id, day) SELECT DISTINCT user_id, ${day('created_at')} FROM chat_messages;
+    `);
+  }
   // Players who existed before the ledger get one opening entry for their current
   // balances, so "balance == sum of ledger" holds from here on.
   db.prepare(`

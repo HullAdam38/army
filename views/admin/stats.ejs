@@ -1,0 +1,99 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<%
+  const k = s.kpis, f = s.features;
+  const pct = (n, of) => (of ? Math.round((n / of) * 100) : 0);
+  const short = (day) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const rows = (key) => s.daily.map((d) => ({ label: short(d.day), value: d[key] }));
+  const step = (p) => (p === null ? -1 : p >= 80 ? 4 : p >= 60 ? 3 : p >= 40 ? 2 : p >= 20 ? 1 : 0);
+%>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'stats' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Player stats</h1>
+      <p class="page-head__sub">Who joins, who plays, and who comes back. Built from data the game already keeps (accounts, the days each player is active, tutorial progress, fights, chat); nothing extra is tracked. Days are UTC.</p>
+    </div>
+  </div>
+
+  <dl class="admin-stats stats-kpis">
+    <div><dt>Players</dt><dd><%= k.players.toLocaleString('en-US') %></dd></div>
+    <div><dt>New this week</dt><dd><%= k.newWeek.toLocaleString('en-US') %></dd></div>
+    <div><dt>Active today</dt><dd><%= k.dau.toLocaleString('en-US') %></dd></div>
+    <div><dt>Active 7 days</dt><dd><%= k.wau.toLocaleString('en-US') %></dd></div>
+    <div><dt>Active 30 days</dt><dd><%= k.mau.toLocaleString('en-US') %></dd></div>
+    <div title="Active today as a share of active this month. 20%+ is healthy for a browser game."><dt>Daily / monthly</dt><dd><%= k.stickiness %>%</dd></div>
+  </dl>
+
+  <div class="stats-grid">
+    <section class="card"><%- include('../partials/col-chart', { id: 'active', title: 'Active players per day', rows: rows('active'), noun: 'active players' }) %></section>
+    <section class="card"><%- include('../partials/col-chart', { id: 'signups', title: 'Sign-ups per day', rows: rows('signups'), noun: 'sign-ups' }) %></section>
+  </div>
+
+  <section class="card stats-section" aria-labelledby="ret-title">
+    <h2 class="card__title" id="ret-title">Do players come back?</h2>
+    <p class="muted stats-help">Players who joined each week, and the share who returned. <% RETENTION.forEach(function (r, i) { %><strong><%= r.label %></strong>: <%= r.help %><%= i < RETENTION.length - 1 ? '; ' : '.' %><% }) %> A dash means it’s too early to tell.</p>
+    <div class="stats-scroll">
+      <table class="retention">
+        <thead><tr><th scope="col">Week joined</th><th scope="col" class="num">Players</th><% RETENTION.forEach(function (r) { %><th scope="col" class="num"><%= r.label %></th><% }) %></tr></thead>
+        <tbody>
+          <% s.cohorts.forEach(function (c) { %>
+            <tr>
+              <th scope="row"><%= short(c.week) %></th>
+              <td class="num"><%= c.size %></td>
+              <% RETENTION.forEach(function (r) { const v = c.rates[r.key]; const st = step(v ? v.pct : null); %>
+                <td class="num retention__cell<%= st >= 0 ? ` retention__cell--${st}` : '' %>" <%- v ? `title="${v.n} of ${c.size} ${r.help}"` : '' %>><%= v ? `${v.pct}%` : '–' %></td>
+              <% }) %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="stats-legend" aria-hidden="true"><span>0%</span><% [0, 1, 2, 3, 4].forEach(function (i) { %><i class="retention__cell--<%= i %>"></i><% }) %><span>80%+</span></p>
+  </section>
+
+  <nav class="tabs stats-range" aria-label="Which players">
+    <a class="tabs__tab" href="/admin/stats" <%- s.range === 'month' ? 'aria-current="page"' : '' %>>Joined in the last 30 days</a>
+    <a class="tabs__tab" href="/admin/stats?range=all" <%- s.range === 'all' ? 'aria-current="page"' : '' %>>Everyone</a>
+  </nav>
+
+  <div class="stats-grid">
+    <section class="card" aria-labelledby="funnel-title">
+      <h2 class="card__title" id="funnel-title">How far players get</h2>
+      <p class="muted stats-help">Out of everyone who signed up<%= s.range === 'month' ? ' in the last 30 days' : '' %>. A big drop between two rows is where the game loses people.</p>
+      <%- include('../partials/hbars', { rows: s.funnel, of: s.funnel[0].n }) %>
+    </section>
+    <section class="card" aria-labelledby="tut-title">
+      <h2 class="card__title" id="tut-title">Basic training steps</h2>
+      <p class="muted stats-help">Share of the same players who completed each step of the new-player checklist.</p>
+      <%- include('../partials/hbars', { rows: s.tutorial, of: s.funnel[0].n }) %>
+    </section>
+  </div>
+
+  <section class="card stats-section" aria-labelledby="drop-title">
+    <h2 class="card__title" id="drop-title">Where players stop</h2>
+    <p class="muted stats-help"><%= s.dropOff.total.toLocaleString('en-US') %> player<%= s.dropOff.total === 1 ? ' hasn’t' : 's haven’t' %> been back for 7 days or more. Where they were when they stopped:</p>
+    <div class="stats-grid stats-grid--inner">
+      <div><h3 class="ac-sub">Level</h3><%- include('../partials/hbars', { rows: s.dropOff.levels }) %></div>
+      <div><h3 class="ac-sub">Basic training steps done</h3><%- include('../partials/hbars', { rows: s.dropOff.steps }) %></div>
+    </div>
+  </section>
+
+  <section class="card stats-section" aria-labelledby="feat-title">
+    <h2 class="card__title" id="feat-title">Features</h2>
+    <dl class="admin-stats stats-features">
+      <div title="Players with push alerts on at least one device"><dt>Push alerts on</dt><dd><%= f.push %> <span class="small muted"><%= pct(f.push, k.mau) %>% of monthly</span></dd></div>
+      <div title="Played in the installed app in the last 30 days"><dt>Using the app</dt><dd><%= f.app %> <span class="small muted"><%= pct(f.app, k.mau) %>% of monthly</span></dd></div>
+      <div><dt>In a unit</dt><dd><%= f.inUnit %> <span class="small muted"><%= pct(f.activeInUnit, k.wau) %>% of weekly</span></dd></div>
+      <div><dt>Units active this week</dt><dd><%= f.activeUnits %></dd></div>
+      <div><dt>Unit objectives this week</dt><dd><%= f.objectives.done %> / <%= f.objectives.total %> <span class="small muted">done</span></dd></div>
+      <div title="Last 7 days"><dt>High-value target</dt><dd><%= f.targets.beaten %> <span class="small muted">beaten · <%= f.targets.defenses %> held off</span></dd></div>
+      <div title="Last 7 days"><dt>Chat</dt><dd><%= f.chat.messages %> <span class="small muted">messages · <%= f.chat.chatters %> players</span></dd></div>
+      <div><dt>Custom avatars</dt><dd><%= (f.avatars.badge || 0) + (f.avatars.upload || 0) %> <span class="small muted"><%= f.avatars.upload || 0 %> pictures</span></dd></div>
+    </dl>
+    <%- include('../partials/col-chart', { id: 'pvp', title: 'PvP fights per day', rows: rows('battles'), noun: 'fights' }) %>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

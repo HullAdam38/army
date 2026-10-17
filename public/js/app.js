@@ -549,6 +549,8 @@
       setTimeout(() => el.remove(), 12600);
     };
 
+    // Running as the installed app? Counted (not tracked) for Admin › Player stats.
+    const installedApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     let lastPoll = 0;
     const poll = async () => {
       // Background tabs check less often, so the title and desktop alerts still update.
@@ -557,7 +559,7 @@
       polling = true;
       try {
         // `visible` tells the server you're playing, so it holds back push alerts to your phone.
-        const res = await fetch(`/notifications/poll?after=${latestId}${document.hidden ? '' : '&visible=1'}`, {
+        const res = await fetch(`/notifications/poll?after=${latestId}${document.hidden ? '' : '&visible=1'}${installedApp ? '&app=1' : ''}`, {
           headers: { Accept: 'application/json' },
           credentials: 'same-origin',
         });

@@ -24,6 +24,8 @@ function notificationRoutes(players, push = null) {
     const items = players.notificationsAfter(req.player.id, after);
     // A visible game tab means they're playing: hold back push alerts meanwhile.
     if (push && req.query.visible === '1') push.markVisible(req.player.id);
+    // The page reports when it's running as the installed app (for player stats).
+    if (req.query.app === '1' && !(req.player.app_seen_at > Date.now() - 60 * 60 * 1000)) players.markAppSeen(req.player.id);
     res.set('Cache-Control', 'no-store');
     res.json({
       unread: res.locals.unreadCount,

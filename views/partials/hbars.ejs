@@ -1,0 +1,11 @@
+<%# Horizontal bars for a funnel or breakdown. Expects `rows` [{ label, n, pct? }] and optional `of` (the 100% count). %>
+<% const top = Math.max(1, locals.of || Math.max(...rows.map((r) => r.n))); %>
+<ol class="hbars">
+  <% rows.forEach(function (r) { const w = Math.round((r.n / top) * 100); %>
+    <li class="hbars__row" title="<%= r.label %>: <%= r.n.toLocaleString('en-US') %><%= r.pct !== undefined ? ` (${r.pct}%)` : '' %>">
+      <span class="hbars__label"><%= r.label %></span>
+      <span class="hbars__track"><span class="hbars__bar" style="width:<%= w %>%"></span></span>
+      <span class="hbars__value"><%= r.n.toLocaleString('en-US') %><% if (r.pct !== undefined) { %> <span class="hbars__pct"><%= r.pct %>%</span><% } %></span>
+    </li>
+  <% }) %>
+</ol>

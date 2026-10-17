@@ -1,0 +1,21 @@
+<%# Single-series column chart. Expects `title`, `rows` [{ label, value }], `noun` (e.g. 'active players'), `id`. %>
+<% const max = Math.max(1, ...rows.map((r) => r.value)); const total = rows.reduce((a, r) => a + r.value, 0); %>
+<figure class="colchart" aria-labelledby="<%= id %>-title">
+  <figcaption class="colchart__head">
+    <span class="colchart__title" id="<%= id %>-title"><%= title %></span>
+    <span class="colchart__meta">Peak <%= max.toLocaleString('en-US') %> · total <%= total.toLocaleString('en-US') %></span>
+  </figcaption>
+  <div class="colchart__plot" role="img" aria-label="<%= title %>: peak <%= max %>, latest <%= rows.at(-1).value %>. A table follows.">
+    <% rows.forEach(function (r) { const h = r.value ? Math.max(3, Math.round((r.value / max) * 100)) : 0; %>
+      <span class="colchart__slot" title="<%= r.label %>: <%= r.value.toLocaleString('en-US') %> <%= noun %>"><span class="colchart__col" style="height:<%= h %>%"></span></span>
+    <% }) %>
+  </div>
+  <div class="colchart__axis"><span><%= rows[0].label %></span><span><%= rows.at(-1).label %></span></div>
+  <details class="colchart__table">
+    <summary>Show as table</summary>
+    <table>
+      <thead><tr><th scope="col">Day</th><th scope="col" class="num"><%= noun.replace(/^./, (c) => c.toUpperCase()) %></th></tr></thead>
+      <tbody><% [...rows].reverse().forEach(function (r) { %><tr><th scope="row"><%= r.label %></th><td class="num"><%= r.value.toLocaleString('en-US') %></td></tr><% }) %></tbody>
+    </table>
+  </details>
+</figure>

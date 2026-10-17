@@ -73,6 +73,15 @@ Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. F
 - **Units** (`/admin/units`): search every unit, see members, treasury, upgrades and war record, and add to or take from a treasury (noted in the unit's log). Rename or disband from the unit's own page.
 - **Economy** (`/admin/economy`): money on hand, banked and in unit treasuries; sources and sinks by ledger reason over 24 hours and 7 days; top earners today; the richest players; and how much admins have added or removed this week.
 - **Audit log** (`/admin/audit`): every admin action, filterable by action, by admin, or by player and text.
+- **Player stats** (`/admin/stats`): whether the game keeps players.
+  - Headline numbers: players, new this week, active today / 7 days / 30 days, and daily-to-monthly stickiness.
+  - Active players and sign-ups per day for 30 days.
+  - A retention grid by week joined: back on day 1, during their second week, and in their second month.
+  - How far players get (first mission, level 3, basic training, level 5/10/20, unit, PvP win) and which training steps they finish.
+  - Where players who stopped coming were: their level, and how much of basic training they'd done.
+  - Feature use: push alerts, the installed app, units, weekly objectives, the high-value target, chat, avatars and PvP fights per day.
+
+  It's built from existing data plus `player_days` (one row per player per day they're active, backfilled from history on first start) and `users.app_seen_at` (set when the page reports it's running as the installed app). Charts are plain HTML and CSS: hover a column for its value, or open "Show as table".
 - A menu across the top of every admin page links all of these.
 - message a single player
 - suspend or unsuspend a player (signs them out immediately)

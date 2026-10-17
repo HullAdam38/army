@@ -34,6 +34,8 @@ function createPlayerRepo(db) {
     save: db.prepare(`UPDATE users SET ${MUTABLE_FIELDS.map((f) => `${f} = @${f}`).join(', ')} WHERE id = @id`),
     touchLogin: db.prepare('UPDATE users SET last_login_at = ?1, last_seen_at = ?1 WHERE id = ?2'),
     touchSeen: db.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?'),
+    activeDay: db.prepare('INSERT OR IGNORE INTO player_days (user_id, day) VALUES (?, ?)'),
+    appSeen: db.prepare('UPDATE users SET app_seen_at = ? WHERE id = ?'),
     signOut: db.prepare('UPDATE users SET signed_out_at = ? WHERE id = ?'),
     acceptTerms: db.prepare('UPDATE users SET terms_version = ?, terms_accepted_at = ? WHERE id = ?'),
     hasBlocked: db.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?'),
@@ -124,6 +126,8 @@ function createPlayerRepo(db) {
   };
 
   const notifyListeners = [];
+  // Which players are already recorded as active today (saves a write per request).
+  let activeToday = { day: '', ids: new Set() };
 
   return {
     findById: (id) => stmts.byId.get(id),
@@ -186,6 +190,16 @@ function createPlayerRepo(db) {
     findByUsername: (username) => stmts.byUsername.get(username),
     touchLogin: (id) => stmts.touchLogin.run(Date.now(), id),
     touchSeen: (id, now = Date.now()) => stmts.touchSeen.run(now, id),
+    /** Records that a player was active today (UTC), for player stats. */
+    markActive(id, now = Date.now()) {
+      const day = new Date(now).toISOString().slice(0, 10);
+      if (activeToday.day !== day) activeToday = { day, ids: new Set() };
+      if (activeToday.ids.has(id)) return;
+      stmts.activeDay.run(id, day);
+      activeToday.ids.add(id);
+    },
+    /** They're playing in the installed app (reported by the page). */
+    markAppSeen: (id, now = Date.now()) => stmts.appSeen.run(now, id),
     signOut: (id) => stmts.signOut.run(Date.now(), id),
     listOnline: (since, limit = 200) => stmts.online.all(since, limit),
     ownedItemIds: (id) => new Set(stmts.owned.all(id).map((r) => r.item_id)),

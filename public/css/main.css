@@ -3244,3 +3244,63 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .admin-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 10px 14px; align-items: end; margin-bottom: 16px; }
 .admin-filters select, .admin-filters input { width: 100%; }
 .admin-filters__actions { display: flex; gap: 8px; }
+
+/* Admin › Player stats */
+.stats-kpis { margin-bottom: 20px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: 20px; margin-bottom: 20px; align-items: start; }
+.stats-grid--inner { margin: 12px 0 0; }
+.stats-section { margin-bottom: 20px; }
+.stats-help { margin-bottom: 12px; font-size: 0.88rem; }
+.stats-range { margin: 4px 0 16px; }
+.stats-features { margin: 12px 0 20px; }
+.stats-scroll { overflow-x: auto; }
+
+/* Single-series column chart: thin columns, rounded tops, 2px gaps, one accent hue. */
+.colchart { margin: 0; }
+.colchart__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
+.colchart__title { font-family: var(--font-ui); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.colchart__meta { font-size: 0.82rem; color: var(--text-faint); }
+.colchart__plot { display: flex; align-items: stretch; gap: 2px; height: 140px; padding-top: 4px; border-bottom: 1px solid var(--line-strong); }
+.colchart__slot { flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; justify-content: center; cursor: default; }
+.colchart__slot:hover { background: rgb(255 255 255 / 0.04); }
+.colchart__col { display: block; width: 100%; max-width: 24px; background: var(--accent); border-radius: 4px 4px 0 0; }
+.colchart__slot:hover .colchart__col { filter: brightness(1.15); }
+.colchart__axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.75rem; color: var(--text-faint); }
+.colchart__table { margin-top: 8px; font-size: 0.85rem; }
+.colchart__table summary { cursor: pointer; color: var(--text-muted); }
+.colchart__table table { width: 100%; margin-top: 6px; border-collapse: collapse; }
+.colchart__table th, .colchart__table td { padding: 3px 4px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+.colchart__table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Horizontal bars (funnels and breakdowns) */
+.hbars { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.hbars__row { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) auto; align-items: center; gap: 10px; font-size: 0.88rem; }
+.hbars__label { overflow-wrap: anywhere; color: var(--text); }
+.hbars__track { height: 12px; }
+.hbars__bar { display: block; height: 100%; min-width: 2px; background: var(--accent); border-radius: 0 4px 4px 0; }
+.hbars__value { font-family: var(--font-ui); font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.hbars__pct { font-weight: 600; color: var(--text-muted); }
+@media (max-width: 480px) {
+  .hbars__row { grid-template-columns: minmax(0, 1fr) auto; }
+  .hbars__track { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* Retention grid: one hue, light to dark (ramp checked against the card surface). */
+.retention { width: 100%; min-width: 22rem; border-collapse: separate; border-spacing: 2px; font-size: 0.9rem; }
+.retention th, .retention td { padding: 6px 8px; text-align: left; font-weight: 400; }
+.retention thead th { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
+.retention .num { text-align: right; font-variant-numeric: tabular-nums; }
+.retention__cell { border-radius: 4px; color: var(--text-faint); }
+.retention__cell--0 { background: #7d3f19; color: var(--text); }
+.retention__cell--1 { background: #9e4a19; color: var(--text); }
+.retention__cell--2 { background: #be5519; color: #1a0d04; }
+.retention__cell--3 { background: #df601a; color: #1a0d04; }
+.retention__cell--4 { background: #ff6b1a; color: #1a0d04; }
+.stats-legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 0.75rem; color: var(--text-faint); }
+.stats-legend i { display: inline-block; width: 22px; height: 10px; border-radius: 2px; }
+.stats-features dd > span { display: block; margin-top: 2px; font-family: var(--font-body, inherit); font-size: 0.78rem; font-weight: 500; letter-spacing: 0; }
+@media (max-width: 480px) {
+  .retention { min-width: 0; font-size: 0.82rem; border-spacing: 1px; }
+  .retention th, .retention td { padding: 5px 4px; }
+  .retention thead th { font-size: 0.64rem; letter-spacing: 0.04em; }
+}

@@ -93,6 +93,7 @@ function createAdminRepo(db) {
   const like = (q) => `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
   return {
+    db, // for read-only reporting (stats-service)
     stats({ now, dayStart, onlineSince }) {
       const s = stmts.stats.get(dayStart, onlineSince, now);
       return { ...s, battlesToday: stmts.battlesToday.get(dayStart).n };

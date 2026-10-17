@@ -40,6 +40,7 @@ function createRequireAuth(players) {
       players.touchSeen(user.id, now);
       user.last_seen_at = now;
     }
+    players.markActive(user.id, now);
     req.player = user;
     res.locals.player = game.playerView(user);
     res.locals.isAdmin = Boolean(user.is_admin);
