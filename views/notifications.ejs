@@ -7,9 +7,18 @@
     <div>
       <p class="eyebrow">Signals</p>
       <h1 class="page-head__title">Notifications</h1>
-      <p class="page-head__sub">Attacks on you, promotions, new unlocks and completed daily orders. While the game is open you'll also get a pop-up as they happen.</p>
+      <p class="page-head__sub">Attacks on you, chat mentions, promotions, new unlocks and completed daily orders. While the game is open you'll also get a pop-up as they happen.</p>
     </div>
   </div>
+
+  <%# Shown by the script only where the browser supports notifications. %>
+  <section class="card desktop-alerts reveal" style="--i:1" data-desktop-alerts hidden aria-labelledby="alerts-title">
+    <div class="desktop-alerts__text">
+      <h2 class="card__title" id="alerts-title">Desktop alerts</h2>
+      <p class="muted" data-desktop-alerts-status>Get a pop-up from your browser when you're mentioned in chat or attacked, while the game is open in a background tab. This setting is for this device only.</p>
+    </div>
+    <button class="btn btn--ghost btn--sm" type="button" data-desktop-alerts-toggle>Turn on</button>
+  </section>
 
   <% if (items.length) { %>
     <ol class="notes reveal" style="--i:1">

@@ -485,6 +485,17 @@ const SCHEMA = `
     PRIMARY KEY (user_id, channel)
   );
 
+  -- Every @mention of a player in chat, so the chat icon can flag unread mentions
+  -- (the bell notification is rate-limited; this isn't). Cleared by reading the channel.
+  CREATE TABLE IF NOT EXISTS chat_mentions (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message_id  INTEGER NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+    channel     TEXT    NOT NULL,
+    created_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, message_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_chat_mentions_user ON chat_mentions(user_id, channel, message_id);
+
   -- Titles (src/titles.js): which ones a player has earned.
   CREATE TABLE IF NOT EXISTS user_titles (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

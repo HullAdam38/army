@@ -98,11 +98,11 @@ test('titles and chat unread through the app', async () => {
     assert.match(hq, /href="\/chat\/unit" data-chat-bell/);
     assert.match(hq, /data-chat-count >2<|data-chat-count>2</);
     const poll = JSON.parse((await rook.request('/notifications/poll?after=0')).text);
-    assert.deepEqual(poll.chat, { unit: 2, global: false });
+    assert.deepEqual(poll.chat, { unit: 2, global: false, mentions: { global: 0, unit: 0 } });
     // The Global page shows the unit's count on its tab.
     assert.match((await rook.request('/chat/global')).text, /\[GHO\] Unit <span class="chat__unread">2<\/span>/);
     await rook.request('/chat/unit');
-    assert.deepEqual(JSON.parse((await rook.request('/notifications/poll?after=0')).text).chat, { unit: 0, global: false });
+    assert.deepEqual(JSON.parse((await rook.request('/notifications/poll?after=0')).text).chat, { unit: 0, global: false, mentions: { global: 0, unit: 0 } });
   } finally {
     server.close();
   }

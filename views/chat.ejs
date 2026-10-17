@@ -11,7 +11,7 @@
       <% if (channels.length > 1) { %>
         <nav class="tabs chat__tabs" aria-label="Channels">
           <% channels.forEach(function (c) { %>
-            <a class="tabs__tab" href="/chat/<%= c.slug %>" <%- c.slug === channel.slug ? 'aria-current="page"' : '' %>><%= c.name %><% if (c.slug !== channel.slug && c.unread) { %> <span class="chat__unread"><%= c.dot ? 'new' : (c.unread > 99 ? '99+' : c.unread) %></span><% } %></a>
+            <a class="tabs__tab" href="/chat/<%= c.slug %>" <%- c.slug === channel.slug ? 'aria-current="page"' : '' %>><%= c.name %><% if (c.slug !== channel.slug && c.mentions) { %> <span class="chat__unread chat__unread--mention" title="You were mentioned">@<%= c.mentions > 1 ? c.mentions : '' %></span><% } else if (c.slug !== channel.slug && c.unread) { %> <span class="chat__unread"><%= c.dot ? 'new' : (c.unread > 99 ? '99+' : c.unread) %></span><% } %></a>
           <% }) %>
         </nav>
       <% } else { %>

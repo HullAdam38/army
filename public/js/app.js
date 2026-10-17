@@ -5,6 +5,11 @@
   document.documentElement.classList.add('js');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ---------- Desktop alerts preference (this device only) ---------- */
+  const ALERTS_KEY = 'gf.desktopAlerts';
+  const alertsOn = () => { try { return localStorage.getItem(ALERTS_KEY) === '1'; } catch (err) { return false; } };
+  const setAlertsOn = (on) => { try { localStorage.setItem(ALERTS_KEY, on ? '1' : '0'); } catch (err) { /* private mode */ } };
+
   /* ---------- Password visibility toggles ---------- */
   document.querySelectorAll('[data-toggle-password]').forEach((btn) => {
     const input = document.getElementById(btn.dataset.togglePassword);
@@ -467,6 +472,7 @@
   const toasts = document.querySelector('[data-toasts]');
   if (bell && toasts && window.fetch) {
     const POLL_MS = 20000;
+    const POLL_HIDDEN_MS = 60000;
     const MAX_TOASTS = 3;
     let latestId = Number(bell.dataset.latestId) || 0;
     let polling = false;
@@ -483,18 +489,39 @@
 
     // Chat icon: a count for your unit channel, a dot when Global has news. The chat page keeps itself read.
     const chatBell = document.querySelector('[data-chat-bell]');
+    // Start from the @ badge as the server rendered it, so the title is right before the first poll.
+    const atBadge = chatBell && chatBell.querySelector('[data-chat-mention]');
+    let mentionCount = atBadge && !atBadge.hidden ? Number(atBadge.textContent.replace(/\D/g, '')) || 1 : 0;
     const setChat = (c) => {
       if (!chatBell || !c) return;
       const count = chatBell.querySelector('[data-chat-count]');
       const dot = chatBell.querySelector('[data-chat-dot]');
+      const at = chatBell.querySelector('[data-chat-mention]');
+      const m = c.mentions || { global: 0, unit: 0 };
+      mentionCount = m.global + m.unit;
+      if (at) {
+        at.textContent = mentionCount > 1 ? `@${mentionCount > 9 ? '9+' : mentionCount}` : '@';
+        at.hidden = !mentionCount;
+      }
+      chatBell.classList.toggle('is-mentioned', mentionCount > 0);
       count.textContent = c.unit > 99 ? '99+' : String(c.unit);
-      count.hidden = !c.unit;
-      dot.hidden = Boolean(c.unit) || !c.global;
-      chatBell.setAttribute('href', c.unit ? '/chat/unit' : '/chat');
-      chatBell.setAttribute('aria-label', c.unit ? `Chat, ${c.unit} new in your unit channel` : c.global ? 'Chat, new messages' : 'Chat');
+      count.hidden = !c.unit || mentionCount > 0;
+      dot.hidden = mentionCount > 0 || Boolean(c.unit) || !c.global;
+      chatBell.setAttribute('href', m.unit ? '/chat/unit' : m.global ? '/chat/global' : c.unit ? '/chat/unit' : '/chat');
+      chatBell.setAttribute('aria-label', mentionCount ? `Chat, you were mentioned${mentionCount > 1 ? ` ${mentionCount} times` : ''}`
+        : c.unit ? `Chat, ${c.unit} new in your unit channel` : c.global ? 'Chat, new messages' : 'Chat');
+    };
+
+    // The tab title carries a count, so a mention or attack shows in a background tab.
+    const baseTitle = document.title.replace(/^\(\d+\+?\) /, '');
+    let bellCount = Number((bell.querySelector('[data-bell-count]') || {}).textContent) || 0;
+    const setTitle = () => {
+      const n = bellCount + mentionCount;
+      document.title = n ? `(${n > 99 ? '99+' : n}) ${baseTitle}` : baseTitle;
     };
 
     const setCount = (n) => {
+      bellCount = n;
       const badge = bell.querySelector('[data-bell-count]');
       badge.textContent = n > 99 ? '99+' : String(n);
       badge.hidden = n === 0;
@@ -512,7 +539,7 @@
       if (item.link) {
         const a = document.createElement('a');
         a.href = item.link;
-        a.textContent = item.link.startsWith('/battles') ? 'View report' : 'Take a look';
+        a.textContent = item.link.startsWith('/battles') ? 'View report' : item.kind === 'chat' ? 'Go to message' : 'Take a look';
         el.append(a);
       }
       const close = document.createElement('button');
@@ -527,8 +554,22 @@
       setTimeout(() => el.remove(), 12600);
     };
 
+    // Desktop alerts (opt-in on the Notifications page): shown only while the game's tab is in the background.
+    const desktopAlert = (items) => {
+      if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted' || !alertsOn()) return;
+      items.slice(-MAX_TOASTS).forEach((item) => {
+        try {
+          const n = new Notification(item.kind === 'chat' ? 'You were mentioned' : 'GeneralForces', { body: item.message, icon: '/favicon.svg', tag: `gf-${item.id}` });
+          n.onclick = () => { window.focus(); if (item.link) location.href = item.link; n.close(); };
+        } catch (err) { /* some browsers only allow notifications from a service worker */ }
+      });
+    };
+
+    let lastPoll = 0;
     const poll = async () => {
-      if (polling || document.hidden) return;
+      // Background tabs check less often, so the title and desktop alerts still update.
+      if (polling || (document.hidden && Date.now() - lastPoll < POLL_HIDDEN_MS)) return;
+      lastPoll = Date.now();
       polling = true;
       try {
         const res = await fetch(`/notifications/poll?after=${latestId}`, {
@@ -546,11 +587,15 @@
           mailCount = data.messages;
           setMail(mailCount);
         }
+        setTitle();
         if (data.items.length) {
           latestId = data.latestId;
-          data.items.slice(-MAX_TOASTS).forEach(toast);
-          if (data.items.length > MAX_TOASTS) {
-            toast({ kind: 'system', message: `+${data.items.length - MAX_TOASTS} more`, link: '/notifications' });
+          // A mention in the channel you're reading is already on screen.
+          const shown = data.items.filter((i) => !(i.kind === 'chat' && i.link && i.link.split('#')[0] === location.pathname));
+          shown.slice(-MAX_TOASTS).forEach(toast);
+          desktopAlert(shown);
+          if (shown.length > MAX_TOASTS) {
+            toast({ kind: 'system', message: `+${shown.length - MAX_TOASTS} more`, link: '/notifications' });
           }
           // Someone may have just changed our health or cash: refresh the stat bar.
           if (statbar && data.player) renderPlayer(data.player);
@@ -566,7 +611,8 @@
     };
 
     setInterval(poll, POLL_MS);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { lastPoll = 0; poll(); } });
+    setTitle();
   }
   /* ---------- Chat: live updates, send without reloading, Enter to send ---------- */
   const chatBox = document.querySelector('[data-chat]');
@@ -747,4 +793,27 @@
     input.addEventListener('change', check);
     form.addEventListener('submit', (e) => { if (!check()) e.preventDefault(); });
   });
+  /* ---------- Notifications page: desktop alerts switch ---------- */
+  const alertsBox = document.querySelector('[data-desktop-alerts]');
+  if (alertsBox && 'Notification' in window && window.isSecureContext) {
+    const btn = alertsBox.querySelector('[data-desktop-alerts-toggle]');
+    const status = alertsBox.querySelector('[data-desktop-alerts-status]');
+    const intro = status.textContent;
+    const render = () => {
+      const on = alertsOn() && Notification.permission === 'granted';
+      btn.textContent = on ? 'Turn off' : 'Turn on';
+      btn.disabled = Notification.permission === 'denied';
+      status.textContent = Notification.permission === 'denied'
+        ? 'Your browser is blocking notifications from this site. Allow them in the browser’s site settings, then come back here.'
+        : on ? 'On for this device. You’ll get a browser pop-up for mentions, attacks and other alerts while the game is in a background tab.' : intro;
+    };
+    btn.addEventListener('click', async () => {
+      if (alertsOn() && Notification.permission === 'granted') { setAlertsOn(false); return render(); }
+      const result = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      setAlertsOn(result === 'granted');
+      render();
+    });
+    alertsBox.hidden = false;
+    render();
+  }
 })();

@@ -32,6 +32,7 @@ function createChatService(db, players) {
     blocked: db.prepare('SELECT 1 FROM blocks WHERE user_id = ? AND blocked_id = ?'),
     // Mention notifications are links back to chat; the latest one from this author tells us if they're pinging too often.
     lastMention: db.prepare("SELECT MAX(created_at) AS at FROM notifications WHERE user_id = ? AND kind = 'chat' AND message LIKE ? ESCAPE '\\'"),
+    mention: db.prepare('INSERT OR IGNORE INTO chat_mentions (user_id, message_id, channel, created_at) VALUES (?, ?, ?, ?)'),
     markRead: db.prepare(`INSERT INTO chat_reads (user_id, channel, last_id) VALUES (?, ?, ?)
                           ON CONFLICT(user_id, channel) DO UPDATE SET last_id = MAX(last_id, excluded.last_id)`),
     latestId: db.prepare('SELECT MAX(id) AS id FROM chat_messages WHERE channel = ?'),
@@ -114,6 +115,7 @@ function createChatService(db, players) {
       const snippet = bbcode.toPlain(v.body).slice(0, 120);
       for (const u of mentioned.values()) {
         if (u.id === me.id || u.banned_at || !canSee(u) || stmts.blocked.get(u.id, me.id)) continue;
+        stmts.mention.run(u.id, id, channel, now); // flags the chat icon until they read it
         const prefix = `${me.username.replace(/[\\%_]/g, (c) => `\\${c}`)} mentioned you%`;
         const last = stmts.lastMention.get(u.id, prefix).at;
         if (last && now - last < chat.MENTION_NOTIFY_MS) continue; // already pinged them recently

@@ -45,6 +45,12 @@ function createPlayerRepo(db) {
           AND m.user_id != ?2 AND m.deleted_at IS NULL AND u.banned_at IS NULL
           AND m.user_id NOT IN (SELECT blocked_id FROM blocks WHERE user_id = ?2)
         LIMIT 100)`),
+    // @mentions of the player in a channel they haven't read up to yet.
+    chatMentions: db.prepare(`
+      SELECT COUNT(*) AS n FROM chat_mentions cm JOIN chat_messages m ON m.id = cm.message_id JOIN users u ON u.id = m.user_id
+      WHERE cm.user_id = ?2 AND cm.channel = ?1 AND m.deleted_at IS NULL AND u.banned_at IS NULL
+        AND cm.message_id > COALESCE((SELECT last_id FROM chat_reads WHERE user_id = ?2 AND channel = ?1), 0)
+        AND m.user_id NOT IN (SELECT blocked_id FROM blocks WHERE user_id = ?2)`),
     // Conversations with a message from someone else since you last read them.
     unreadMessages: db.prepare(`
       SELECT COUNT(*) AS n FROM conversation_members m JOIN conversations c ON c.id = m.conversation_id
@@ -149,6 +155,11 @@ function createPlayerRepo(db) {
     chatUnread: (user) => ({
       unit: user.unit_id ? stmts.chatUnread.get(`unit:${user.unit_id}`, user.id).n : 0,
       global: stmts.chatUnread.get('global', user.id).n > 0,
+      // Unread @mentions per channel: the chat icon and channel tabs show an @ for these.
+      mentions: {
+        global: stmts.chatMentions.get('global', user.id).n,
+        unit: user.unit_id ? stmts.chatMentions.get(`unit:${user.unit_id}`, user.id).n : 0,
+      },
     }),
     hasBlocked: (id, otherId) => Boolean(stmts.hasBlocked.get(id, otherId)),
     /** Saves a player's profile bio (BBCode source; render with bbcode.render). */

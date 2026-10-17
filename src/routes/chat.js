@@ -56,7 +56,7 @@ function chatRoutes(players, chatService, unitRepo, adminRepo) {
       title: `${channel.slug === 'global' ? 'Global' : 'Unit'} chat`,
       nav: 'chat',
       channel,
-      channels: [{ slug: 'global', name: 'Global', unread: unread.global ? 1 : 0, dot: true }, ...(unit ? [{ slug: 'unit', name: `[${unit.tag}] Unit`, unread: unread.unit }] : [])],
+      channels: [{ slug: 'global', name: 'Global', unread: unread.global ? 1 : 0, dot: true, mentions: unread.mentions.global }, ...(unit ? [{ slug: 'unit', name: `[${unit.tag}] Unit`, unread: unread.unit, mentions: unread.mentions.unit }] : [])],
       messages,
       older: messages.length === chat.PAGE_SIZE ? messages[0].id : null,
       viewingOlder: Boolean(before),

@@ -3099,3 +3099,13 @@ section[id], li[id] { scroll-margin-top: 190px; }
   .fighter__head .avatar { width: 44px; height: 44px; }
   .hq-hello .avatar { width: 48px; height: 48px; }
 }
+
+/* Chat mentions: an @ on the chat icon and channel tabs, a highlighted pop-up. */
+.bell--chat .bell__count.bell__count--mention { min-width: 18px; color: var(--accent-ink); background: var(--accent); font-weight: 800; }
+.bell--chat.is-mentioned svg { color: var(--accent); }
+.chat__unread--mention { color: var(--accent-ink); background: var(--accent); font-weight: 800; }
+.toast--chat { border-left-color: var(--accent); }
+.desktop-alerts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 16px; }
+.desktop-alerts[hidden] { display: none; }
+.desktop-alerts__text { flex: 1; min-width: min(100%, 16rem); }
+.desktop-alerts .card__title { margin-bottom: 4px; }
