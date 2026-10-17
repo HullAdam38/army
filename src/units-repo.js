@@ -108,6 +108,8 @@ function createUnitRepo(db) {
     leave: (unitId, userId, now = Date.now()) => stmts.leave.run(now, userId, unitId).changes > 0,
     kick: (unitId, userId) => stmts.kick.run(userId, unitId).changes > 0,
     setRole: (unitId, userId, role) => stmts.setRole.run(role, userId, unitId).changes > 0,
+    /** Pays into the treasury from the game itself (e.g. a completed weekly objective). */
+    addTreasury: (unitId, amount) => stmts.treasury.run(amount, unitId),
     donate(unitId, userId, amount) {
       stmts.treasury.run(amount, unitId);
       stmts.donated.run(amount, userId);

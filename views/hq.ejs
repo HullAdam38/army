@@ -22,6 +22,7 @@
       Coming up: <% upcomingEvents.forEach(function (e, i) { %><a href="/events"><strong><%= e.title %></strong></a> in <span data-until="<%= e.starts_at %>">soon</span><%= i < upcomingEvents.length - 1 ? ' · ' : '' %><% }) %>
     </p>
   <% } %>
+  <% if (target) { %><%- include('partials/hvt-card', { t: target, back: '/hq' }) %><% } %>
   <div class="hq-grid">
     <% if (!training.graduated && !training.dismissed) { %>
       <section class="card hq-card hq-card--training reveal" style="--i:1" aria-labelledby="training-title">

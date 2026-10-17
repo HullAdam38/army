@@ -14,7 +14,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
  * players.transaction(); completeDue() opens its own and runs every minute.
  * `effects(now)` supplies live event multipliers (Double XP, Payday).
  */
-function createDeploymentService(db, players, { effects = () => NEUTRAL } = {}) {
+function createDeploymentService(db, players, { effects = () => NEUTRAL, onReturn = null } = {}) {
   const stmts = {
     insert: db.prepare('INSERT INTO deployments (user_id, kind, started_at, ends_at) VALUES (?, ?, ?, ?)'),
     active: db.prepare("SELECT * FROM deployments WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"),
@@ -56,6 +56,7 @@ function createDeploymentService(db, players, { effects = () => NEUTRAL } = {}) 
       stmts.finish.run(r.cash, r.xp, report, now, d.id);
       players.save(p, { reason: 'deployment', ref: `deployment:${d.id}` });
       stmts.setUntil.run(null, d.user_id);
+      if (onReturn) onReturn(d.user_id, now); // counts towards unit objectives
       players.log(d.user_id, 'success', `Back from ${kind.name}: +${r.xp} XP, +${money(r.cash)}. ${report}`, '/deployments');
       players.notify(d.user_id, 'deployment', `Your soldier is back from the ${kind.name.toLowerCase()}: +${money(r.cash)}, +${r.xp} XP.${r.find ? ' Found a supply cache!' : ''}${r.injury ? ` Took ${r.injury} damage.` : ''}`, '/deployments');
       for (const lvl of levels) {

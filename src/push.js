@@ -25,6 +25,7 @@ const KIND_CATEGORY = {
   'attacked-lost': 'attacks',
   'attacked-won': 'attacks',
   bounty: 'bounties',
+  target: 'attacks',
   deployment: 'deployments',
   unit: 'unit',
   war: 'unit',

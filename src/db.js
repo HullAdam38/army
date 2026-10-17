@@ -517,6 +517,47 @@ const SCHEMA = `
     value  TEXT NOT NULL
   );
 
+  -- Weekly unit objectives (src/objectives.js). The week is the Monday it started.
+  CREATE TABLE IF NOT EXISTS unit_objectives (
+    week          TEXT    NOT NULL,
+    unit_id       INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    slot          INTEGER NOT NULL,
+    type          TEXT    NOT NULL,
+    target        INTEGER NOT NULL,
+    progress      INTEGER NOT NULL DEFAULT 0,
+    reward_cash   INTEGER NOT NULL,
+    nudged_at     INTEGER,
+    completed_at  INTEGER,
+    PRIMARY KEY (week, unit_id, slot)
+  );
+  CREATE TABLE IF NOT EXISTS unit_objective_contrib (
+    week     TEXT    NOT NULL,
+    unit_id  INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type     TEXT    NOT NULL,
+    amount   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (week, unit_id, user_id, type)
+  );
+
+  -- The daily high-value target (src/target-service.js), and who has collected on them.
+  CREATE TABLE IF NOT EXISTS daily_targets (
+    day         TEXT    PRIMARY KEY,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    defenses    INTEGER NOT NULL DEFAULT 0,
+    beaten      INTEGER NOT NULL DEFAULT 0,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS daily_target_claims (
+    day          TEXT    NOT NULL,
+    attacker_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    battle_id    INTEGER NOT NULL,
+    cash         INTEGER NOT NULL,
+    xp           INTEGER NOT NULL,
+    created_at   INTEGER NOT NULL,
+    PRIMARY KEY (day, attacker_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_daily_target_claims_battle ON daily_target_claims(battle_id);
+
   -- Titles (src/titles.js): which ones a player has earned.
   CREATE TABLE IF NOT EXISTS user_titles (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

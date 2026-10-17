@@ -12,7 +12,7 @@ const { announceLevels } = require('../notify');
 
 const signed = (n) => (n > 0 ? `+${n}` : `−${Math.abs(n)}`);
 
-function pvpRoutes(players, anti, daily, warService, bountyService, seasonService) {
+function pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -81,6 +81,8 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
       const bounty = r.attackerWon && rewards.attacker === 1
         ? bountyService.claim({ claimerId: attacker.id, targetId: defender.id, battleId: id, now })
         : null;
+      // The daily high-value target: a bonus for beating them, or for them holding the line.
+      const hvt = targetService ? targetService.afterFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, now }) : null;
       // Only a full-reward win counts: no linked accounts, no repeat wins on one target.
       if (r.attackerWon && rewards.attacker === 1) daily.progress(attacker.id, 'pvp_wins', 1, { now });
       announceLevels(players, attacker.id, r.levelsGained.attacker);
@@ -91,7 +93,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
           players.log(p.id, 'promotion', `Promoted to level ${lvl} — ${rank.name} (${rank.grade}).`);
         }
       }
-      return { id, xp: r.xp.attacker, cash: r.cashTaken, bounty, season };
+      return { id, xp: r.xp.attacker, cash: r.cashTaken, bounty, season, hvt };
     });
 
     if (outcome.error) {
@@ -102,6 +104,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
     }
     res.locals.gains = { xp: outcome.xp, cash: outcome.cash }; // for anti-cheat
     if (outcome.bounty) req.flash('success', `Bounty collected: +$${outcome.bounty.total.toLocaleString('en-US')}.`);
+    if (outcome.hvt && outcome.hvt.claim) req.flash('success', `High-value target down! Bonus: +$${outcome.hvt.claim.cash.toLocaleString('en-US')}, +${outcome.hvt.claim.xp} XP.`);
     if (outcome.season.ranked) req.flash('info', `Season ${outcome.season.number} rating ${signed(outcome.season.attacker.delta)} → ${outcome.season.attacker.rating}.`);
     res.redirect(`/battles/${outcome.id}`);
   });
@@ -133,6 +136,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
     const warFight = warService.forBattle(battle.id);
     const bounty = bountyService.forBattle(battle.id);
     const ranked = seasonService.forBattle(battle.id);
+    const targetClaim = targetService ? targetService.forBattle(battle.id) : null;
     res.render('battle', {
       title: `${battle.attacker_name} vs ${battle.defender_name}`,
       nav: null,
@@ -141,6 +145,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
       youAre,
       bounty,
       ranked,
+      targetClaim,
       warFight: warFight ? { id: warFight.id, side: warFight.side, points: warFight.points, tag: warFight.side === 'attacker' ? warFight.attacker_tag : warFight.defender_tag, title: `${warFight.attacker_tag} vs ${warFight.defender_tag}` } : null,
       ago: presence.timeAgo(battle.created_at),
     });

@@ -22,6 +22,7 @@
     <div class="profile-hero__body">
       <p class="eyebrow">Service record</p>
       <h1 id="profile-name" class="profile-hero__name"><%= soldier.username %></h1>
+      <% if (soldier.isTarget) { %><p class="hvt-tag"><svg aria-hidden="true"><use href="#i-target"/></svg>Today’s high-value target · <a href="/players#target">bonus for beating them</a></p><% } %>
       <% if (soldier.title) { %><p class="profile-hero__title callsign-title">“<%= soldier.title %>”</p><% } %>
       <p class="profile-hero__rank"><%= soldier.rank %> <span class="profile-hero__grade"><%= soldier.grade %></span> · Level <%= soldier.level %></p>
       <ul class="profile-hero__meta">

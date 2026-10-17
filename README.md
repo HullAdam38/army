@@ -509,6 +509,34 @@ Rules live in `src/units.js`; data access is in `src/units-repo.js`.
 
 Rules live in `src/wars.js`; storage, scoring and settling are in `src/war-service.js`.
 
+## Weekly unit objectives
+
+Every unit gets three shared objectives each week (Monday 00:00 UTC to the next Monday), picked from five types and shown at the top of the unit page:
+
+| Objective | Counts | Target per member |
+|---|---|---|
+| Mission sweep | missions and operation stages won | 25 |
+| Show of force | PvP wins as the attacker (full-reward wins only: no linked accounts or repeat wins) | 6 |
+| Boots on the ground | deployments brought back | 4 |
+| Drill week | training sessions | 8 |
+| War chest | cash donated to the treasury | 10 deployment-hours of pay at the unit's average level |
+
+- Targets assume at least 3 members (and at most 30), so tiny units still have to work for them. They're fixed when the week's objectives are set.
+- Completing one pays **12 deployment-hours per member into the treasury** (about $37,000 for 10 level-20 members), and every member who helped gets **4 deployment-hours of XP**.
+- Members are told at 80% and on completion. The card shows progress, rewards and the week's top contributors.
+- Admins scale the rewards with **Game settings › Economy › Unit objective rewards** (0 turns them off).
+- Rules: `src/objectives.js`. Tracking and payouts: `src/objective-service.js`, fed by the daily-order progress hook plus deployments and donations.
+
+## Daily high-value target
+
+Each UTC day one active player is marked as the **high-value target**. They're picked from the 25 highest-level non-admin players seen in the last 3 days, and never twice in a row.
+
+- Beating them in a full-reward fight pays a bonus of **6 deployment-hours of cash and 4 of XP** at the target's level, once per attacker per day (about $2,700 and 260 XP at level 30). Linked accounts and repeat wins don't collect.
+- Each full-reward attack the target fights off pays them **2 deployment-hours**, up to 10 a day.
+- The target is told in the morning. A card on Players and HQ shows who it is, the bonus, and an Attack button; their profile is tagged, and battle reports show the bonus.
+- Payouts use the `target-bonus` ledger reason. Admins scale them with **Game settings › Economy › High-value target bonus**.
+- Code: `src/target.js` and `src/target-service.js`.
+
 ## Titles
 
 Players earn **titles** and can show one under their callsign, on their profile and next to their name in chat. Pick one (or none) under **Edit profile › Title**. Locked titles show how to earn them. Titles use the same career numbers as medals, so they're checked after every action, and each new one arrives as a notification.
@@ -715,6 +743,10 @@ src/
   images.js          checks uploaded pictures and strips their metadata (pure)
   multipart.js       reads file-upload forms
   avatar-service.js  avatar storage, uploads, reports
+  objectives.js      weekly unit objectives: types, targets, rewards (pure)
+  objective-service.js unit objective progress, completion payouts
+  target.js          daily high-value target rules and bonuses (pure)
+  target-service.js  picks the daily target, pays bonuses after fights
   push.js            push alert categories, preferences, quiet hours, allowed push services (pure)
   push-service.js    push subscriptions, VAPID keys, sending alerts, energy-full check
   routes/alerts.js   App & alerts page, subscribe/unsubscribe, test alert

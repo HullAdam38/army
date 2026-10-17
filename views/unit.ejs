@@ -87,6 +87,36 @@
     </section>
   <% } %>
 
+  <% if (objectives) { %>
+    <section id="objectives" class="card unit-objectives reveal" style="--i:2" aria-labelledby="objectives-title">
+      <h2 id="objectives-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Weekly objectives <span class="card__title-meta">New objectives in <span data-until="<%= objectives.endsAt %>">soon</span></span></h2>
+      <p class="muted unit-objectives__intro">Every member’s play counts. Each objective completed pays into the treasury, and gives everyone who helped <%= member ? `+${objectives.memberXpAt(player.level)} XP` : 'bonus XP' %>.</p>
+      <ol class="unit-objectives__list">
+        <% objectives.items.forEach(function (o) { %>
+          <li class="objective<%= o.done ? ' is-done' : '' %>">
+            <span class="objective__icon" aria-hidden="true"><svg><use href="#<%= o.done ? 'i-star' : o.icon %>"/></svg></span>
+            <div class="objective__body">
+              <div class="objective__head"><span class="objective__name"><%= o.name %></span><span class="objective__count"><%= o.progressLabel %></span></div>
+              <p class="objective__text"><%= o.text %></p>
+              <span class="meter meter--xp" role="progressbar" aria-label="<%= o.text %>" aria-valuemin="0" aria-valuemax="<%= o.target %>" aria-valuenow="<%= o.progress %>"><span class="meter__fill" style="width:<%= o.pct %>%"></span></span>
+              <p class="objective__reward"><%= o.done ? 'Complete: ' : 'Reward: ' %><%= money(o.reward_cash) %> to the treasury</p>
+            </div>
+          </li>
+        <% }) %>
+      </ol>
+      <% if (objectives.top.length) { %>
+        <div class="unit-objectives__top">
+          <p class="unit-objectives__top-title">Top contributors this week</p>
+          <ol class="unit-objectives__people">
+            <% objectives.top.forEach(function (c) { %>
+              <li><%- include('partials/avatar', { url: avatarUrl(c.userId, c.avatarV), size: 'xs' }) %><a class="directory__name" href="/profile/<%= encodeURIComponent(c.username) %>"><%= c.username %></a><span class="muted"><%= c.sharePct %>%</span></li>
+            <% }) %>
+          </ol>
+        </div>
+      <% } %>
+    </section>
+  <% } %>
+
   <div class="unit-grid">
     <section id="roster" class="card unit-card unit-card--roster reveal" style="--i:2" aria-labelledby="roster-title">
       <h2 id="roster-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-crest"/></svg>Roster</h2>

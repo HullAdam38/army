@@ -31,6 +31,9 @@
     <% if (bounty) { %>
       <p class="battle-hero__war battle-hero__bounty"><svg aria-hidden="true"><use href="#i-cash"/></svg><%= battle.attacker_name %> collected <%= bounty.count === 1 ? 'a bounty' : `${bounty.count} bounties` %> worth $<%= bounty.total.toLocaleString('en-US') %> on <%= battle.defender_name %>.</p>
     <% } %>
+    <% if (targetClaim) { %>
+      <p class="battle-hero__war battle-hero__target"><svg aria-hidden="true"><use href="#i-target"/></svg><%= battle.attacker_name %> took down the day’s high-value target: +$<%= targetClaim.cash.toLocaleString('en-US') %> and +<%= targetClaim.xp %> XP bonus.</p>
+    <% } %>
     <% if (ranked) { %>
       <% const sg = (n) => (n > 0 ? '+' + n : '−' + Math.abs(n)); %>
       <p class="battle-hero__war battle-hero__ranked"><svg aria-hidden="true"><use href="#i-podium"/></svg>

@@ -17,6 +17,8 @@
     </div>
   </div>
 
+  <% if (target) { %><%- include('partials/hvt-card', { t: target, back: backUrl }) %><% } %>
+
   <div class="directory-tools reveal" style="--i:1">
     <nav class="tabs" aria-label="Filter players">
       <% [['all', 'All'], ['targets', 'Targets'], ['online', 'Online now']].concat(war ? [['war', `War: [${war.enemyTag}]`]] : []).forEach(function ([key, label]) { %>

@@ -26,6 +26,9 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
     countOrder: db.prepare('UPDATE users SET orders_completed = orders_completed + 1 WHERE id = ?'),
   };
 
+  // Other systems that count the same actions (weekly unit objectives).
+  const listeners = [];
+
   /** Today's orders, creating them on first look (orders are fixed for the day once made). */
   function ordersFor(user, now = Date.now()) {
     const day = daily.dayKey(now);
@@ -84,8 +87,12 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
      * Records progress on today's orders of `type` (and matching `param`).
      * Notifies the player the moment an order is completed.
      */
+    /** Calls `fn(userId, type, amount, now)` whenever progress is reported. */
+    onProgress: (fn) => { listeners.push(fn); },
+
     progress(userId, type, amount = 1, { param = null, now = Date.now() } = {}) {
       if (amount <= 0) return;
+      for (const fn of listeners) fn(userId, type, amount, now);
       const user = players.findById(userId);
       if (!user) return;
       const day = daily.dayKey(now);

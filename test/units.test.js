@@ -7,6 +7,9 @@ const game = require('../src/game');
 const pvp = require('../src/pvp');
 const { createApp } = require('../src/server');
 const { openDatabase } = require('../src/db');
+const tuning = require('../src/tuning');
+
+test.afterEach(() => tuning.reset());
 
 test('unit names, tags and permissions', () => {
   assert.deepEqual(units.validateUnit({ name: '  Iron   Wolves ', tag: 'iw', description: '' }), { name: 'Iron Wolves', tag: 'IW', description: '' });
@@ -63,6 +66,9 @@ test('drill ground boosts mission XP; unit members can’t attack each other', (
 async function startServer() {
   const db = openDatabase(':memory:');
   const app = createApp({ db, secret: 'test-secret', tutorial: false });
+  // These tests check exact treasury amounts, so weekly objectives pay nothing here
+  // (a donation can complete a "War chest" objective). objectives.test.js covers them.
+  tuning.set({ unitObjectiveRewardMult: 0 });
   const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
   return { server, db, base: `http://127.0.0.1:${server.address().port}` };
 }

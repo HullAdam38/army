@@ -3149,3 +3149,53 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .offline { display: grid; justify-items: center; gap: 10px; min-height: 100vh; align-content: center; padding: 32px 16px; text-align: center; }
 .offline__icon { border-radius: 22%; margin-bottom: 8px; }
 .offline__text { max-width: 28rem; color: var(--text-muted); }
+
+/* Daily high-value target */
+.hvt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; margin-bottom: 16px; border-left: 3px solid var(--danger); background: linear-gradient(90deg, rgb(255 90 82 / 0.1), transparent 60%), var(--surface); }
+.hvt--you { border-left-color: var(--accent); background: linear-gradient(90deg, rgb(255 107 26 / 0.12), transparent 60%), var(--surface); }
+.hvt__body { min-width: 0; }
+.hvt__eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--danger); }
+.hvt--you .hvt__eyebrow { color: var(--accent); }
+.hvt__eyebrow svg { width: 13px; height: 13px; }
+.hvt__ends { letter-spacing: 0.04em; text-transform: none; font-weight: 600; color: var(--text-faint); }
+.hvt__name { margin: 2px 0 4px; font-family: var(--font-ui); font-size: 1.25rem; font-weight: 700; overflow-wrap: anywhere; }
+.hvt__name a { color: var(--text); text-decoration: none; }
+.hvt__name a:hover { color: var(--accent); }
+.hvt__rank { font-size: 0.85rem; font-weight: 600; color: var(--olive); }
+.hvt__text { font-size: 0.92rem; color: var(--text-muted); }
+.hvt__text strong { color: var(--health); }
+.hvt__action { display: grid; justify-items: end; gap: 4px; }
+.hvt__blocker { max-width: 14rem; font-size: 0.78rem; text-align: right; color: var(--text-faint); }
+.hvt-tag { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font-family: var(--font-ui); font-size: 0.85rem; font-weight: 600; color: var(--danger); }
+.hvt-tag svg { width: 14px; height: 14px; }
+.battle-hero__target svg { color: var(--danger); }
+@media (max-width: 560px) {
+  .hvt { grid-template-columns: auto minmax(0, 1fr); padding: 14px; }
+  .hvt .avatar { width: 44px; height: 44px; }
+  .hvt__action { grid-column: 1 / -1; justify-items: stretch; }
+  .hvt__action .btn { width: 100%; justify-content: center; }
+  .hvt__blocker { max-width: none; text-align: left; }
+}
+
+/* Weekly unit objectives */
+.unit-objectives { margin-bottom: 20px; }
+.unit-objectives__intro { margin-bottom: 12px; font-size: 0.92rem; }
+.unit-objectives__list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.objective { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.objective.is-done { border-color: rgb(95 207 122 / 0.45); }
+.objective__icon { display: grid; place-items: center; width: 34px; height: 34px; color: var(--accent); background: var(--surface); border: 1px solid var(--line); border-radius: 50%; }
+.objective.is-done .objective__icon { color: var(--health); }
+.objective__icon svg { width: 16px; height: 16px; }
+.objective__body { min-width: 0; display: grid; gap: 6px; }
+.objective__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.objective__name { font-family: var(--font-ui); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+.objective__text { font-size: 0.95rem; color: var(--text-muted); }
+.objective__count { font-family: var(--font-ui); font-weight: 700; font-size: 0.85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.objective.is-done .meter__fill { background: var(--health); }
+.objective__reward { font-size: 0.82rem; color: var(--text-faint); }
+.objective.is-done .objective__reward { color: var(--health); }
+.unit-objectives__top { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line-strong); }
+.unit-objectives__top-title { margin-bottom: 8px; font-family: var(--font-ui); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.unit-objectives__people { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+.unit-objectives__people li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.unit-objectives__people .avatar { width: 24px; height: 24px; }

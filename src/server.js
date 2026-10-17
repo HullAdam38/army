@@ -48,6 +48,8 @@ const { createChatService } = require('./chat-service');
 const { chatRoutes } = require('./routes/chat');
 const { createSettingsService } = require('./settings-service');
 const { settingsRoutes } = require('./routes/settings');
+const { createObjectiveService } = require('./objective-service');
+const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
 const { multipart } = require('./multipart');
@@ -119,6 +121,16 @@ function createApp({
   const effects = (now) => eventService.effects(now);
   const daily = createDailyService(db, players, { effects });
   const unitRepo = createUnitRepo(db);
+  // Weekly unit objectives count the same actions as daily orders, plus deployments and donations.
+  const objectiveService = createObjectiveService(db, players, unitRepo);
+  app.objectives = objectiveService; // exposed for tests
+  const OBJECTIVE_METRICS = { missions_won: 'missions', pvp_wins: 'pvp_wins', training: 'training' };
+  daily.onProgress((userId, type, amount, now) => {
+    if (OBJECTIVE_METRICS[type]) objectiveService.track(userId, OBJECTIVE_METRICS[type], amount, now);
+  });
+  const targetService = createTargetService(db, players);
+  targetService.schedule();
+  app.target = targetService; // exposed for tests
   const warService = createWarService(db, players, unitRepo, { effects });
   warService.schedule();
   const bountyService = createBountyService(db, players, (a, b, now) => anti.linked(a, b, now), { effects });
@@ -130,7 +142,7 @@ function createApp({
   const operationService = createOperationService(db, players);
   const baseService = createBaseService(db, players);
   baseService.schedule();
-  const deploymentService = createDeploymentService(db, players, { effects });
+  const deploymentService = createDeploymentService(db, players, { effects, onReturn: (userId, now) => objectiveService.track(userId, 'deployments', 1, now) });
   deploymentService.schedule();
   app.deployments = deploymentService; // exposed for tests
   const seasonService = createSeasonService(db, players);
@@ -216,10 +228,10 @@ function createApp({
   app.get('/', (req, res) => res.render('index', { title: null }));
   app.use(authRoutes(players, anti));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService));
   app.use(armoryRoutes(players));
   app.use(hospitalRoutes(players));
-  app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService));
+  app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService));
   app.use(notificationRoutes(players, pushService));
   app.use(bankRoutes(players));
   app.use(trainingRoutes(players, daily));
@@ -236,7 +248,7 @@ function createApp({
   app.use(avatarRoutes(players, avatarService, adminRepo));
   app.use(alertRoutes(players, pushService));
   app.use(messageRoutes(players, messageService, pushService));
-  app.use(unitRoutes(players, unitRepo, adminRepo, warService));
+  app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService));
   app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService));

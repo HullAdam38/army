@@ -25,7 +25,7 @@ const titles = require('../titles');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -69,6 +69,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       upcomingEvents: eventService.upcoming(Date.now(), 3).filter((e) => e.starts_at - Date.now() < 7 * 24 * 3600 * 1000),
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
+      target: targetService && req.player.level >= pvp.MIN_PVP_LEVEL ? targetService.view(req.player) : null,
     });
   });
 
@@ -282,6 +283,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       myRating: loadoutView(me.level, players.equipment(me.id), me).rating,
       attackEnergy: pvp.ATTACK_ENERGY,
       backUrl: req.originalUrl,
+      target: targetService ? targetService.view(me) : null,
     });
   });
 
@@ -304,6 +306,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       nav: user.id === req.player.id ? 'profile' : null,
       soldier: {
         id: user.id,
+        isTarget: Boolean(targetService && targetService.isTarget(user.id)),
         username: user.username,
         avatarUrl: `/avatars/${user.id}?v=${user.avatar_v || 0}`,
         avatarIsUpload: user.avatar_kind === 'upload',

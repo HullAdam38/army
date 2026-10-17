@@ -21,6 +21,8 @@ const SETTINGS = [
   { key: 'dailyRewardsMult', group: 'economy', label: 'Daily orders & supply drops', type: 'mult', min: 0, max: 3, step: 0.05, default: 1, help: 'Multiplies daily order rewards and the daily supply drop.' },
   { key: 'seasonRewardsMult', group: 'economy', label: 'PvP season rewards', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies the end-of-season cash and XP (division rewards and podium bonuses).' },
   { key: 'warPrizeMult', group: 'economy', label: 'Unit war prizes', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies what a unit wins at the end of a war.' },
+  { key: 'unitObjectiveRewardMult', group: 'economy', label: 'Unit objective rewards', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies what a completed weekly unit objective pays into the treasury and the XP each helping member gets. Applies to objectives set after you change it.' },
+  { key: 'targetBonusMult', group: 'economy', label: 'High-value target bonus', type: 'mult', min: 0, max: 5, step: 0.05, default: 1, help: 'Multiplies the bonus for beating the daily high-value target, and what the target earns for each attack they fight off.' },
   { key: 'depositFeePct', group: 'economy', label: 'Bank deposit fee', type: 'number', unit: '%', min: 0, max: 10, step: 0.1, default: 2, help: 'The base fee for banking cash. Each Vault level still takes 0.5 points off.' },
 
   // Pace

@@ -10,7 +10,7 @@ const bbcode = require('../bbcode');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
-function unitRoutes(players, unitRepo, adminRepo, warService) {
+function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const urlOf = (unit, hash = '') => `/units/${unit.id}${hash}`;
@@ -174,6 +174,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService) {
         key, ...def, level: unit[key] || 0, max: def.costs.length, next: units.nextUpgrade(unit, key), now: def.effect(unit[key] || 0),
       })),
       applications: units.can.review(role) ? unitRepo.pendingForUnit(unit.id).map((a) => ({ ...a, html: bbcode.render(a.message), ago: presence.timeAgo(a.created_at, now) })) : [],
+      objectives: objectiveService ? objectiveService.view(unit.id, now) : null,
       posts: member ? unitRepo.posts(unit.id).map((p) => ({ ...p, html: bbcode.render(p.body), ago: presence.timeAgo(p.created_at, now), canDelete: p.user_id === req.player.id || units.can.moderate(role) })) : [],
       log: member ? unitRepo.recentLog(unit.id).map((l) => ({ ...l, ago: presence.timeAgo(l.created_at, now) })) : [],
       apply: member ? null : {
@@ -295,6 +296,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService) {
     players.save(fresh, { reason: 'unit-donation', ref: `unit:${unit.id}` });
     unitRepo.donate(unit.id, me.id, d.amount);
     unitRepo.log(unit.id, 'donation', `${me.username} donated ${money(d.amount)} to the treasury.`);
+    if (objectiveService) objectiveService.track(me.id, 'donations', d.amount);
     return { ok: `Donated ${money(d.amount)} to the ${unit.name} treasury.` };
   }, `${urlOf(req.unit)}#treasury`));
 

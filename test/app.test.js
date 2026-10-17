@@ -304,7 +304,9 @@ test('players directory: search, filters, sorting, paging and attacking from the
 
   ({ text } = await me.request('/players?filter=targets'));
   assert.match(text, /3 soldiers you can target/);
-  for (const hidden of ['Rookie', 'Patient', 'Low_One', '>Hunter<']) assert.ok(!text.includes(hidden), hidden);
+  // (The daily high-value target card above the list may name anyone, so check the list itself.)
+  const listOnly = text.replace(/<section class="card hvt[\s\S]*?<\/section>/, '');
+  for (const hidden of ['Rookie', 'Patient', 'Low_One', '>Hunter<']) assert.ok(!listOnly.includes(hidden), hidden);
 
   ({ text } = await me.request('/players?q=char'));
   assert.match(text, /1 soldier matching “char”/);
@@ -376,8 +378,8 @@ test('notifications: welcome, attack alerts, polling, read state, unlocks and th
   assert.equal(poll.player.hospitalized, true);
   // Nothing new after the latest id; the attacker gets no notification for their own attack.
   assert.equal(JSON.parse((await bravo.request(`/notifications/poll?after=${poll.latestId}`, { headers: { accept: 'application/json' } })).text).items.length, 0);
-  // Just the welcome (a daily order may also complete if today's order is a PvP win).
-  assert.equal(JSON.parse((await alpha.request('/notifications/poll?after=0', { headers: { accept: 'application/json' } })).text).items.filter((n) => n.kind !== 'order').length, 1);
+  // Just the welcome (a daily order may also complete if today's order is a PvP win, and they may be today's high-value target).
+  assert.equal(JSON.parse((await alpha.request('/notifications/poll?after=0', { headers: { accept: 'application/json' } })).text).items.filter((n) => n.kind !== 'order' && n.kind !== 'target').length, 1);
 
   ({ text } = await bravo.request('/hq'));
   assert.match(text, /aria-label="Notifications, 1 unread"/);

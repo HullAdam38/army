@@ -1,0 +1,25 @@
+<%# Today's high-value target. Expects `t` (targetService.view) and `back` (where to return after attacking). %>
+<section class="card hvt reveal<%= t.isYou ? ' hvt--you' : '' %>" style="--i:1" id="target" aria-labelledby="hvt-title">
+  <a class="hvt__avatar" href="/profile/<%= encodeURIComponent(t.username) %>" tabindex="-1" aria-hidden="true"><%- include('avatar', { url: t.avatarUrl, size: 'md', eager: true }) %></a>
+  <div class="hvt__body">
+    <p class="hvt__eyebrow"><svg aria-hidden="true"><use href="#i-target"/></svg>High-value target <span class="hvt__ends">· new target in <span data-until="<%= t.endsAt %>" data-reload>soon</span></span></p>
+    <h2 class="hvt__name" id="hvt-title"><a href="/profile/<%= encodeURIComponent(t.username) %>"><%= t.username %></a> <span class="hvt__rank"><%= t.rank.name %> · Lv <%= t.level %></span></h2>
+    <% if (t.isYou) { %>
+      <p class="hvt__text">That’s you. Every attack you fight off pays <strong>$<%= t.defenseCash.toLocaleString('en-US') %></strong> (<%= t.defenses %> of <%= t.maxDefenses %> paid today). Anyone who beats you collects a bonus.</p>
+    <% } else if (t.claimed) { %>
+      <p class="hvt__text">You’ve collected today’s bonus. <%= t.beaten > 1 ? `${t.beaten} soldiers have` : 'You’re the only one who has' %> beaten <%= t.username %> today.</p>
+    <% } else { %>
+      <p class="hvt__text">Beat them for a bonus of <strong>$<%= t.cash.toLocaleString('en-US') %></strong> and <strong><%= t.xp %> XP</strong>, once per day. <%= t.beaten ? `Beaten ${t.beaten} time${t.beaten === 1 ? '' : 's'} today.` : 'Nobody has beaten them yet today.' %></p>
+    <% } %>
+  </div>
+  <% if (!t.isYou && !t.claimed) { %>
+    <div class="hvt__action">
+      <form method="post" action="/attack/<%= encodeURIComponent(t.username) %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="back" value="<%= back %>">
+        <button class="btn btn--primary btn--sm" type="submit" <%- t.blocker ? 'disabled' : '' %>><svg class="btn__icon" aria-hidden="true"><use href="#i-target"/></svg>Attack</button>
+      </form>
+      <% if (t.blocker) { %><p class="hvt__blocker"><%= t.blocker %></p><% } %>
+    </div>
+  <% } %>
+</section>
