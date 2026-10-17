@@ -47,7 +47,8 @@ fi
 
 priv systemctl restart eliteforces
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
+  # The game takes a moment to start, so early "connection refused" tries stay quiet.
+  if curl -fs -o /dev/null http://127.0.0.1:3000/; then
     echo "Running $AFTER. (Was $BEFORE.)"
     exit 0
   fi
