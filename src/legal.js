@@ -12,15 +12,20 @@
 
 const rules = require('./anticheat/rules');
 
-const TERMS_VERSION = '2026-10-17.2'; // avatar pictures (conduct, licence and data)
-const EFFECTIVE_DATE = '15 October 2026';
+const TERMS_VERSION = '2026-10-18.1'; // recruit rewards (fair play) and reserve soldiers (the service)
+const EFFECTIVE_DATE = '18 October 2026';
 const MIN_AGE = 18;
+
+// The examples deploy/install.sh writes into the settings file. Left as they
+// are, they count as not filled in.
+const INSTALLER_EXAMPLES = new Set(['Your name or company']);
+const filled = (v) => (v && !INSTALLER_EXAMPLES.has(String(v).trim()) ? String(v).trim() : '');
 
 function legalSettings(env = process.env) {
   const settings = {
-    operator: env.LEGAL_OPERATOR || '',
-    contactEmail: env.LEGAL_CONTACT_EMAIL || '',
-    jurisdiction: env.LEGAL_JURISDICTION || '',
+    operator: filled(env.LEGAL_OPERATOR),
+    contactEmail: filled(env.LEGAL_CONTACT_EMAIL),
+    jurisdiction: filled(env.LEGAL_JURISDICTION),
   };
   const missing = Object.entries({ LEGAL_OPERATOR: settings.operator, LEGAL_CONTACT_EMAIL: settings.contactEmail, LEGAL_JURISDICTION: settings.jurisdiction })
     .filter(([, v]) => !v).map(([k]) => k);

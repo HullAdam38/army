@@ -82,6 +82,8 @@ function seed() {
 function sessions() {
   const sign = require('cookie-signature').sign;
   const db = new DatabaseSync(FILE);
+  // A database built before the terms last changed would send every page to the "accept the new terms" screen.
+  db.prepare('UPDATE users SET terms_version = ?').run(require('../src/legal').TERMS_VERSION);
   const expires = Date.now() + 7 * 864e5;
   const insert = db.prepare('INSERT INTO sessions (sid, sess, expires) VALUES (?, ?, ?)');
   const cookies = [];

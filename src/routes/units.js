@@ -8,6 +8,7 @@ const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
 const wars = require('../wars');
 const bbcode = require('../bbcode');
+const { autoAccepts } = require('../reserve-service');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
@@ -121,6 +122,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
       const id = unitRepo.create({ ...v, leaderId: me.id });
       unitRepo.log(id, 'founded', `${me.username} founded ${v.name}.`);
       players.log(me.id, 'unit', `Founded the unit ${v.name} [${v.tag}] for ${money(units.CREATE_COST)}.`, `/units/${id}`);
+      players.news(me.id, `[b]${me.username}[/b] founded a new unit: [b]${v.name}[/b] (${v.tag}). It’s recruiting.`);
       return { id, name: v.name };
     });
     if (out.error) {
@@ -230,6 +232,13 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
       alreadyApplied: unitRepo.hasApplied(unit.id, me.id),
     });
     if (blocker) return { error: blocker };
+    if (autoAccepts(unit)) {
+      // HQ starter units take everyone who applies, straight away.
+      if (!unitRepo.join(unit.id, me.id)) return { error: 'You’re already in a unit.' };
+      unitRepo.log(unit.id, 'join', `${me.username} joined.`);
+      players.log(me.id, 'unit', `Joined ${unit.name} [${unit.tag}].`, `/units/${unit.id}`);
+      return { ok: `Welcome to ${unit.name}. HQ starter units take everyone who applies.` };
+    }
     const message = String(req.body.message || '').trim().slice(0, units.MAX_APPLY_MESSAGE);
     unitRepo.apply(unit.id, me.id, message);
     notifyAll(unitRepo.officerIds(unit.id), `${me.username} (level ${me.level}) applied to join ${unit.name}.`, `/units/${unit.id}#applications`);

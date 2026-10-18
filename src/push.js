@@ -21,6 +21,7 @@ const CATEGORIES = [
 // not with the categories above.
 const STAFF_CATEGORIES = [
   { id: 'support', title: 'Support ticket' },
+  { id: 'errors', title: 'Server errors' },
 ];
 const CATEGORY = new Map([...CATEGORIES, ...STAFF_CATEGORIES].map((c) => [c.id, c]));
 

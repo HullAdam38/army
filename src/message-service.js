@@ -82,6 +82,7 @@ function createMessageService(db, players) {
     start({ senderId, recipientName, subject, body, now = Date.now() }) {
       const sender = players.findById(senderId);
       const recipient = recipientName ? players.findByUsername(String(recipientName).trim()) : null;
+      if (recipient && recipient.is_bot) return { error: `${recipient.username} is a reserve soldier run by HQ and doesn’t read messages.` };
       const blocker = recipient ? rules.sendBlocker(sender, recipient, context(sender, recipient, { starting: true, now }), now) : rules.sendBlocker(sender, null, {}, now);
       if (blocker) return { error: blocker };
       const s = rules.validateSubject(subject);

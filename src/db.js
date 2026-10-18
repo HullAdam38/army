@@ -210,6 +210,17 @@ const SCHEMA = `
     UNIQUE (unit_id, user_id)
   );
   CREATE INDEX IF NOT EXISTS idx_unit_apps_user ON unit_applications(user_id);
+  -- Server errors (500s) for Admin › Launch checklist, kept 14 days (src/health-service.js).
+  CREATE TABLE IF NOT EXISTS server_errors (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    method      TEXT,
+    path        TEXT,
+    message     TEXT    NOT NULL,
+    stack       TEXT,
+    user_id     INTEGER,
+    created_at  INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_server_errors_time ON server_errors(created_at);
   -- Invitations an officer sent to a player who is looking for a unit.
   CREATE TABLE IF NOT EXISTS unit_invites (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -834,6 +845,11 @@ const ADDED_COLUMNS = [
   ['users', 'casino_blackjacks', 'INTEGER NOT NULL DEFAULT 0'],
   ['chat_messages', 'kind', 'TEXT'], // null for players' messages; 'casino' for big-win shouts
   ['users', 'lfu_at', 'INTEGER'], // looking for a unit since (shown to unit officers)
+  ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
+  ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
+  ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players
+  ['users', 'referred_by', 'INTEGER REFERENCES users(id) ON DELETE SET NULL'], // recruit-a-friend: who sent them
+  ['users', 'referral_paid_at', 'INTEGER'], // when the recruiter was rewarded for them
 ];
 
 function migrate(db) {
@@ -844,6 +860,8 @@ function migrate(db) {
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen_at)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_hospital ON users(hospital_until)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_users_unit ON users(unit_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_bot ON users(is_bot) WHERE is_bot = 1');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_users_referred ON users(referred_by) WHERE referred_by IS NOT NULL');
   // Chat polls ask for recently deleted messages; only deleted rows go in this index, so it stays tiny.
   db.exec('CREATE INDEX IF NOT EXISTS idx_chat_deleted ON chat_messages(channel, deleted_at) WHERE deleted_at IS NOT NULL');
   // Lets the anti-cheat ledger audit add up each player's history from the index alone.

@@ -15,6 +15,7 @@
     <div class="unit-hero__body">
       <p class="eyebrow">Unit profile · ranked #<%= unit.position %> · founded <time datetime="<%= stats.foundedIso %>"><%= stats.founded %></time></p>
       <h1 id="unit-name" class="profile-hero__name"><%= unit.name %> <span class="unit-tag">[<%= unit.tag %>]</span></h1>
+      <% if (unit.hq === 1) { %><p class="reserve-note"><span class="tag tag--hq">HQ starter unit</span> Run by HQ with reserve soldiers. Anyone who applies joins straight away, and once three real soldiers serve here, command passes to the most senior of them.</p><% } %>
       <% if (unit.description) { %><div class="unit-hero__desc bb-content"><%- unit.descriptionHtml %></div><% } %>
       <p class="unit-hero__leader">Commander <% const lead = roster.find((m) => m.unit_role === 'leader'); %><% if (lead) { %><a href="/profile/<%= encodeURIComponent(lead.username) %>"><%= lead.username %></a><% } else { %>—<% } %></p>
       <dl class="figures unit-hero__figures">
@@ -49,12 +50,19 @@
       <% } else if (apply.blocker) { %>
         <p class="unit-hero__role muted"><%= apply.blocker %></p>
       <% } else { %>
+        <% if (unit.hq === 1) { %>
+          <form method="post" action="/units/<%= unit.id %>/apply" class="unit-apply" id="apply">
+            <%- csrf %>
+            <button class="btn btn--primary btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-flag"/></svg>Join now</button>
+          </form>
+        <% } else { %>
         <p class="unit-hero__role">You meet their requirements.</p>
         <form method="post" action="/units/<%= unit.id %>/apply" class="unit-apply" id="apply">
           <%- csrf %>
           <%- include('partials/bb-editor', { id: 'apply-msg', name: 'message', label: 'Message to the officers', max: limits.message, rows: 3, required: false, compact: true, placeholder: 'Why should they take you? (optional)' }) %>
           <button class="btn btn--primary btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-flag"/></svg>Apply to join</button>
         </form>
+        <% } %>
       <% } %>
       <% if (declare && !war) { %>
         <div class="unit-declare">
@@ -227,7 +235,7 @@
           <li class="unit-roster__row unit-roster__row--<%= m.unit_role %><%= m.isYou ? ' is-you' : '' %>">
             <%- include('partials/avatar', { url: m.avatarUrl, size: 'sm' }) %>
             <span class="roster__who">
-              <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(m.username) %>"><%= m.username %></a><% if (m.isYou) { %> <span class="tag">You</span><% } %></span>
+              <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(m.username) %>"><%= m.username %></a><% if (m.isYou) { %> <span class="tag">You</span><% } %><% if (m.is_bot) { %> <span class="tag tag--reserve">Reserve</span><% } %></span>
               <span class="roster__rank"><span class="unit-role unit-role--<%= m.unit_role %>"><%= m.roleLabel %></span> · Lv <%= m.level %><% if (member) { %> · donated <%= money(m.unit_donated) %><% } %></span>
             </span>
             <span class="unit-roster__seen">

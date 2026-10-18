@@ -15,7 +15,7 @@ function createAdminRepo(db) {
       FROM users`),
     battlesToday: db.prepare('SELECT COUNT(*) AS n FROM battles WHERE created_at >= ?'),
     search: db.prepare(`
-      SELECT id, username, email, level, cash, bank_balance, created_at, last_seen_at, banned_at, is_admin
+      SELECT id, username, email, level, cash, bank_balance, created_at, last_seen_at, banned_at, is_admin, is_bot
       FROM users
       WHERE (?1 = '' OR username LIKE ?2 ESCAPE '\\' OR email LIKE ?2 ESCAPE '\\')
       ORDER BY id DESC LIMIT ?3 OFFSET ?4`),

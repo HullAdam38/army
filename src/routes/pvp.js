@@ -49,7 +49,7 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
       const link = `/battles/${id}`;
       // Season rating: only full-reward fights are ranked (see seasons.isRanked).
       const linked = anti.linked(attacker.id, defender.id, now); // same device or network
-      const season = seasonService.recordFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, linked, now });
+      const season = seasonService.recordFight({ battleId: id, attackerId: attacker.id, defenderId: defender.id, attackerWon: r.attackerWon, rewards, linked, reserve: Boolean(attacker.is_bot || defender.is_bot), now });
       const defRating = season.ranked ? ` Season rating ${signed(season.defender.delta)} (${season.defender.rating}).` : '';
       const a = attacker.username;
       const d = defender.username;

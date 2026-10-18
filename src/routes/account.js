@@ -5,10 +5,12 @@ const bcrypt = require('bcryptjs');
 const { createFailureTracker } = require('../middleware');
 const { passwordProblem } = require('./auth');
 const { createRequireAuth } = require('../require-auth');
+const presence = require('../presence');
+const tuning = require('../tuning');
 
 const MAX_BIO = 2000; // BBCode source, tags included
 
-function accountRoutes(players, medalService) {
+function accountRoutes(players, medalService, referrals = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   // Guessing the current password from a hijacked session gets throttled too.
@@ -23,6 +25,25 @@ function accountRoutes(players, medalService) {
     });
 
   router.get('/account/password', requireAuth, (req, res) => render(req, res, 200));
+
+  // Recruit a friend: your invite link and how your recruits are getting on.
+  router.get('/account/recruit', requireAuth, (req, res) => {
+    const now = Date.now();
+    const level = tuning.get('referralLevel');
+    const host = `${req.protocol}://${req.get('host')}`;
+    res.render('account-recruit', {
+      title: 'Recruit a friend',
+      nav: 'recruit',
+      link: `${host}/join/${encodeURIComponent(req.player.username)}`,
+      reward: { level, cash: tuning.get('referralCash'), xp: tuning.get('referralXp'), recruit: tuning.get('referralRecruitCash'), perMonth: tuning.get('referralMaxPerMonth') },
+      recruits: referrals ? referrals.recruits(req.player.id).map((r) => ({
+        ...r,
+        joined: presence.timeAgo(r.created_at, now),
+        status: r.banned_at ? 'Suspended' : r.paid ? 'Rewarded' : r.referral_paid_at ? 'No reward' : `Level ${r.level} of ${level}`,
+        pct: Math.min(100, Math.round((r.level / level) * 100)),
+      })) : [],
+    });
+  });
 
   router.post('/account/password', requireAuth, async (req, res, next) => {
     try {

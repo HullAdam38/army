@@ -23,7 +23,7 @@
     <tbody>
       <% rows.forEach(function (u) { %>
         <tr>
-          <th scope="row"><a class="directory__name" href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a><% if (u.is_admin) { %> <span class="tag">Admin</span><% } %><% if (u.banned_at) { %> <span class="tag tag--hospital">Suspended</span><% } %></th>
+          <th scope="row"><a class="directory__name" href="/admin/players/<%= u.id %>"><strong><%= u.username %></strong></a><% if (u.is_admin) { %> <span class="tag">Admin</span><% } %><% if (u.is_bot) { %> <span class="tag tag--reserve">Reserve</span><% } %><% if (u.banned_at) { %> <span class="tag tag--hospital"><%= u.is_bot ? 'Stood down' : 'Suspended' %></span><% } %></th>
           <td data-label="Email"><%= u.email %></td>
           <td class="num" data-label="Level"><%= u.level %></td>
           <td class="num" data-label="Cash"><%= money(u.cash) %></td>

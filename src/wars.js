@@ -25,6 +25,8 @@ const pointsFor = ({ knockout }) => (knockout ? 2 : 1);
  */
 function declareBlocker(attacker, target, ctx, now = Date.now()) {
   if (attacker.id === target.id) return 'A unit can’t declare war on itself.';
+  if (target.hq === 1) return `${target.name} is an HQ starter unit and can’t be attacked in a war.`;
+  if (attacker.hq === 1) return 'HQ starter units don’t declare wars.';
   if (ctx.attackerAtWar) return `${attacker.name} is already at war.`;
   if (ctx.targetAtWar) return `${target.name} is already at war.`;
   if (ctx.attackerMembers < MIN_WAR_MEMBERS) return `You need at least ${MIN_WAR_MEMBERS} members to declare war.`;

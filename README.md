@@ -131,6 +131,44 @@ At **Admin › Game settings** (`/admin/settings`) you can tune the game without
 
 Nothing is banned automatically. See [SECURITY.md](SECURITY.md#anti-cheat) for the rules and thresholds.
 
+## Living world
+
+A brand-new game has nobody in it, so the game keeps the world busy until real players fill it.
+
+- **Reserve soldiers:** players run by the game, marked **Reserve** on the players list, profiles, leaderboards, rosters and the online list. They level up at a casual player's pace (up to level 30 by default), carry gear and cash, and skirmish among themselves, which fills the combat feed. Real players can attack them as normal; those fights pay as usual but never count towards PvP seasons. They can't sign in, chat or be messaged, and they're never the daily high-value target.
+- **They stand down as players arrive:** with the default of 30, one leaves for every real player active in the last week (admins don't count). Game settings › Living world sets the number (0 stands them all down) and their top level. The first batch enlists when the server starts; after that it checks every 10 minutes.
+- **HQ starter units:** Iron Vanguard, Desert Rangers and Northern Watch, each run by reserve soldiers. They're always recruiting with no requirements, and anyone who applies joins at once ("Join now"). They can't fight wars. Once three real soldiers serve in one, command passes to the most senior (the next becomes a Lieutenant), the reserve soldiers leave, and it becomes an ordinary unit.
+- **News in Global chat:** short announcements for promotions to Second Lieutenant and above, new units, wars declared and won, raids won and HQ units handed over. They look different from messages and don't count as unread. Game settings › Living world can turn them off.
+- Admin › Player stats leaves reserve soldiers out of every count. Rules: `src/reserve.js`; running them: `src/reserve-service.js`.
+
+## Recruit a friend
+
+`/account/recruit` (under More on phones, and linked from HQ and your profile) shows your invite link (`/join/<callsign>`) with Copy and Share buttons, and how your recruits are doing.
+
+- When a recruit reaches **level 10**, the recruiter gets **$2,500 and 250 XP** and the recruit gets **$1,000** (ledger reason `referral`). The sign-up page tells the friend who invited them.
+- Nothing is paid when the accounts share a device or network, when either is suspended, or past **10 rewards per recruiter in 30 days**. The recruiter is told why. Reserve soldiers can't be recruiters.
+- Everything is tunable in Game settings › Recruit a friend. Code: `src/referral-service.js`.
+
+## Front page, search engines and link previews
+
+- The front page shows six real screenshots (`public/img/screens/`). `npm run screenshots` retakes them, and the link preview image `public/img/og.png`, from a throwaway demo game.
+- Every page has a description, Open Graph and Twitter tags (the preview on Discord, Reddit, WhatsApp…) and, for guests, a canonical link. The front page describes the game for search engines (schema.org `VideoGame`).
+- `/robots.txt` lets search engines crawl only the public pages (front page, sign up, sign in, terms) and points to `/sitemap.xml`. Pages for signed-in players carry `noindex`.
+- Set `SITE_URL` (e.g. `https://generalforces.com`) so shared links always use the main address; otherwise the address the site was reached on is used.
+
+## Launch checklist
+
+Admin › **Launch checklist** (`/admin/launch`) checks, every time it's opened:
+
+- your details in the Terms of Service (the installer's example values count as missing), and that the contact email is on the game's domain;
+- production mode;
+- the nightly backup: when it ran, its size, and the **test restore** (the copy is opened, integrity-checked and its players counted);
+- the **off-site copy** of each backup (rclone to Backblaze B2, Google Drive, S3… see DEPLOY.md);
+- **server errors** in the last 24 hours, with the latest 20 (message, page, stack trace). Admins get an in-game notification and a push alert (category *Server errors*), at most one per half hour;
+- outside uptime monitoring: point UptimeRobot or similar at **`/healthz`**, which answers `ok` while the game and database work;
+- sign-ups: at most **3 new accounts per network a day** (Game settings › Access), and a hidden form field that turns away simple bots;
+- how many reserve soldiers are on duty.
+
 ## Game loop
 
 | Resource | How it works |

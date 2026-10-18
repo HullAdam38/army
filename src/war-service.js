@@ -97,6 +97,16 @@ function createWarService(db, players, unitRepo, { effects = () => NEUTRAL } = {
       unitRepo.log(unitId, 'war', `${headline}${prize ? ` ${money(prize)} added to the treasury.` : ''}`, now);
       notifyUnit(unitId, `${headline}${prize ? ` ${money(prize)} added to the treasury.` : ''}`, link);
     }
+    // News in Global chat, credited to the winning unit's Commander (or the attacker's on a draw).
+    const newsUnit = result.winner === 'defender' ? war.defender_unit_id : war.attacker_unit_id;
+    const voice = newsUnit ? unitRepo.officerIds(newsUnit)[0] : null;
+    if (voice) {
+      const an = `${war.attacker_name} (${war.attacker_tag})`;
+      const dn = `${war.defender_name} (${war.defender_tag})`;
+      players.news(voice, result.winner === null
+        ? `The war between [b]${an}[/b] and [b]${dn}[/b] ended in a draw, ${score}.`
+        : `[b]${result.winner === 'attacker' ? an : dn}[/b] won the war against ${result.winner === 'attacker' ? dn : an}${forfeit ? ' by forfeit' : `, ${score}`}.`, now);
+    }
     return { ...result, headline };
   }
 
@@ -126,6 +136,7 @@ function createWarService(db, players, unitRepo, { effects = () => NEUTRAL } = {
       unitRepo.log(target.id, 'war', `${tagged(attacker.name, attacker.tag)} declared war on us.`, now);
       notifyUnit(attacker.id, `${me.username} declared war on ${tagged(target.name, target.tag)}. You have 24 hours: every PvP win against them scores.`, link);
       notifyUnit(target.id, `${tagged(attacker.name, attacker.tag)} has declared war on your unit! Every PvP win against them in the next 24 hours scores.`, link);
+      players.news(me.id, `[b]${attacker.name}[/b] (${attacker.tag}) declared war on [b]${target.name}[/b] (${target.tag}). 24 hours on the clock.`, now);
       return { warId };
     },
 

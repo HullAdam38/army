@@ -22,12 +22,13 @@ const RETENTION = [
 
 function createStatsService(db) {
   const stmts = {
-    signups: db.prepare('SELECT strftime(\'%Y-%m-%d\', created_at / 1000, \'unixepoch\') AS day, COUNT(*) AS n FROM users WHERE created_at >= ? GROUP BY day'),
+    // Reserve soldiers (is_bot) are left out of every count: these are real players only.
+    signups: db.prepare('SELECT strftime(\'%Y-%m-%d\', created_at / 1000, \'unixepoch\') AS day, COUNT(*) AS n FROM users WHERE created_at >= ? AND is_bot = 0 GROUP BY day'),
     active: db.prepare('SELECT day, COUNT(*) AS n FROM player_days WHERE day >= ? GROUP BY day'),
     activeSince: db.prepare('SELECT COUNT(DISTINCT user_id) AS n FROM player_days WHERE day >= ?'),
-    players: db.prepare('SELECT COUNT(*) AS n FROM users WHERE banned_at IS NULL'),
-    joinedSince: db.prepare('SELECT COUNT(*) AS n FROM users WHERE created_at >= ?'),
-    cohort: db.prepare('SELECT id, created_at FROM users WHERE created_at >= ? AND created_at < ?'),
+    players: db.prepare('SELECT COUNT(*) AS n FROM users WHERE banned_at IS NULL AND is_bot = 0'),
+    joinedSince: db.prepare('SELECT COUNT(*) AS n FROM users WHERE created_at >= ? AND is_bot = 0'),
+    cohort: db.prepare('SELECT id, created_at FROM users WHERE created_at >= ? AND created_at < ? AND is_bot = 0'),
     returned: db.prepare('SELECT COUNT(DISTINCT p.user_id) AS n FROM player_days p JOIN users u ON u.id = p.user_id WHERE u.created_at >= ?1 AND u.created_at < ?2 AND julianday(p.day) - julianday(strftime(\'%Y-%m-%d\', u.created_at / 1000, \'unixepoch\')) BETWEEN ?3 AND ?4'),
     funnel: db.prepare(`
       SELECT COUNT(*) AS joined,
@@ -39,19 +40,19 @@ function createStatsService(db) {
              SUM(unit_id IS NOT NULL) AS unit,
              SUM(pvp_wins > 0) AS pvp,
              SUM(EXISTS (SELECT 1 FROM tutorial_progress t WHERE t.user_id = users.id AND t.step = ?2)) AS graduated
-      FROM users WHERE created_at >= ?1 AND banned_at IS NULL`),
+      FROM users WHERE created_at >= ?1 AND banned_at IS NULL AND is_bot = 0`),
     churnLevels: db.prepare(`
       SELECT CASE WHEN level = 1 THEN '1' WHEN level = 2 THEN '2' WHEN level <= 4 THEN '3–4' WHEN level <= 9 THEN '5–9'
                   WHEN level <= 19 THEN '10–19' ELSE '20+' END AS bucket, COUNT(*) AS n
-      FROM users WHERE banned_at IS NULL AND created_at < ?1 AND COALESCE(last_seen_at, created_at) < ?1 AND created_at >= ?2
+      FROM users WHERE banned_at IS NULL AND is_bot = 0 AND created_at < ?1 AND COALESCE(last_seen_at, created_at) < ?1 AND created_at >= ?2
       GROUP BY bucket`),
     churnSteps: db.prepare(`
       SELECT (SELECT COUNT(*) FROM tutorial_progress t WHERE t.user_id = u.id AND t.step != ?3) AS steps, COUNT(*) AS n
-      FROM users u WHERE u.banned_at IS NULL AND u.created_at < ?1 AND COALESCE(u.last_seen_at, u.created_at) < ?1 AND u.created_at >= ?2
+      FROM users u WHERE u.banned_at IS NULL AND u.is_bot = 0 AND u.created_at < ?1 AND COALESCE(u.last_seen_at, u.created_at) < ?1 AND u.created_at >= ?2
       GROUP BY steps`),
     pushUsers: db.prepare('SELECT COUNT(DISTINCT user_id) AS n FROM push_subscriptions'),
     appUsers: db.prepare('SELECT COUNT(*) AS n FROM users WHERE app_seen_at >= ?'),
-    inUnit: db.prepare('SELECT COUNT(*) AS n FROM users WHERE unit_id IS NOT NULL AND banned_at IS NULL'),
+    inUnit: db.prepare('SELECT COUNT(*) AS n FROM users WHERE unit_id IS NOT NULL AND banned_at IS NULL AND is_bot = 0'),
     activeInUnit: db.prepare('SELECT COUNT(DISTINCT p.user_id) AS n FROM player_days p JOIN users u ON u.id = p.user_id WHERE p.day >= ? AND u.unit_id IS NOT NULL'),
     activeUnits: db.prepare('SELECT COUNT(DISTINCT u.unit_id) AS n FROM player_days p JOIN users u ON u.id = p.user_id WHERE p.day >= ? AND u.unit_id IS NOT NULL'),
     objectives: db.prepare('SELECT COUNT(*) AS total, SUM(completed_at IS NOT NULL) AS done FROM unit_objectives WHERE week = ?'),

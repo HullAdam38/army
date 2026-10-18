@@ -86,6 +86,8 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
     if (unit) {
       unitRepo.log(unit.id, 'raid', `${s.name} taken! ${money(raid.cash_pool)} in loot: ${money(loot.treasury)} to the treasury, the rest shared by damage.`, now);
       tell(unit.id, `[${unit.tag}] took the ${s.name}! Loot is shared by damage dealt, and ${money(loot.treasury)} went to the treasury.`, link);
+      const voice = hits.length ? hits.reduce((a, b) => (b.damage > a.damage ? b : a)).user_id : null;
+      if (voice) players.news(voice, `[b]${unit.name}[/b] (${unit.tag}) took the ${s.name} in a unit raid.`, now);
     }
   }
 

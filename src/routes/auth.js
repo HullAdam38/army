@@ -31,7 +31,7 @@ function validateRegistration({ username, email, password, confirm, adult, terms
   return errors;
 }
 
-function authRoutes(players, anti) {
+function authRoutes(players, anti, referrals = null) {
   const router = express.Router();
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -61,8 +61,30 @@ function authRoutes(players, anti) {
   // Admins can close sign-ups (Admin › Game settings › New sign-ups).
   const closed = () => !tuning.get('registrationOpen');
 
+  // New accounts per network in the last 24 hours (Game settings › Access).
+  const signups = new Map(); // ip → [times]
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  // Local addresses aren't counted: they only appear in development, or if the proxy
+  // isn't passing visitors' addresses on, when everyone would share one limit.
+  const isLocal = (ip) => !ip || ip === '::1' || ip.startsWith('127.') || ip.startsWith('::ffff:127.');
+  const recentSignups = (ip, now) => (isLocal(ip) ? [] : (signups.get(ip) || []).filter((t) => now - t < DAY_MS));
+  setInterval(() => { const now = Date.now(); for (const [ip, list] of signups) if (!recentSignups(ip, now).length) signups.delete(ip); }, 60 * 60 * 1000).unref();
+
+  // Who sent this visitor (an invite link), for the sign-up page.
+  const invitedBy = (req) => {
+    const r = req.session.ref && players.findById(req.session.ref);
+    return r && !r.banned_at ? r.username : null;
+  };
+  // Invite links: /join/<callsign> remembers who sent you, then opens sign-up.
+  router.get('/join/:username', (req, res) => {
+    const r = referrals ? referrals.recruiter(req.params.username) : null;
+    if (req.session.userId) return res.redirect(r ? `/profile/${encodeURIComponent(r.username)}` : '/hq');
+    if (r) req.session.ref = r.id;
+    res.redirect('/register');
+  });
+
   router.get('/register', guestOnly, (req, res) => {
-    res.render('register', { title: 'Enlist', values: {}, errors: {}, closed: closed() });
+    res.render('register', { title: 'Enlist', values: {}, errors: {}, closed: closed(), invitedBy: invitedBy(req) });
   });
 
   router.post('/register', guestOnly, limiter, async (req, res, next) => {
@@ -77,6 +99,12 @@ function authRoutes(players, anti) {
         terms: req.body.terms === 'on',
       };
       const errors = validateRegistration(values);
+      // The hidden trap field is only ever filled in by bots. Tell them nothing useful.
+      if (String(req.body.website || '').trim()) return res.status(422).render('register', { title: 'Enlist', values: {}, errors: { username: 'Something went wrong. Try again.' } });
+      if (recentSignups(req.ip, Date.now()).length >= tuning.get('signupsPerIpPerDay')) {
+        const { password, confirm, ...safe } = values;
+        return res.status(429).render('register', { title: 'Enlist', values: safe, errors: { username: 'Too many new accounts have been made from your connection today. Try again tomorrow, or sign in to the account you have.' } });
+      }
       if (!errors.username && !errors.email) {
         const taken = players.conflict(values.username, values.email);
         if (taken === 'username') errors.username = 'That callsign is already taken.';
@@ -92,6 +120,8 @@ function authRoutes(players, anti) {
       try {
         id = players.create({ username: values.username, email: values.email, passwordHash });
         players.acceptTerms(id, TERMS_VERSION);
+        signups.set(req.ip, [...recentSignups(req.ip, Date.now()), Date.now()]);
+        if (referrals && req.session.ref) referrals.signedUp(id, req.session.ref);
       } catch (err) {
         // Two sign-ups for the same name/email at once: the database's unique
         // constraint catches the loser of the race.
@@ -131,7 +161,7 @@ function authRoutes(players, anti) {
 
       const user = login ? players.findByLogin(login) : null;
       const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
-      if (!user || !ok) {
+      if (!user || !ok || user.is_bot) {
         failures.fail(key);
         return fail(401, 'Callsign or password is incorrect.');
       }

@@ -16,7 +16,7 @@ function createTargetService(db, players) {
     day: db.prepare(`SELECT t.*, u.username, u.level, u.avatar_v, u.banned_at, u.hospital_until, u.deploy_until
                      FROM daily_targets t JOIN users u ON u.id = t.user_id WHERE t.day = ?`),
     candidates: db.prepare(`SELECT id, username, level FROM users
-                            WHERE banned_at IS NULL AND is_admin = 0 AND level >= ? AND last_seen_at >= ?
+                            WHERE banned_at IS NULL AND is_admin = 0 AND is_bot = 0 AND level >= ? AND last_seen_at >= ?
                             ORDER BY level DESC, xp DESC, id LIMIT ?`),
     insert: db.prepare('INSERT OR IGNORE INTO daily_targets (day, user_id, created_at) VALUES (?, ?, ?)'),
     claim: db.prepare('INSERT OR IGNORE INTO daily_target_claims (day, attacker_id, battle_id, cash, xp, created_at) VALUES (?, ?, ?, ?, ?, ?)'),

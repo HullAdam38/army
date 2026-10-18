@@ -34,11 +34,18 @@ function unlocksAt(level) {
   return unlocks;
 }
 
+// Promotions to this level and above (Second Lieutenant) make the news in Global chat.
+const NEWS_FROM_LEVEL = game.RANKS.find((r) => r.grade === 'O-1').level;
+
 /** Sends promotion and unlock notifications for each level gained. */
 function announceLevels(players, userId, levels) {
   for (const level of levels) {
     const rank = game.rankFor(level);
     players.notify(userId, 'promotion', `Promoted to level ${level}: ${rank.name} (${rank.grade}).`, null);
+    if (level >= NEWS_FROM_LEVEL && rank.level === level) {
+      const p = players.findById(userId);
+      if (p) players.news(userId, `[b]${p.username}[/b] was promoted to [b]${rank.name}[/b] (level ${level}).`);
+    }
     for (const u of unlocksAt(level)) players.notify(userId, u.kind, u.message, u.link);
     // A nudge for soldiers still on their own: units are where raids, rallies and the theatre of war happen.
     if (level === units.CREATE_LEVEL) {

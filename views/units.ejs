@@ -124,7 +124,7 @@
             <th scope="row" class="directory__who">
               <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
               <span class="roster__who">
-                <span><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><% if (u.isYours) { %> <span class="tag">Yours</span><% } %><% if (u.atWar) { %> <span class="tag tag--war">At war</span><% } %></span>
+                <span><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><% if (u.isYours) { %> <span class="tag">Yours</span><% } %><% if (u.atWar) { %> <span class="tag tag--war">At war</span><% } %><% if (u.hq === 1) { %> <span class="tag tag--hq">HQ starter</span><% } %></span>
                 <span class="roster__rank">Commander <%= u.leader_name || '—' %></span>
               </span>
             </th>

@@ -17,6 +17,7 @@
       </div>
       <h1 class="form-card__title">Enlist with GeneralForces</h1>
       <p class="form-card__sub">Pick a callsign. It's how the rest of the unit will know you.</p>
+      <% if (locals.invitedBy) { %><p class="notice invite-banner"><strong><%= invitedBy %></strong> invited you. Reach level 10 and you both get a bonus.</p><% } %>
 
       <% if (Object.keys(errors).length) { %>
         <p class="flash flash--error" role="alert">Fix the highlighted fields and resubmit.</p>
@@ -27,6 +28,11 @@
       <% } else { %>
       <form method="post" action="/register" class="form" novalidate>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%# A trap for sign-up bots: people never see or fill this in. %>
+        <div class="field-trap" aria-hidden="true">
+          <label for="website">Leave this empty</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
         <div class="field">
           <label for="username">Callsign</label>
           <input id="username" name="username" type="text" autocomplete="username" required

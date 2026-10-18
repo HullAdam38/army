@@ -14,6 +14,8 @@ const { EMAIL_RE, USERNAME_RE } = require('./auth');
 const { announceLevels } = require('../notify');
 const { createStatsService } = require('../stats-service');
 const { createCasinoStats } = require('../casino-stats');
+const tuning = require('../tuning');
+const launch = require('../launch');
 
 const PAGE_SIZE = 25;
 const timeLeft = (ms) => {
@@ -32,7 +34,7 @@ const REASON_LABELS = {
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false } = {}) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -353,6 +355,27 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   };
 
   // Reported private messages. Admins only ever see messages someone reported.
+  // ----- Launch checklist -----
+  router.get('/admin/launch', (req, res) => {
+    const now = Date.now();
+    res.render('admin/launch', {
+      title: 'Admin · Launch checklist',
+      nav: 'admin',
+      items: launch.checklist({
+        legal: legal || req.app.locals.legal,
+        production,
+        host: req.get('host'),
+        backup: health ? health.backupStatus(now) : null,
+        errors24h: health ? health.countSince(now - 24 * 60 * 60 * 1000) : 0,
+        signupsOpen: tuning.get('registrationOpen'),
+        signupsPerIp: tuning.get('signupsPerIpPerDay'),
+        reserve: reserve ? reserve.count() : 0,
+        now,
+      }),
+      errors: health ? health.recent(20).map((e) => ({ ...e, ago: presence.timeAgo(e.created_at, now) })) : [],
+    });
+  });
+
   // ----- Player stats -----
   const stats = createStatsService(adminRepo.db);
   const casinoStats = createCasinoStats(adminRepo.db);

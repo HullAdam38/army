@@ -167,12 +167,13 @@ function createSeasonService(db, players) {
      * transaction with anti-cheat's reward plan. Returns
      * { ranked: false, reason } or { ranked: true, number, attacker: { delta, rating }, defender: { … } }.
      */
-    recordFight({ battleId, attackerId, defenderId, attackerWon, rewards, linked = false, now = Date.now() }) {
+    recordFight({ battleId, attackerId, defenderId, attackerWon, rewards, linked = false, reserve = false, now = Date.now() }) {
       const season = stmts.active.get();
       if (!season || season.ends_at <= now) return { ranked: false, reason: 'No season is running.' };
       if (!seasons.isRanked(rewards)) return { ranked: false, reason: rewards.note || 'Unranked fight.' };
       // Accounts that share a device or network never rank against each other, so alts can't farm rating.
       if (linked) return { ranked: false, reason: 'Unranked: these accounts are linked.' };
+      if (reserve) return { ranked: false, reason: 'Unranked: fights with reserve soldiers don’t count towards the season.' };
       const a = ensurePlayer(season, attackerId);
       const d = ensurePlayer(season, defenderId);
       const delta = seasons.ratingChange(a.rating, d.rating, attackerWon);

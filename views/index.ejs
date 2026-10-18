@@ -9,8 +9,8 @@
         <p class="eyebrow reveal" style="--i:0">Text-based military strategy · 18+</p>
         <h1 class="hero__title reveal" style="--i:1">Earn your<br><span class="hero__accent">stripes.</span></h1>
         <p class="hero__lede reveal" style="--i:2">
-          Enlist as a raw recruit and fight your way to General. Spend energy on missions,
-          bank your pay, patch up your wounds and climb eighteen ranks of command — all from your browser.
+          Enlist as a raw recruit and fight your way to the top. Run missions, take on other players,
+          join a unit and fight for the map. Free, and it all runs in your browser, on your phone or computer.
         </p>
         <div class="hero__cta reveal" style="--i:3">
           <a class="btn btn--primary btn--lg" href="/register">
@@ -19,8 +19,8 @@
           <a class="btn btn--ghost btn--lg" href="/login">I already serve</a>
         </div>
         <ul class="hero__facts reveal" style="--i:4">
-          <li><strong>6</strong> mission theatres</li>
-          <li><strong>18</strong> ranks to earn</li>
+          <li><strong><%= facts.missions %></strong> missions</li>
+          <li><strong><%= facts.ranks %></strong> ranks to earn</li>
           <li><strong>Free</strong> to play</li>
         </ul>
       </div>
@@ -66,13 +66,54 @@
           <span class="feature__num">02</span>
           <svg class="feature__icon" aria-hidden="true"><use href="#i-chevrons"/></svg>
           <h3>Climb the ranks</h3>
-          <p>Level up to unlock tougher theatres, bigger payouts and deeper energy reserves. Recruit to General — eighteen promotions.</p>
+          <p>Level up to unlock tougher campaigns, bigger payouts and better gear. From Recruit to General and beyond, across six campaigns.</p>
         </article>
         <article class="card feature reveal-on-scroll">
           <span class="feature__num">03</span>
           <svg class="feature__icon" aria-hidden="true"><use href="#i-health"/></svg>
           <h3>Manage the fight</h3>
           <p>Failed ops cost blood. Energy and health regenerate over time — or pay the field hospital to get back in the fight fast.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="shots-title">
+    <div class="container">
+      <p class="eyebrow">In the field</p>
+      <h2 id="shots-title" class="section__title">What you’ll be doing.</h2>
+      <ul class="shots">
+        <% shots.forEach(function (s) { %>
+          <li class="shots__item reveal-on-scroll">
+            <figure>
+              <img src="/img/screens/<%= s.file %>.jpg?v=<%= assetVersion %>" width="390" height="760" loading="lazy" decoding="async" alt="<%= s.alt %>">
+              <figcaption><strong><%= s.caption %></strong> <%= s.text %></figcaption>
+            </figure>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="together-title">
+    <div class="container">
+      <p class="eyebrow">Better together</p>
+      <h2 id="together-title" class="section__title">Join a unit. Take the map.</h2>
+      <div class="feature-grid">
+        <article class="card feature reveal-on-scroll">
+          <svg class="feature__icon" aria-hidden="true"><use href="#i-flag"/></svg>
+          <h3>Units and wars</h3>
+          <p>Climb your unit’s chain of command, pool cash into upgrades, call rally orders and declare 24-hour wars on rival units.</p>
+        </article>
+        <article class="card feature reveal-on-scroll">
+          <svg class="feature__icon" aria-hidden="true"><use href="#i-grid"/></svg>
+          <h3>Raids and the theatre of war</h3>
+          <p>Bring down strongholds together for shared loot, and fight for eight regions of the map that pay your unit every day.</p>
+        </article>
+        <article class="card feature reveal-on-scroll">
+          <svg class="feature__icon" aria-hidden="true"><use href="#i-podium"/></svg>
+          <h3>Seasons, medals and more</h3>
+          <p>Ranked PvP seasons, medals to earn, deployments while you’re away, a forward base to build, and a casino for in-game cash.</p>
         </article>
       </div>
     </div>
@@ -105,4 +146,5 @@
   </section>
 </main>
 
+<script type="application/ld+json"><%- JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoGame', name: siteName, url: siteUrl + '/', description: 'A free text-based military strategy game you play in your browser.', genre: ['Strategy', 'Browser game', 'Multiplayer'], gamePlatform: 'Web browser', applicationCategory: 'Game', operatingSystem: 'Any', offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, image: siteUrl + '/img/og.png' }).replace(/</g, '\\u003c') %></script>
 <%- include('partials/foot') %>

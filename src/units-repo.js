@@ -40,11 +40,11 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
       WHERE s.strength > me.strength OR (s.strength = me.strength AND (s.members > me.members OR (s.members = me.members AND s.id < me.id)))`),
     count: db.prepare('SELECT COUNT(*) AS n FROM units'),
     members: db.prepare(`
-      SELECT id, username, level, unit_role, unit_joined_at, unit_donated, last_seen_at, signed_out_at, banned_at, hospital_until, pvp_wins, missions_completed, avatar_v
+      SELECT id, username, level, unit_role, unit_joined_at, unit_donated, last_seen_at, signed_out_at, banned_at, hospital_until, pvp_wins, missions_completed, avatar_v, is_bot
       FROM users WHERE unit_id = ?
       ORDER BY CASE unit_role WHEN 'leader' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END, level DESC, username COLLATE NOCASE`),
     memberCount: db.prepare('SELECT COUNT(*) AS n FROM users WHERE unit_id = ?'),
-    officers: db.prepare("SELECT id FROM users WHERE unit_id = ? AND unit_role IN ('leader', 'officer')"),
+    officers: db.prepare("SELECT id FROM users WHERE unit_id = ? AND unit_role IN ('leader', 'officer') ORDER BY unit_role = 'leader' DESC, id"), // the Commander first
     memberIds: db.prepare('SELECT id FROM users WHERE unit_id = ?'),
     join: db.prepare('UPDATE users SET unit_id = ?, unit_role = ?, unit_joined_at = ?, unit_donated = 0, lfu_at = NULL WHERE id = ? AND unit_id IS NULL'),
     leave: db.prepare('UPDATE users SET unit_id = NULL, unit_role = NULL, unit_joined_at = NULL, unit_donated = 0, unit_left_at = ? WHERE id = ? AND unit_id = ?'),

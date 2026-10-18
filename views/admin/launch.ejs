@@ -1,0 +1,46 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const todo = items.filter((i) => i.state === 'todo').length; %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'launch' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Launch checklist</h1>
+      <p class="page-head__sub">What to sort out before opening the game to the public, and the things worth keeping an eye on after. It checks itself each time you open it.</p>
+    </div>
+  </div>
+
+  <p class="notice <%= todo ? 'notice--warn' : '' %> launch-summary"><%= todo ? `${todo} thing${todo === 1 ? '' : 's'} still to do.` : 'Everything checked is in order.' %></p>
+
+  <ol class="launch-list">
+    <% items.forEach(function (i) { %>
+      <li class="card launch-item launch-item--<%= i.state %>" id="<%= i.id %>">
+        <span class="launch-item__mark" aria-hidden="true"><%= i.state === 'ok' ? '✓' : i.state === 'todo' ? '!' : 'i' %></span>
+        <div class="launch-item__body">
+          <h2 class="launch-item__title"><%= i.label %> <span class="visually-hidden">(<%= i.state === 'ok' ? 'done' : i.state === 'todo' ? 'to do' : 'for information' %>)</span></h2>
+          <p class="launch-item__detail"><%= i.detail %></p>
+          <% if (i.fix) { %><p class="launch-item__fix"><strong>How:</strong> <%= i.fix %></p><% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ol>
+
+  <section class="card" aria-labelledby="errors">
+    <h2 id="errors" class="card__title">Latest server errors</h2>
+    <% if (errors.length) { %>
+      <ul class="launch-errors">
+        <% errors.forEach(function (e) { %>
+          <li>
+            <p><strong><%= e.message %></strong> <span class="muted small">· <%= e.method ? `${e.method} ${e.path}` : 'background job' %> · <%= e.ago %><%= e.user_id ? ` · player #${e.user_id}` : '' %></span></p>
+            <% if (e.stack) { %><details><summary>Stack trace</summary><pre class="launch-errors__stack"><%= e.stack %></pre></details><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">No errors in the last 14 days.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

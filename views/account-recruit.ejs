@@ -1,0 +1,45 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Recruiting office</p>
+      <h1 class="page-head__title">Recruit a friend</h1>
+      <p class="page-head__sub">Send your invite link to a friend. When they reach level <%= reward.level %>, you get <strong><%= money(reward.cash) %></strong><%= reward.xp ? ` and ${reward.xp} XP` : '' %><%= reward.recruit ? `, and they get ${money(reward.recruit)}` : '' %>.</p>
+    </div>
+  </div>
+
+  <section class="card recruit-link reveal" style="--i:1" aria-labelledby="link-title">
+    <h2 id="link-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-mail"/></svg>Your invite link</h2>
+    <div class="recruit-link__row">
+      <label class="visually-hidden" for="invite-link">Your invite link</label>
+      <input id="invite-link" class="recruit-link__input" value="<%= link %>" readonly>
+      <button class="btn btn--primary btn--sm" type="button" data-copy="#invite-link" hidden>Copy</button>
+      <button class="btn btn--ghost btn--sm" type="button" data-share="<%= link %>" data-share-text="Join me in GeneralForces, a free military strategy game in your browser." hidden>Share</button>
+    </div>
+    <p class="muted small">Rewards are paid once per recruit, for up to <%= reward.perMonth %> recruits a month. Nothing is paid for accounts that share your device or internet connection, so second accounts don’t count.</p>
+  </section>
+
+  <section class="card reveal" style="--i:2" aria-labelledby="recruits-title">
+    <h2 id="recruits-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Your recruits</h2>
+    <% if (recruits.length) { %>
+      <ul class="recruit-list">
+        <% recruits.forEach(function (r) { %>
+          <li class="recruit-list__item">
+            <span class="recruit-list__who"><a class="roster__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a><span class="muted small">joined <%= r.joined %></span></span>
+            <span class="recruit-list__status">
+              <span class="<%= r.paid ? 'is-up' : '' %>"><%= r.status %><%= r.paid ? ` · +${money(r.paid)}` : '' %></span>
+              <% if (!r.referral_paid_at && !r.banned_at) { %><span class="meter meter--xp" role="progressbar" aria-label="<%= r.username %>’s progress to the reward" aria-valuemin="0" aria-valuemax="<%= reward.level %>" aria-valuenow="<%= Math.min(r.level, reward.level) %>"><span class="meter__fill" style="width:<%= r.pct %>%"></span></span><% } %>
+            </span>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">Nobody has joined from your link yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

@@ -1,6 +1,7 @@
 'use strict';
 
 const { newPlayerDefaults } = require('./game');
+const tuning = require('./tuning');
 
 const MUTABLE_FIELDS = [
   'level', 'xp', 'cash', 'energy', 'max_energy', 'health', 'max_health',
@@ -60,7 +61,7 @@ function createPlayerRepo(db) {
         SELECT 1 FROM messages x WHERE x.conversation_id = c.id AND x.created_at > m.last_read_at AND (x.sender_id IS NULL OR x.sender_id != ?1))`),
     byUsername: db.prepare('SELECT * FROM users WHERE username = ?'),
     online: db.prepare(`
-      SELECT id, username, level, xp, last_seen_at, hospital_until, avatar_v
+      SELECT id, username, level, xp, last_seen_at, hospital_until, avatar_v, is_bot
       FROM users
       WHERE last_seen_at >= ? AND (signed_out_at IS NULL OR signed_out_at < last_seen_at) AND banned_at IS NULL
       ORDER BY level DESC, xp DESC, username
@@ -106,6 +107,7 @@ function createPlayerRepo(db) {
     pruneNotifications: db.prepare(`
       DELETE FROM notifications WHERE user_id = ?1 AND id NOT IN (
         SELECT id FROM notifications WHERE user_id = ?1 ORDER BY id DESC LIMIT ?2)`),
+    news: db.prepare("INSERT INTO chat_messages (channel, user_id, body, created_at, kind) VALUES ('global', ?, ?, ?, 'news')"),
     recentBattles: db.prepare(`
       SELECT b.id, b.attacker_won, b.knockout, b.cash_taken, b.created_at,
              a.username AS attacker_name, d.username AS defender_name
@@ -257,7 +259,7 @@ function createPlayerRepo(db) {
       const order = PLAYER_SORTS[sort] || PLAYER_SORTS.level;
       const total = db.prepare(`SELECT COUNT(*) AS n FROM users ${clause}`).get(...params).n;
       const rows = db.prepare(`
-        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, deploy_until, pvp_wins, pvp_losses, avatar_v
+        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, deploy_until, pvp_wins, pvp_losses, avatar_v, is_bot
         FROM users ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset);
       return { rows, total };
     },
@@ -280,6 +282,14 @@ function createPlayerRepo(db) {
     notificationCounts: (userId) => ({ ...stmts.notificationCounts.get(userId) }),
     /** Latest fights across the whole game, for the HQ combat feed. */
     recentBattles: (limit = 6) => stmts.recentBattles.all(limit),
+    /**
+     * A news line in Global chat about `userId` (a promotion, a war won…), as
+     * BBCode. Admins can turn these off (Game settings › Living world).
+     */
+    news(userId, body, now = Date.now()) {
+      if (!tuning.get('chatNews')) return null;
+      return Number(stmts.news.run(userId, body, now).lastInsertRowid);
+    },
 
     logBankTransaction: (userId, { type, amount, fee, balanceAfter }) =>
       stmts.bankLog.run(userId, type, amount, fee, balanceAfter, Date.now()),

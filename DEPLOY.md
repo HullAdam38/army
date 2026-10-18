@@ -136,7 +136,38 @@ sudo chown eliteforces:eliteforces /var/lib/eliteforces/eliteforces.db
 sudo systemctl start eliteforces
 ```
 
-Backups stay on the same server. For real safety, copy `/var/backups/eliteforces` somewhere else now and then, for example with your host's snapshot feature or by downloading it with `scp`.
+Every night's backup is also **test-restored**: the copy is opened, checked for damage and its players counted. If anything's wrong, Admin › Launch checklist says so.
+
+## Off-site backups
+
+Backups on the game server are lost with the server. Set up an off-site copy once and every nightly backup is sent there too (kept 30 days):
+
+1. Get somewhere to keep them. **Backblaze B2** is cheap and simple (the first 10 GB are free); Google Drive, Dropbox, OneDrive or any S3 storage work too.
+2. On the server, connect it (rclone is installed by the update script; if not, `sudo apt install rclone`):
+
+   ```bash
+   sudo rclone config
+   ```
+
+   Choose `n` (new remote), give it a short name such as `b2`, pick your storage from the list and follow the questions. For Backblaze, make an application key in the Backblaze dashboard first and paste its key ID and key when asked.
+3. Tell the backup where to put them:
+
+   ```bash
+   sudo nano /etc/eliteforces/backup.env
+   ```
+
+   Set `BACKUP_REMOTE=b2:your-bucket-name/generalforces` (your remote's name, a colon, then a bucket and folder).
+4. Run a backup to check it works: `sudo eliteforces-backup`. It should end with "copied to b2:…", and Admin › Launch checklist shows the off-site copy as done.
+
+To restore from an off-site copy, download it first (`sudo rclone copy b2:your-bucket-name/generalforces/eliteforces-YYYY-MM-DD-HHMM.db.gz /tmp/`), then follow "Restoring a backup" above with that file.
+
+## Uptime monitoring
+
+The game answers `https://generalforces.com/healthz` with `ok` while it and its database are working. Point a free monitor at it, such as [UptimeRobot](https://uptimerobot.com) or [Better Stack](https://betterstack.com/uptime) (HTTP check, every 5 minutes), so you get an email when the site goes down. Server errors are already reported to admins inside the game.
+
+## Before launch
+
+Admin › **Launch checklist** checks most of this for you: your details in the Terms of Service, a contact email on your domain, production mode, backups and their test restores, off-site copies, server errors and the sign-up limits. Fill in what it flags. Optionally add `SITE_URL=https://generalforces.com` to `/etc/eliteforces/eliteforces.env`, so links shared on Discord or Reddit always use your main address.
 
 ## Using Cloudflare
 
@@ -175,3 +206,5 @@ If your domain's DNS is on Cloudflare with the orange cloud (proxied):
 | `/etc/nginx/sites-available/eliteforces` | nginx site (certbot adds the HTTPS parts) |
 | `/var/backups/eliteforces` | nightly backups |
 | `/etc/cron.d/eliteforces-backup` | backup schedule (03:17 every night) |
+| `/etc/eliteforces/backup.env` | off-site backup settings |
+| `/var/lib/eliteforces/backup-status.json` | the last backup's report (shown on Admin › Launch checklist) |

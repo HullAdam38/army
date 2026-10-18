@@ -32,6 +32,7 @@ const { bountyRoutes } = require('./routes/bounties');
 const { createTutorialService } = require('./tutorial-service');
 const { termsRoutes } = require('./routes/terms');
 const { legalSettings } = require('./legal');
+const game = require('./game');
 const { createMessageService } = require('./message-service');
 const { messageRoutes } = require('./routes/messages');
 const { formatRoutes } = require('./routes/format');
@@ -55,6 +56,9 @@ const { createSupportService } = require('./support-service');
 const { createCasinoService } = require('./casino-service');
 const { createBlackjackService } = require('./blackjack-service');
 const { createCasinoPlayer } = require('./casino-player');
+const { createReserveService } = require('./reserve-service');
+const { createHealthService } = require('./health-service');
+const { createReferralService } = require('./referral-service');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
@@ -103,6 +107,7 @@ function createApp({
   scanHours = Number(process.env.ANTICHEAT_SCAN_HOURS) || 6,
   tutorial = true, // tests of other systems turn tutorial rewards off so cash stays predictable
   pushSender = null, // tests pass a fake push sender; null uses web-push
+  backupStatusFile = null, // tests point this at their own file; null reads it from next to the database
 } = {}) {
   if (!secret) {
     if (production) throw new Error('SESSION_SECRET must be set in production.');
@@ -118,6 +123,9 @@ function createApp({
   settingsService.load();
   const anti = createAntiCheat(db, players, { secret, settings: settingsService });
   app.anti = anti; // exposed for tests and maintenance scripts
+  // Recruit a friend: invite links, and rewards once a recruit has really played.
+  const referralService = createReferralService(db, players, anti);
+  app.referrals = referralService; // exposed for tests
   anti.schedule(scanHours);
   // Push alerts listen to every in-game notification, so they're set up early.
   const pushService = createPushService(db, players, { sender: pushSender });
@@ -125,6 +133,10 @@ function createApp({
   app.push = pushService; // exposed for tests
   // Support tickets: admins hear about new tickets and replies in-game and by push.
   const supportService = createSupportService(db, players, { alertStaff: (adminId, message, link) => pushService.staff(adminId, message, link) });
+  // Server errors and the nightly backup's report, for Admin › Launch checklist.
+  const healthService = createHealthService(db, players, { push: pushService, ...(backupStatusFile ? { backupStatusFile } : {}) });
+  healthService.schedule();
+  app.health = healthService; // exposed for tests
   supportService.schedule();
   app.support = supportService; // exposed for tests
   const casinoPlayer = createCasinoPlayer(db);
@@ -157,6 +169,10 @@ function createApp({
   const raidService = createRaidService(db, players, unitRepo, { onStrike: (userId, now) => theatreService.track(userId, 'raid_strikes', 1, now) });
   raidService.schedule();
   app.raids = raidService; // exposed for tests
+  // Reserve soldiers keep a young world busy (src/reserve.js). The first tick runs at start-up (see below).
+  const reserveService = createReserveService(db, players, unitRepo);
+  reserveService.schedule();
+  app.reserve = reserveService; // exposed for tests
   const targetService = createTargetService(db, players);
   targetService.schedule();
   app.target = targetService; // exposed for tests
@@ -206,10 +222,32 @@ function createApp({
     console.warn(`[generalforces] The Terms of Service show placeholders until you set: ${app.locals.legal.missing.join(', ')}.`);
   }
   // Defaults so any template (including error pages) renders even if a middleware never ran.
-  Object.assign(app.locals, { player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, unreadMessages: 0, chatUnread: { unit: 0, global: false }, liveEvents: [], latestNotificationId: 0, isAdmin: false });
+  Object.assign(app.locals, { siteUrl: '', canonicalPath: '/', player: null, nav: null, flash: [], signedIn: false, csrfToken: '', unreadCount: 0, unreadMessages: 0, chatUnread: { unit: 0, global: false }, liveEvents: [], latestNotificationId: 0, isAdmin: false });
 
   app.use(compression());
   app.use(createSecurityHeaders({ production }));
+  // The site's address for links search engines and link previews keep: SITE_URL
+  // if set (e.g. https://generalforces.com), otherwise the address it was reached on.
+  app.use((req, res, next) => {
+    res.locals.siteUrl = (process.env.SITE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    res.locals.canonicalPath = req.path;
+    next();
+  });
+  // For search engines: what to crawl (the public pages), and where they are.
+  app.get('/robots.txt', (req, res) => {
+    res.type('text/plain').send(['User-agent: *', 'Allow: /$', 'Allow: /register', 'Allow: /login', 'Allow: /terms', 'Allow: /img/', 'Allow: /css/', 'Allow: /js/',
+      'Disallow: /', '', `Sitemap: ${res.locals.siteUrl}/sitemap.xml`, ''].join('\n'));
+  });
+  app.get('/sitemap.xml', (req, res) => {
+    const urls = ['/', '/register', '/login', '/terms'].map((p) => `  <url><loc>${res.locals.siteUrl}${p}</loc></url>`).join('\n');
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
+  });
+  // Uptime check for outside monitors: "ok" while the game and its database answer.
+  app.get('/healthz', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (healthService.ok()) return res.type('text/plain').send('ok');
+    res.status(503).type('text/plain').send('database unavailable');
+  });
   // The service worker (installable app, offline page, push). Browsers must
   // always check it for updates, so it skips the week-long static cache.
   const swSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'sw.js'), 'utf8').replace('__ASSET_VERSION__', app.locals.assetVersion);
@@ -253,9 +291,21 @@ function createApp({
   app.use(anti.actionTracker());
   app.use(tutorialService.tracker());
   app.use(medalService.tracker());
+  app.use(referralService.tracker());
 
-  app.get('/', (req, res) => res.render('index', { title: null }));
-  app.use(authRoutes(players, anti));
+  app.get('/', (req, res) => res.render('index', {
+    title: null,
+    facts: { missions: game.MISSIONS.length, ranks: game.RANKS.length },
+    shots: [
+      { file: 'missions', caption: 'Run missions.', text: 'Six campaigns, from perimeter patrols to the enemy capital.', alt: 'The missions page, with mission cards showing energy cost and chance of success' },
+      { file: 'battle', caption: 'Fight other players.', text: 'Every attack is fought blow by blow, with a full battle report.', alt: 'A battle report between two soldiers, round by round' },
+      { file: 'unit', caption: 'Join a unit.', text: 'A chain of command, a treasury, raids and a unit board.', alt: 'A unit page with its roster, treasury and an active raid' },
+      { file: 'theatre', caption: 'Take the map.', text: 'Units fight weekly for regions that pay out every day.', alt: 'The theatre of war map, with regions held by different units' },
+      { file: 'leaderboards', caption: 'Climb the rankings.', text: 'Levels, PvP wins, missions and the weekly race.', alt: 'The leaderboards' },
+      { file: 'casino', caption: 'Try your luck.', text: 'Slots, roulette and multiplayer blackjack, for in-game cash only.', alt: 'The roulette table at the casino' },
+    ],
+  }));
+  app.use(authRoutes(players, anti, referralService));
   app.use(termsRoutes(players));
   app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService));
   app.use(armoryRoutes(players));
@@ -281,9 +331,9 @@ function createApp({
   app.use(theatreRoutes(players, unitRepo, theatreService));
   app.use(supportRoutes(players, supportService));
   app.use(casinoRoutes(players, casinoService, blackjackService));
-  app.use(accountRoutes(players, medalService));
+  app.use(accountRoutes(players, medalService, referralService));
   app.use(eventRoutes(players, eventService, adminRepo));
-  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService));
+  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService, { health: healthService, reserve: reserveService, production }));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });
@@ -292,7 +342,10 @@ function createApp({
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     const status = err.status || 500;
-    if (status >= 500) console.error(err);
+    if (status >= 500) {
+      console.error(err);
+      healthService.record(err, req);
+    }
     const message = status >= 500 ? 'Something went wrong at HQ. Try again shortly.' : err.message;
     if (wantsJson(req)) return res.status(status).json({ ok: false, error: message });
     res.status(status).render('error', { title: 'Error', status, message });
@@ -303,8 +356,13 @@ function createApp({
 
 if (require.main === module) {
   const port = Number(process.env.PORT) || 3000;
-  createApp().listen(port, () => {
+  const app = createApp();
+  app.listen(port, () => {
     console.log(`[generalforces] Listening on http://localhost:${port}`);
+    try {
+      const r = app.reserve.tick();
+      if (r.enlisted || r.stoodDown) console.log(`[reserve] ${r.enlisted} reserve soldiers enlisted, ${r.stoodDown} stood down (${r.want} wanted).`);
+    } catch (err) { console.error('[reserve] first tick failed', err); }
   });
 }
 

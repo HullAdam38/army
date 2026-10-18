@@ -80,6 +80,7 @@ function createAntiCheat(db, players, { secret, settings = null }) {
              (SELECT COUNT(*) FROM battles r WHERE r.attacker_id = b.defender_id AND r.defender_id = b.attacker_id AND r.created_at >= ?1) AS reverse_attacks
       FROM battles b JOIN users ua ON ua.id = b.attacker_id JOIN users ud ON ud.id = b.defender_id
       WHERE b.created_at >= ?1 AND (?2 IS NULL OR (b.attacker_id = ?2 AND b.defender_id = ?3))
+        AND NOT (ua.is_bot = 1 AND ud.is_bot = 1) -- reserve soldiers' skirmishes among themselves
       GROUP BY b.attacker_id, b.defender_id`),
     ledgerMismatches: db.prepare(`
       SELECT u.id, u.username, u.cash, u.bank_balance,

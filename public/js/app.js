@@ -1250,4 +1250,28 @@
     setInterval(poll, 1000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
   }
+
+  // Copy and share buttons (Recruit a friend). Without JavaScript the link is just selectable text.
+  for (const btn of document.querySelectorAll('[data-copy]')) {
+    const field = document.querySelector(btn.dataset.copy);
+    if (!field || !navigator.clipboard) continue;
+    btn.hidden = false;
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(field.value);
+        const label = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = label; }, 1800);
+      } catch {
+        field.select();
+      }
+    });
+  }
+  for (const btn of document.querySelectorAll('[data-share]')) {
+    if (!navigator.share) continue;
+    btn.hidden = false;
+    btn.addEventListener('click', () => {
+      navigator.share({ title: 'GeneralForces', text: btn.dataset.shareText || '', url: btn.dataset.share }).catch(() => {});
+    });
+  }
 })();

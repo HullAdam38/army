@@ -47,6 +47,7 @@ const SETTINGS = [
 
   // Access
   { key: 'registrationOpen', group: 'access', label: 'New sign-ups', type: 'bool', default: true, help: 'Turn off to stop new accounts being created (for example during maintenance or a spam wave). Existing players can still sign in.' },
+  { key: 'signupsPerIpPerDay', group: 'access', label: 'Sign-ups per network a day', type: 'int', unit: 'accounts', min: 1, max: 100, step: 1, default: 3, help: 'How many new accounts can be made from one internet connection in 24 hours. Stops one person (or a script) filling the game with accounts; households and schools sharing a connection may need more.' },
 
   // Casino
   { key: 'casinoOpen', group: 'casino', label: 'Casino open', type: 'bool', default: true, help: 'Turn off to close the casino for everyone (for example while you look into a problem). Bets already settled are kept.' },
@@ -54,6 +55,16 @@ const SETTINGS = [
   { key: 'slotsMaxBet', group: 'casino', label: 'Slot machine maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can bet on one spin. The slot machine pays back about 95% of bets over time, so it takes cash out of the game.' },
   { key: 'rouletteMaxBet', group: 'casino', label: 'Roulette table limit', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can have on the table in one spin (all their bets added up). Roulette pays back 97.3% of bets over time.' },
   { key: 'blackjackMaxBet', group: 'casino', label: 'Blackjack maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 25000, help: 'The most a player can bet on one blackjack hand at the War Room table (the other tables have lower limits of their own). Doubling and splitting can add the same again.' },
+  // Living world
+  { key: 'reserveSoldiers', group: 'world', label: 'Reserve soldiers', type: 'int', unit: 'soldiers', min: 0, max: 200, step: 1, default: 30, help: 'Soldiers run by the game, marked “Reserve”, so new players have targets, rivals on the leaderboards and starter units to join. One stands down for every real player active in the last week; 0 stands them all down.' },
+  { key: 'reserveMaxLevel', group: 'world', label: 'Reserve soldiers’ top level', type: 'int', unit: 'level', min: 5, max: 100, step: 1, default: 30, help: 'Reserve soldiers stop levelling up here, so real players overtake them.' },
+  { key: 'chatNews', group: 'world', label: 'News in global chat', type: 'bool', default: true, help: 'Short announcements in Global chat: promotions to officer ranks and above, units founded, wars and raids won.' },
+  // Recruit a friend
+  { key: 'referralLevel', group: 'recruit', label: 'Level a recruit must reach', type: 'int', unit: 'level', min: 2, max: 50, step: 1, default: 10, help: 'The reward is paid when the friend gets here, so it takes real play, not just a sign-up.' },
+  { key: 'referralCash', group: 'recruit', label: 'Reward for the recruiter', type: 'int', unit: '$', min: 0, max: 1000000, step: 100, default: 2500, help: 'Cash paid to whoever sent the invite link. Never paid when the two accounts share a device or network.' },
+  { key: 'referralXp', group: 'recruit', label: 'XP for the recruiter', type: 'int', unit: 'XP', min: 0, max: 100000, step: 10, default: 250, help: 'XP paid alongside the cash.' },
+  { key: 'referralRecruitCash', group: 'recruit', label: 'Bonus for the recruit', type: 'int', unit: '$', min: 0, max: 1000000, step: 100, default: 1000, help: 'Cash for the new player when they reach the level.' },
+  { key: 'referralMaxPerMonth', group: 'recruit', label: 'Rewards per recruiter a month', type: 'int', unit: 'recruits', min: 0, max: 100, step: 1, default: 10, help: 'Most recruits one player can be rewarded for in 30 days. Recruits past the cap still join; they just don’t pay.' },
   { key: 'casinoShoutMin', group: 'casino', label: 'Big-win shout in chat', type: 'int', unit: '$', min: 0, max: 10000000, step: 100, default: 10000, help: 'A casino win of at least this much (after the bet) is announced in global chat. 0 turns the announcements off.' },
 ];
 
@@ -65,6 +76,8 @@ const GROUPS = [
   { id: 'avatars', name: 'Avatars', blurb: 'Who can upload their own picture.' },
   { id: 'access', name: 'Access', blurb: 'Who can join.' },
   { id: 'casino', name: 'Casino', blurb: 'Games played with in-game cash.' },
+  { id: 'world', name: 'Living world', blurb: 'Keeps a young game from feeling empty.' },
+  { id: 'recruit', name: 'Recruit a friend', blurb: 'Rewards for bringing new players in.' },
 ];
 
 const BY_KEY = new Map(SETTINGS.map((s) => [s.key, s]));

@@ -207,6 +207,19 @@ fi
 
 say "Scheduling nightly database backups (kept for 14 days in $BACKUP_DIR)"
 install -m 755 "$HERE/backup.sh" /usr/local/sbin/eliteforces-backup
+command -v rclone >/dev/null || apt-get install -y -qq rclone >/dev/null 2>&1 || echo "Couldn't install rclone; off-site backups need it (sudo apt install rclone)."
+if [ ! -f "$ENV_DIR/backup.env" ]; then
+  cat > "$ENV_DIR/backup.env" <<'ENV'
+# Settings for the nightly backup (deploy/backup.sh).
+# Off-site copies: set up a storage account with "sudo rclone config" (see
+# DEPLOY.md, "Off-site backups"), then put its name and a folder here, e.g.
+#   BACKUP_REMOTE=b2:my-bucket/generalforces
+BACKUP_REMOTE=
+# How long off-site copies are kept.
+BACKUP_REMOTE_KEEP_DAYS=30
+ENV
+fi
+/usr/local/sbin/eliteforces-backup || echo "The first backup didn't work; see above."
 cat > /etc/cron.d/eliteforces-backup <<CRON
 # Nightly GeneralForces database backup.
 17 3 * * * root /usr/local/sbin/eliteforces-backup >> /var/log/eliteforces-backup.log 2>&1

@@ -102,6 +102,15 @@ Looked at and fine as it is:
 - **Admin raid and map tools and the support queue** are under `/admin`, so non-admins get a 404. Each change needs a reason (support replies are their own record) and goes in the audit log.
 - **Template output:** every unescaped `<%- %>` added since the last review is either fixed markup, server-generated card markup or BBCode-rendered text.
 
+## Launch preparation
+
+- **Reserve soldiers** (`is_bot`) are ordinary rows in `users` that can never sign in: their password hash is random and sign-in refuses them outright. They can't be messaged, never chat, can't be the daily high-value target, can't be recruiters, and fights with them never count towards PvP seasons. Their cash goes through the ledger (`reserve`, `pvp`), so the balance audit covers them. Their skirmishes with each other are left out of the PvP farming check; fights between a real player and a reserve soldier are checked like any other.
+- **Recruit a friend** pays only once the recruit reaches level 10 (real play), never when the two accounts share a device or network (`anti.linked`), never to or for a suspended account, and at most 10 times per recruiter in 30 days. Invite links can't name reserve soldiers. All tunable in Game settings › Recruit a friend.
+- **Sign-ups:** at most 3 new accounts per network per 24 hours (Game settings › Access), on top of the 20-attempts-per-15-minutes limiter. Local addresses aren't counted, so a proxy that stops passing real IPs can't lock everyone out. A hidden form field turns away simple sign-up bots.
+- **Server errors** (500s) are stored for 14 days (message, path, stack, player id; no request bodies) and shown only to admins on the launch checklist. Admins get at most one alert per half hour.
+- **`/healthz`** says only `ok` or `database unavailable`, never versions or internals.
+- **Game pages** carry `noindex` for signed-in players, and `robots.txt` only allows the public pages, so search engines don't crawl the game.
+
 ## Known limits (fine for launch, worth revisiting)
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.
@@ -110,7 +119,8 @@ Looked at and fine as it is:
 - **Colluding real players can still trade small favours,** for example a friend on a different network losing to the high-value target once a day, or feeding a weekly objective. The caps keep it small, and anti-cheat's farming checks still watch PvP pairs.
 - **Upload, report and push limits live in memory** like the other rate limits, so a restart resets them.
 - **Battle reports are visible to any signed-in player** by design (they show the cash taken in that fight).
-- **SQLite** suits one server comfortably. Back up `data/` regularly (see below).
+- **SQLite** suits one server comfortably. The nightly backup test-restores each copy and can send it off the server (DEPLOY.md › Off-site backups).
+- **The sign-up limit lives in memory** like the other rate limits, so a restart resets it.
 - **Page loads and polls aren't rate limited per player** (actions are: 120 a minute). An open blackjack table polls once a second; Cloudflare's rate limiting is the place to cap abusive clients.
 - **Blackjack tables live in one game process.** Running several processes would need the tables moved to a single owner first (see README › Performance).
 

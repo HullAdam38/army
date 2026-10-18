@@ -36,7 +36,7 @@
           <span class="board__pos"><%= m ? '' : '#' %><%= r.position %></span>
           <%- include('partials/avatar', { url: r.avatarUrl, size: 'sm' }) %>
           <span class="board__who">
-            <span class="board__line"><a class="board__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a><% if (r.isYou) { %> <span class="tag">You</span><% } %></span>
+            <span class="board__line"><a class="board__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a><% if (r.isYou) { %> <span class="tag">You</span><% } %><% if (r.is_bot) { %> <span class="tag tag--reserve">Reserve</span><% } %></span>
             <span class="board__rank"><%= r.rank %> · Lv <%= r.level %><% if (r.online) { %> · <span class="status--online">online</span><% } %></span>
           </span>
           <span class="board__value"><span class="board__value-label"><%= board.valueLabel %></span><%= fmt(r.value) %></span>
