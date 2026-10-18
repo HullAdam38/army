@@ -3611,3 +3611,6 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .roulette-form [hidden] { display: none !important; }
 .roulette-pays + p + .theatre__sub { margin-top: 14px; margin-bottom: 8px; }
 .wheel__result:empty { display: none; }
+/* After a spin without JavaScript the page jumps to the result; keep it clear of the sticky header. */
+#wheel, #machine { scroll-margin-top: 190px; }
+.wheel__ball[hidden] { display: none; } /* SVG shapes ignore the hidden attribute by default */

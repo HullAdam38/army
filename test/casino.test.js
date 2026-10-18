@@ -243,7 +243,7 @@ test('roulette through the app', async () => {
 
     // Without JavaScript: one place, the amount in the box, and the result on the page once.
     const r = await spin({ spot: 'black', amount: '50' }, { json: false });
-    assert.equal(r.location, '/casino/roulette#table');
+    assert.equal(r.location, '/casino/roulette#wheel');
     const after = (await request('/casino/roulette')).text;
     assert.match(after, /class="roulette__outcome is-(win|loss)"/);
     assert.match(after, /class="rnum rnum--(red|black|green)"/);

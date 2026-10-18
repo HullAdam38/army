@@ -27,7 +27,7 @@
   </div>
 
   <div class="roulette-layout">
-    <section class="card roulette-wheel reveal" style="--i:1" aria-labelledby="wheel-title">
+    <section id="wheel" class="card roulette-wheel reveal" style="--i:1" aria-labelledby="wheel-title">
       <h2 id="wheel-title" class="visually-hidden">The wheel</h2>
       <div class="wheel">
         <svg class="wheel__svg" viewBox="0 0 200 200" role="img" aria-label="<%= last ? `The ball landed on ${last.number} ${last.color}` : 'Roulette wheel' %>" data-wheel-svg>

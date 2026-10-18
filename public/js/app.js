@@ -895,6 +895,22 @@
     render().catch(() => say('Couldn’t check alerts on this device.'));
   }
 
+  // ---- Casino ----
+  /**
+   * Scrolls `el` up to just below the sticky header if any of it is off screen,
+   * so on a phone you see the reels or the wheel when you press Spin.
+   */
+  function bringIntoView(el) {
+    if (!el) return;
+    const header = document.querySelector('.site-header');
+    const tabbar = document.querySelector('[data-tabbar]');
+    const top = header && getComputedStyle(header).position === 'sticky' ? header.getBoundingClientRect().bottom : 0;
+    const bottom = tabbar && getComputedStyle(tabbar).position === 'fixed' ? tabbar.getBoundingClientRect().top : window.innerHeight;
+    const r = el.getBoundingClientRect();
+    if (r.top >= top && r.bottom <= bottom) return; // already fully visible
+    window.scrollBy({ top: r.top - top - 8, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+
   // ---- Casino: the slot machine ----
   // Without JavaScript the Spin button posts the form and the page reloads with
   // the result. With it, the spin happens in place and the reels animate.
@@ -970,6 +986,7 @@
         e.preventDefault();
         if (spinBtn.disabled) return;
         spinBtn.disabled = true;
+        bringIntoView(windowEl);
         windowEl.classList.remove('is-win', 'is-big');
         resultEl.className = 'slots__result';
         resultEl.textContent = 'Spinning…';
@@ -1105,6 +1122,7 @@
       if (busy || !total()) return;
       busy = true;
       render();
+      bringIntoView(document.querySelector('.roulette-wheel'));
       say('No more bets…');
       ball.setAttribute('hidden', '');
       centre.className = 'wheel__result';

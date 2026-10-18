@@ -131,7 +131,7 @@ function casinoRoutes(players, casino) {
     }
     if (out.error) req.flash('error', out.error);
     else req.session.lastRoulette = { number: out.number, color: out.color, total: out.total, payout: out.payout, net: out.net, winners: out.winners };
-    res.redirect('/casino/roulette#table');
+    res.redirect('/casino/roulette#wheel'); // land on the result
   });
 
   return router;
