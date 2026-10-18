@@ -33,7 +33,7 @@ test('launch checklist items', () => {
 
   c = byId(launch.checklist({ ...base, legal: legalSettings({}), production: false, backup: null, errors24h: 4, host: 'generalforces.com' }));
   assert.equal(c.legal.state, 'todo');
-  assert.match(c.legal.fix, /eliteforces\.env/);
+  assert.match(c.legal.fix, /Server settings/);
   assert.equal(c.email.state, 'todo');
   assert.equal(c.production.state, 'todo');
   assert.equal(c.backup.state, 'todo');

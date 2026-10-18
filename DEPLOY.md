@@ -150,13 +150,7 @@ Backups on the game server are lost with the server. Set up an off-site copy onc
    ```
 
    Choose `n` (new remote), give it a short name such as `b2`, pick your storage from the list and follow the questions. For Backblaze, make an application key in the Backblaze dashboard first and paste its key ID and key when asked.
-3. Tell the backup where to put them:
-
-   ```bash
-   sudo nano /etc/eliteforces/backup.env
-   ```
-
-   Set `BACKUP_REMOTE=b2:your-bucket-name/generalforces` (your remote's name, a colon, then a bucket and folder).
+3. Tell the backup where to put them: on **Admin › Server settings**, set *Off-site backup destination* to `b2:your-bucket-name/generalforces` (your remote's name, a colon, then a bucket and folder). Or on the server, set `BACKUP_REMOTE=` in `/etc/eliteforces/backup.env`.
 4. Run a backup to check it works: `sudo eliteforces-backup`. It should end with "copied to b2:…", and Admin › Launch checklist shows the off-site copy as done.
 
 To restore from an off-site copy, download it first (`sudo rclone copy b2:your-bucket-name/generalforces/eliteforces-YYYY-MM-DD-HHMM.db.gz /tmp/`), then follow "Restoring a backup" above with that file.
@@ -167,7 +161,7 @@ The game answers `https://generalforces.com/healthz` with `ok` while it and its 
 
 ## Before launch
 
-Admin › **Launch checklist** checks most of this for you: your details in the Terms of Service, a contact email on your domain, production mode, backups and their test restores, off-site copies, server errors and the sign-up limits. Fill in what it flags. Optionally add `SITE_URL=https://generalforces.com` to `/etc/eliteforces/eliteforces.env`, so links shared on Discord or Reddit always use your main address.
+Admin › **Launch checklist** checks most of this for you: your details in the Terms of Service, a contact email on your domain, production mode, backups and their test restores, off-site copies, server errors and the sign-up limits. Fill in what it flags. Your Terms of Service details, the site address and the off-site backup destination can all be set on **Admin › Server settings**, without touching the server. Set the site address to `https://generalforces.com` so links shared on Discord or Reddit always use it.
 
 ## Using Cloudflare
 
@@ -207,4 +201,5 @@ If your domain's DNS is on Cloudflare with the orange cloud (proxied):
 | `/var/backups/eliteforces` | nightly backups |
 | `/etc/cron.d/eliteforces-backup` | backup schedule (03:17 every night) |
 | `/etc/eliteforces/backup.env` | off-site backup settings |
+| `/var/lib/eliteforces/admin-settings.env` | settings saved on Admin › Server settings (override the settings file) |
 | `/var/lib/eliteforces/backup-status.json` | the last backup's report (shown on Admin › Launch checklist) |

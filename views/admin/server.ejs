@@ -1,0 +1,57 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const src = { here: 'Set here', server: 'From the server’s settings file', unset: 'Not set' }; %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'server' }) %>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Configuration</p>
+      <h1 class="page-head__title">Server settings</h1>
+      <p class="page-head__sub">Settings from the server’s settings file that are safe to change here. What you save overrides the file and takes effect at once, without a restart. Leave a field empty to go back to the file’s value. Every change needs your password and goes in the audit log.</p>
+    </div>
+  </div>
+
+  <% if (!file) { %>
+    <p class="notice notice--warn">Server settings aren’t available on this server.</p>
+  <% } else { %>
+  <% if (Object.keys(errors).length) { %><p class="flash flash--error" role="alert">Check the highlighted settings and save again.</p><% } %>
+  <form method="post" action="/admin/server" class="server-form" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="settings-grid">
+      <% groups.forEach(function (g) { %>
+        <section class="card settings-group" aria-labelledby="sg-<%= g.id %>">
+          <h2 class="card__title" id="sg-<%= g.id %>"><%= g.name %></h2>
+          <% g.fields.forEach(function (f) { const v = values ? values[f.key] : f.value; const err = errors[f.key]; %>
+            <div class="field server-field<%= err ? ' is-invalid' : '' %>">
+              <label for="sv-<%= f.key %>"><%= f.label %> <code class="server-field__key"><%= f.key %></code></label>
+              <input id="sv-<%= f.key %>" name="<%= f.key %>" value="<%= v %>" placeholder="<%= f.serverValue || f.example %>" autocomplete="off" spellcheck="false" aria-describedby="svh-<%= f.key %>"<%- err ? ` aria-invalid="true"` : '' %>>
+              <span class="field__hint" id="svh-<%= f.key %>"><%= f.help %> <span class="server-field__source"><%= src[f.source] %><%= f.source === 'here' && f.serverValue ? ` (the file says “${f.serverValue}”)` : f.source === 'server' ? `: “${f.serverValue}”` : '' %>.</span></span>
+              <% if (err) { %><p class="field__error"><%= err %></p><% } %>
+            </div>
+          <% }) %>
+        </section>
+      <% }) %>
+    </div>
+    <div class="card server-confirm">
+      <div class="field<%= errors.password ? ' is-invalid' : '' %>">
+        <label for="sv-password">Your password, to confirm</label>
+        <input id="sv-password" name="password" type="password" autocomplete="current-password" required<%- errors.password ? ' aria-invalid="true"' : '' %>>
+        <% if (errors.password) { %><p class="field__error"><%= errors.password %></p><% } %>
+      </div>
+      <button class="btn btn--primary" type="submit">Save server settings</button>
+    </div>
+  </form>
+
+  <section class="card" aria-labelledby="server-only">
+    <h2 class="card__title" id="server-only">Only changeable on the server</h2>
+    <p class="muted small">These could lock everyone out or hand over the server if changed from a hijacked admin session, so they stay in <code>/etc/eliteforces/eliteforces.env</code> (edit with <code>sudo nano</code>, then <code>sudo systemctl restart eliteforces</code>).</p>
+    <dl class="server-only">
+      <% serverOnly.forEach(function (s) { %><div><dt><code><%= s.key %></code></dt><dd><%= s.value %></dd></div><% }) %>
+    </dl>
+    <p class="muted small">Saved settings are kept in <code><%= file %></code>.</p>
+  </section>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

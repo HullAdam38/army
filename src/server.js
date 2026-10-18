@@ -59,6 +59,7 @@ const { createCasinoPlayer } = require('./casino-player');
 const { createReserveService } = require('./reserve-service');
 const { createHealthService } = require('./health-service');
 const { createReferralService } = require('./referral-service');
+const { createServerSettings, defaultFile: defaultSettingsFile } = require('./server-settings');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
@@ -108,6 +109,7 @@ function createApp({
   tutorial = true, // tests of other systems turn tutorial rewards off so cash stays predictable
   pushSender = null, // tests pass a fake push sender; null uses web-push
   backupStatusFile = null, // tests point this at their own file; null reads it from next to the database
+  serverSettingsFile = null, // tests point this at their own file; null uses admin-settings.env next to the database
 } = {}) {
   if (!secret) {
     if (production) throw new Error('SESSION_SECRET must be set in production.');
@@ -217,6 +219,8 @@ function createApp({
   // Where a player's avatar image lives; `v` changes whenever they change it (see avatar-service).
   app.locals.avatarUrl = (id, v) => `/avatars/${id}?v=${v || 0}`;
   app.locals.year = new Date().getFullYear();
+  // Settings admins can change on Admin › Server settings override the settings file.
+  const serverSettings = createServerSettings(serverSettingsFile || defaultSettingsFile());
   app.locals.legal = legalSettings();
   if (production && app.locals.legal.missing.length) {
     console.warn(`[generalforces] The Terms of Service show placeholders until you set: ${app.locals.legal.missing.join(', ')}.`);
@@ -333,7 +337,13 @@ function createApp({
   app.use(casinoRoutes(players, casinoService, blackjackService));
   app.use(accountRoutes(players, medalService, referralService));
   app.use(eventRoutes(players, eventService, adminRepo));
-  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService, { health: healthService, reserve: reserveService, production }));
+  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService, {
+    health: healthService,
+    reserve: reserveService,
+    production,
+    serverSettings,
+    onServerSettings: () => { app.locals.legal = legalSettings(); }, // the terms pick up new details at once
+  }));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

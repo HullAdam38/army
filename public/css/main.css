@@ -3528,6 +3528,17 @@ section[id], li[id] { scroll-margin-top: 190px; }
 @media (max-width: 640px) { .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } .shots__item figcaption { font-size: 0.85rem; } }
 .invite-banner { margin: 0 0 16px; }
 .field-trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.server-form { margin-bottom: 20px; }
+.server-field { margin-top: 14px; }
+.server-field input { width: 100%; font-family: var(--font-ui); }
+.server-field__key { font-size: 0.72rem; color: var(--text-faint); overflow-wrap: anywhere; }
+.server-field__source { display: block; margin-top: 2px; color: var(--text-faint); overflow-wrap: anywhere; }
+.server-confirm { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 16px; }
+.server-confirm .field { flex: 1 1 16rem; min-width: 0; margin: 0; }
+.server-only { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 8px; margin: 12px 0; }
+.server-only > div { padding: 8px 10px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.server-only dd { margin: 2px 0 0; overflow-wrap: anywhere; font-family: var(--font-ui); }
+#server-only ~ p code, #server-only + p code { overflow-wrap: anywhere; }
 .launch-summary { margin-bottom: 16px; }
 .launch-list { display: grid; gap: 12px; margin: 0 0 20px; padding: 0; list-style: none; }
 .launch-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; }

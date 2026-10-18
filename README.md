@@ -156,6 +156,16 @@ A brand-new game has nobody in it, so the game keeps the world busy until real p
 - `/robots.txt` lets search engines crawl only the public pages (front page, sign up, sign in, terms) and points to `/sitemap.xml`. Pages for signed-in players carry `noindex`.
 - Set `SITE_URL` (e.g. `https://generalforces.com`) so shared links always use the main address; otherwise the address the site was reached on is used.
 
+## Server settings
+
+Admin › **Server settings** (`/admin/server`) edits the settings from the server's settings file that are safe to change from the website. They take effect at once, without a restart:
+
+- **Terms of Service:** who runs the game, contact email and governing law (`LEGAL_OPERATOR`, `LEGAL_CONTACT_EMAIL`, `LEGAL_JURISDICTION`);
+- **Site:** the main address for shared links (`SITE_URL`) and the push alert contact (`PUSH_CONTACT`);
+- **Backups:** the off-site destination and how long copies are kept (`BACKUP_REMOTE`, `BACKUP_REMOTE_KEEP_DAYS`), used from the next nightly backup.
+
+Saved values go in `admin-settings.env` next to the database and override the same names in `/etc/eliteforces/eliteforces.env`. Clear a field to use the file's value again. Saving needs your password, every value is checked against a strict pattern, and each change goes in the audit log. `SESSION_SECRET`, `NODE_ENV`, `DB_FILE`, `PORT`, `TRUST_PROXY` and `ANTICHEAT_SCAN_HOURS` are shown (the secret hidden) but can only be changed on the server, because a hijacked admin session could use them to lock everyone out or take over the server. Code: `src/server-settings.js`.
+
 ## Launch checklist
 
 Admin › **Launch checklist** (`/admin/launch`) checks, every time it's opened:

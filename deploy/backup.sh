@@ -5,8 +5,9 @@
 # install.sh copies this to /usr/local/sbin/eliteforces-backup and runs it nightly.
 #   sudo eliteforces-backup
 #
-# Off-site copies: put BACKUP_REMOTE (an rclone remote and folder, e.g.
-# b2:my-bucket/generalforces) in /etc/eliteforces/backup.env. See DEPLOY.md.
+# Off-site copies: set BACKUP_REMOTE (an rclone remote and folder, e.g.
+# b2:my-bucket/generalforces) on Admin › Server settings, or in
+# /etc/eliteforces/backup.env. See DEPLOY.md.
 #
 # It leaves a report next to the database (backup-status.json) that the game
 # shows on Admin › Launch checklist.
@@ -18,6 +19,19 @@ KEEP_DAYS="${KEEP_DAYS:-14}"
 REMOTE="${BACKUP_REMOTE:-}"
 REMOTE_KEEP_DAYS="${BACKUP_REMOTE_KEEP_DAYS:-30}"
 STATUS="${BACKUP_STATUS_FILE:-$(dirname "$DB")/backup-status.json}"
+
+# Backup settings saved on Admin › Server settings win over backup.env. The game
+# can write that file and this script runs as root, so it's read with a strict
+# parser and never `source`d: only these two keys, only safe characters.
+ADMIN_SETTINGS="${ADMIN_SETTINGS_FILE:-$(dirname "$DB")/admin-settings.env}"
+if [ -f "$ADMIN_SETTINGS" ]; then
+  while IFS='=' read -r key value; do
+    case "$key" in
+      BACKUP_REMOTE) [[ "$value" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]{0,40}:[A-Za-z0-9._/-]{0,200}$ ]] && REMOTE="$value" ;;
+      BACKUP_REMOTE_KEEP_DAYS) [[ "$value" =~ ^[0-9]{1,4}$ ]] && REMOTE_KEEP_DAYS="$value" ;;
+    esac
+  done < "$ADMIN_SETTINGS"
+fi
 
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 json() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' '; }

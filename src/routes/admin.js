@@ -34,7 +34,7 @@ const REASON_LABELS = {
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false } = {}) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null } = {}) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -355,6 +355,42 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   };
 
   // Reported private messages. Admins only ever see messages someone reported.
+  // ----- Server settings (the safe subset of the settings file) -----
+  const renderServer = (req, res, status = 200, extra = {}) => res.status(status).render('admin/server', {
+    title: 'Admin · Server settings',
+    nav: 'admin',
+    groups: serverSettings ? serverSettings.view() : [],
+    serverOnly: serverSettings ? serverSettings.serverOnly() : [],
+    file: serverSettings ? serverSettings.file : null,
+    errors: {},
+    values: null,
+    ...extra,
+  });
+  router.get('/admin/server', (req, res) => renderServer(req, res));
+  router.post('/admin/server', async (req, res, next) => {
+    try {
+      if (!serverSettings) return renderServer(req, res, 404);
+      const values = Object.fromEntries(serverSettings.FIELDS.map((f) => [f.key, String(req.body[f.key] ?? '').slice(0, 300)]));
+      // Changing server settings needs the admin's password, not just a signed-in session.
+      const me = players.findById(req.player.id);
+      if (!(await bcrypt.compare(String(req.body.password || ''), me.password_hash))) {
+        return renderServer(req, res, 422, { values, errors: { password: 'That password isn’t right.' } });
+      }
+      const out = serverSettings.save(values);
+      if (out.errors) return renderServer(req, res, 422, { values, errors: out.errors });
+      if (!out.changed.length) {
+        req.flash('info', 'Nothing changed.');
+        return res.redirect('/admin/server');
+      }
+      if (onServerSettings) onServerSettings(out.changed);
+      adminRepo.log(req.player.id, null, 'server-settings', `Changed ${out.changed.join(', ')}`);
+      req.flash('success', `Saved: ${out.changed.join(', ')}. In force now${out.changed.some((k) => k.startsWith('BACKUP_')) ? ' (backup settings from the next backup)' : ''}.`);
+      res.redirect('/admin/server');
+    } catch (err) {
+      next(err);
+    }
+  });
+
   // ----- Launch checklist -----
   router.get('/admin/launch', (req, res) => {
     const now = Date.now();

@@ -22,14 +22,14 @@ function checklist(facts) {
 
   add('legal', 'Your details in the Terms of Service', legal.missing.length ? 'todo' : 'ok',
     legal.missing.length ? `Still showing placeholders for: ${legal.missing.join(', ')}.` : `${legal.operator} · ${legal.contactEmail} · ${legal.jurisdiction}`,
-    legal.missing.length ? 'On the server: sudo nano /etc/eliteforces/eliteforces.env, fill in the LEGAL_ lines, then sudo systemctl restart eliteforces.' : null);
+    legal.missing.length ? 'Fill them in on Admin › Server settings.' : null);
 
   const domain = String(facts.host || '').replace(/^www\./, '').replace(/:\d+$/, '');
   const email = legal.missing.includes('LEGAL_CONTACT_EMAIL') ? '' : legal.contactEmail;
   const onDomain = Boolean(email && domain && email.toLowerCase().endsWith(`@${domain.toLowerCase()}`));
   add('email', 'A contact email on your own domain', !email ? 'todo' : onDomain ? 'ok' : 'todo',
     !email ? 'No contact email set yet.' : onDomain ? `${email}. Send it a test message to check it really arrives.` : `${email} isn’t on ${domain || 'your domain'}. Players trust an address on the game’s own domain more.`,
-    onDomain ? null : `Set up mail for ${domain || 'your domain'} (Cloudflare Email Routing can forward it to your inbox for free), then put the address in LEGAL_CONTACT_EMAIL.`);
+    onDomain ? null : `Set up mail for ${domain || 'your domain'} (Cloudflare Email Routing can forward it to your inbox for free), then put the address in Admin › Server settings.`);
 
   add('production', 'Running in production mode', facts.production ? 'ok' : 'todo',
     facts.production ? 'NODE_ENV=production: secure cookies, cached files, no debug output.' : 'NODE_ENV isn’t production.',
@@ -46,7 +46,7 @@ function checklist(facts) {
     const off = backup.offsite || {};
     add('offsite', 'A copy of each backup off the server', off.ok ? 'ok' : 'todo',
       off.ok ? `Copied to ${off.remote} ${Number.isFinite(Date.parse(off.at)) ? ago(now - Date.parse(off.at)) : ''}.` : off.remote ? `Copy to ${off.remote} failed: ${off.error || 'unknown error'}.` : 'Backups only live on the game server, so losing the server loses them too.',
-      off.ok ? null : 'Follow “Off-site backups” in DEPLOY.md: install rclone, connect a storage account (Backblaze B2, Google Drive, Dropbox…), and set BACKUP_REMOTE in /etc/eliteforces/backup.env.');
+      off.ok ? null : 'Follow “Off-site backups” in DEPLOY.md: connect a storage account on the server with “sudo rclone config” (Backblaze B2, Google Drive, Dropbox…), then enter it on Admin › Server settings.');
   }
 
   add('errors', 'Server errors in the last 24 hours', facts.errors24h ? 'todo' : 'ok',
