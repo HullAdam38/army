@@ -94,6 +94,19 @@ test('admin player editor and new admin pages through the app', async () => {
     assert.ok(user(vic.id).level > 1);
     assert.ok(db.prepare("SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND kind = 'promotion'").get(vic.id).n > 0);
 
+    // Clearing a player's notifications: shown with a count, logged, and only theirs go.
+    const notes = (id) => db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ?').get(id).n;
+    const total = notes(vic.id);
+    const bossNotes = notes(boss.id);
+    assert.match((await boss.request(P)).text, new RegExp(`Notifications: <strong>${total}</strong>`));
+    assert.match((await boss.act(`${P}/clear-notifications`, {}, P)).message, new RegExp(`Cleared ${total} of Vic’s notifications`));
+    assert.equal(notes(vic.id), 0);
+    assert.equal(notes(boss.id), bossNotes);
+    assert.match(db.prepare("SELECT details FROM admin_actions WHERE action = 'clear-notifications'").get().details, new RegExp(`Cleared ${total} notification`));
+    assert.match((await boss.request(P)).text, /Notifications: <span class="muted">none<\/span>/);
+    assert.match((await boss.act(`${P}/clear-notifications`, {}, P)).message, /no notifications to clear/);
+    assert.equal((await vic.act(`${P}/clear-notifications`, {}, '/hq')).status, 404, 'admins only');
+
     // Stats within the level's cap.
     assert.match((await boss.act(`${P}/stats`, { stat_str: '2', stat_agi: '1', stat_end: '3', reason: 'Bug refund' }, P)).message, /Set trained stats 0\/0\/0 → 2\/1\/3/);
     assert.deepEqual([user(vic.id).stat_str, user(vic.id).stat_agi, user(vic.id).stat_end], [2, 1, 3]);

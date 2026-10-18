@@ -102,6 +102,7 @@ function createPlayerRepo(db) {
     latestNotificationId: db.prepare('SELECT MAX(id) AS id FROM notifications WHERE user_id = ?'),
     markRead: db.prepare('UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL'),
     clearNotifications: db.prepare('DELETE FROM notifications WHERE user_id = ?'),
+    notificationCounts: db.prepare('SELECT COUNT(*) AS total, COALESCE(SUM(read_at IS NULL), 0) AS unread FROM notifications WHERE user_id = ?'),
     pruneNotifications: db.prepare(`
       DELETE FROM notifications WHERE user_id = ?1 AND id NOT IN (
         SELECT id FROM notifications WHERE user_id = ?1 ORDER BY id DESC LIMIT ?2)`),
@@ -275,6 +276,8 @@ function createPlayerRepo(db) {
     markNotificationsRead: (userId) => stmts.markRead.run(Date.now(), userId),
     /** Deletes all of a player's notifications. Returns how many went. */
     clearNotifications: (userId) => Number(stmts.clearNotifications.run(userId).changes),
+    /** { total, unread } notifications a player has (Admin › Players). */
+    notificationCounts: (userId) => ({ ...stmts.notificationCounts.get(userId) }),
     /** Latest fights across the whole game, for the HQ combat feed. */
     recentBattles: (limit = 6) => stmts.recentBattles.all(limit),
 

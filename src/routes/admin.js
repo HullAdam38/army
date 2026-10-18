@@ -92,6 +92,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
     const now = Date.now();
     const t = game.applyRegen(req.target, now);
     res.render('admin/player', {
+      notifications: players.notificationCounts(t.id),
       title: `Admin · ${t.username}`,
       nav: 'admin',
       t,
@@ -239,6 +240,17 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       players.endSessions(req.target.id);
       adminRepo.log(req.player.id, req.target.id, 'sign-out', 'Signed out on every device.');
       req.flash('success', `${req.target.username} is signed out everywhere.`);
+    }
+    back(res, req.target);
+  });
+
+  // Clear a player's notifications (e.g. after something spammed them).
+  router.post('/admin/players/:id/clear-notifications', loadTarget, (req, res) => {
+    const n = players.clearNotifications(req.target.id);
+    if (!n) req.flash('error', `${req.target.username} has no notifications to clear.`);
+    else {
+      adminRepo.log(req.player.id, req.target.id, 'clear-notifications', `Cleared ${n} notification${n === 1 ? '' : 's'}.`);
+      req.flash('success', `Cleared ${n} of ${req.target.username}’s notification${n === 1 ? '' : 's'}.`);
     }
     back(res, req.target);
   });

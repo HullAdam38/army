@@ -66,7 +66,7 @@
       <p class="muted">Refill energy and health and release from hospital.</p>
       <form method="post" action="/admin/players/<%= t.id %>/restore" class="admin-inline">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button class="btn btn--ghost btn--sm" type="submit">Restore <%= t.username %></button>
+        <button class="btn btn--ghost btn--sm" type="submit">Restore account</button>
       </form>
     </section>
 
@@ -203,6 +203,9 @@
         <li>Chat: <% if (muted) { %><strong>muted</strong>, <%= muted.left %> left<%= muted.reason ? ` (${muted.reason})` : '' %>
           <form method="post" action="/admin/chat/unmute/<%= t.id %>" class="admin-inline-form"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn--ghost btn--xs" type="submit">Unmute</button></form>
           <% } else { %><span class="muted">not muted</span> · <a href="/admin/chat">chat moderation</a><% } %></li>
+        <li>Notifications: <% if (notifications.total) { %><strong><%= notifications.total %></strong><%= notifications.unread ? ` (${notifications.unread} unread)` : '' %>
+          <form method="post" action="/admin/players/<%= t.id %>/clear-notifications" class="admin-inline-form" data-confirm="Delete all <%= notifications.total %> of <%= t.username %>’s notifications? This can’t be undone."><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn--ghost btn--xs" type="submit">Clear</button></form>
+          <% } else { %><span class="muted">none</span><% } %></li>
         <% if (avatar) { %><li>Avatar: <%= avatar.kind === 'upload' ? 'uploaded picture' : avatar.kind === 'badge' ? 'badge' : 'starting badge' %><%= avatar.uploadsBlocked ? ' · uploads blocked' : '' %> · <a href="/admin/avatars?tab=recent">avatar moderation</a></li><% } %>
       </ul>
       <% if (!isSelf) { %>
