@@ -1,0 +1,113 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(Number(n)).toLocaleString('en-US'); %>
+<% const sym = (id) => symbolsById[id]; %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/casino"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Casino</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Casino</p>
+      <h1 class="page-head__title">Slot machine</h1>
+      <p class="page-head__sub">Pick your bet and pull the lever. Wins pay your bet times the line’s multiplier, straight into your cash.</p>
+    </div>
+  </div>
+
+  <div class="slots-layout">
+    <section id="machine" class="card slots reveal" style="--i:1" aria-labelledby="machine-title" data-slots
+             data-symbols="<%= JSON.stringify(symbols.map(function (s) { return { id: s.id, name: s.name, icon: s.icon }; })) %>">
+      <h2 id="machine-title" class="slots__marquee">Lucky <span>Supply Drop</span></h2>
+      <div class="slots__window<%= last && last.payout > 0 ? ' is-win' : '' %><%= last && last.big ? ' is-big' : '' %>" data-slots-window>
+        <% line.forEach(function (id, i) { %>
+          <div class="reel" data-reel>
+            <svg class="reel__icon reel__icon--<%= id %>" aria-hidden="true"><use href="#<%= sym(id).icon %>"/></svg>
+            <span class="reel__name"><%= sym(id).name %></span>
+          </div>
+        <% }) %>
+        <span class="slots__payline" aria-hidden="true"></span>
+      </div>
+      <p class="slots__result<%= last ? (last.payout > 0 ? ' is-win' : ' is-loss') : '' %>" data-slots-result aria-live="polite">
+        <% if (last) { %><%= last.text %><%= last.payout > 0 ? ` · you win ${money(last.payout)}` : ` · ${money(-last.bet)}` %><% } else { %>Good luck, soldier.<% } %>
+      </p>
+
+      <% if (blocker) { %>
+        <p class="notice notice--warn"><%= blocker %></p>
+      <% } else { %>
+        <form method="post" action="/casino/slots/spin" class="slots__controls" data-slots-form>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="slots__bet">
+            <label for="bet">Bet</label>
+            <span class="slots__bet-input">$<input id="bet" name="bet" type="number" inputmode="numeric" min="<%= limits.minBet %>" max="<%= limits.maxBet %>" step="1" value="<%= bet %>" required></span>
+          </div>
+          <div class="slots__chips" role="group" aria-label="Quick bets">
+            <% chips.forEach(function (c) { %><button type="button" class="bet-chip" data-bet-chip="<%= c %>"><%= money(c) %></button><% }) %>
+            <button type="button" class="bet-chip" data-bet-chip="max">Max</button>
+          </div>
+          <button class="btn btn--primary slots__spin" type="submit" data-slots-spin>Spin</button>
+          <p class="muted small slots__limits">Bets from <%= money(limits.minBet) %> to <%= money(limits.maxBet) %>, from your cash (you have $<span data-stat="cash"><%= player.cash.toLocaleString('en-US') %></span>).</p>
+        </form>
+      <% } %>
+    </section>
+
+    <aside class="slots-side">
+      <section class="card reveal" style="--i:2" aria-labelledby="today-title">
+        <h2 id="today-title" class="card__title">Your last 24 hours</h2>
+        <dl class="slots-today" data-slots-today>
+          <div><dt>Spins</dt><dd data-today="plays"><%= today.plays %></dd></div>
+          <div><dt>Bet</dt><dd data-today="wagered"><%= money(today.wagered) %></dd></div>
+          <div><dt>Won</dt><dd data-today="won"><%= money(today.won) %></dd></div>
+          <div><dt>Net</dt><dd data-today="net" class="<%= today.net > 0 ? 'is-up' : today.net < 0 ? 'is-down' : '' %>"><%= money(today.net) %></dd></div>
+        </dl>
+      </section>
+
+      <section class="card reveal" style="--i:2" aria-labelledby="pay-title">
+        <h2 id="pay-title" class="card__title">Paytable</h2>
+        <ol class="paytable">
+          <% paytable.forEach(function (p) { %>
+            <li>
+              <span class="paytable__symbols" aria-hidden="true"><% p.symbols.forEach(function (id) { %><svg class="reel__icon--<%= id %>"><use href="#<%= sym(id).icon %>"/></svg><% }) %></span>
+              <span class="paytable__label"><%= p.label %></span>
+              <span class="paytable__mult"><%= p.mult %>×</span>
+            </li>
+          <% }) %>
+        </ol>
+        <p class="muted small">Only the best win on a line pays. Over time the machine pays back about <%= Math.round(rtp.rtp * 1000) / 10 %>% of what’s bet, and about one spin in <%= Math.round(1 / rtp.winRate) %> pays more than the bet.</p>
+      </section>
+    </aside>
+  </div>
+
+  <div class="slots-lists">
+    <section class="card reveal" style="--i:3" aria-labelledby="recent-title">
+      <h2 id="recent-title" class="card__title">Your recent spins</h2>
+      <ol class="slots-history" data-slots-history>
+        <% recent.forEach(function (p) { %>
+          <li>
+            <span class="slots-history__line" aria-label="<%= p.result.line.map(function (id) { return sym(id).name; }).join(', ') %>"><% p.result.line.forEach(function (id) { %><svg class="reel__icon--<%= id %>" aria-hidden="true"><use href="#<%= sym(id).icon %>"/></svg><% }) %></span>
+            <span class="muted small"><%= money(p.bet) %> bet · <%= p.ago %></span>
+            <strong class="<%= p.net > 0 ? 'is-up' : 'is-down' %>"><%= p.net > 0 ? '+' : '' %><%= money(p.net) %></strong>
+          </li>
+        <% }) %>
+      </ol>
+      <% if (!recent.length) { %><p class="muted small" data-slots-empty>No spins yet.</p><% } %>
+    </section>
+
+    <section class="card reveal" style="--i:3" aria-labelledby="big-title">
+      <h2 id="big-title" class="card__title">Big wins this week</h2>
+      <% if (bigWins.length) { %>
+        <ol class="slots-history">
+          <% bigWins.forEach(function (p) { %>
+            <li>
+              <span class="slots-bigwin__who"><%- include('partials/avatar', { url: avatarUrl(p.user_id, p.avatar_v), size: 'xs' }) %><a href="/profile/<%= encodeURIComponent(p.username) %>"><%= p.username %></a></span>
+              <span class="muted small"><%= p.mult %>× on <%= money(p.bet) %> · <%= p.ago %></span>
+              <strong class="is-up">+<%= money(p.payout - p.bet) %></strong>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted small">Nobody has hit 20× or more this week. Be the first.</p>
+      <% } %>
+    </section>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

@@ -746,6 +746,29 @@ A hit is `attack × damage × variance(±10%) × critDamage (on a crit) × (1 �
 
 To add a new source of bonuses (training, buffs, perks), produce modifiers and pass them to `buildStats` alongside the gear modifiers. Items live in `src/items.js`.
 
+## Casino
+
+The **Casino** (`/casino`, in the main menu and under More on phones) is a lobby of games played only with in-game cash. Bets come from the cash a player carries, never the bank, and nothing can be bought or won with real money.
+
+### Slot machine
+
+`/casino/slots`: three reels, one line, six military symbols. A spin pays the best of:
+
+| Line | Pays |
+|---|---|
+| Three Stars (jackpot) | 100× |
+| Three Crests / Cash / Rifles / Helmets / Targets | 40× / 20× / 12× / 8× / 5× |
+| Two Stars anywhere | 5× |
+| Two of a kind from the left: Crests / Cash / Rifles / Helmets / Targets | 5× / 3× / 2× / 2× / 1.5× |
+| One Star anywhere | 1.5× |
+
+- Reels pick symbols by weight with a cryptographic random number generator on the server. Over every possible line the machine pays back **94.9%** of bets, about one spin in 3 pays more than the bet, and 20× or more hits about once every 257 spins. So it slowly takes cash out of the game.
+- Bets go from $10 to the maximum (default $10,000), and only one spin every 0.8 seconds.
+- With JavaScript the reels spin in place; without it, the form posts and the page shows the result.
+- Each spin is one ledger entry with the net result (reason `casino-slots`) and a row in `casino_plays`, kept for 30 days. The page shows the player's last 24 hours, their recent spins and the week's big wins (20× and up).
+- Admins: **Game settings › Casino** has *Casino open*, *Casino minimum level* (default 3) and *Slot machine maximum bet*. Admin › Economy shows the casino's take under `casino-slots`.
+- Rules and maths: `src/slots.js`. Bets and history: `src/casino-service.js`. Adding a game: add it to `GAMES` in `src/routes/casino.js`.
+
 ## Help & support
 
 Players open tickets with HQ Support at `/support` (in the phone menu under More, and in every page footer).

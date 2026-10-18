@@ -894,4 +894,123 @@
     });
     render().catch(() => say('Couldn’t check alerts on this device.'));
   }
+
+  // ---- Casino: the slot machine ----
+  // Without JavaScript the Spin button posts the form and the page reloads with
+  // the result. With it, the spin happens in place and the reels animate.
+  const slots = document.querySelector('[data-slots]');
+  if (slots) {
+    const symbols = JSON.parse(slots.dataset.symbols || '[]');
+    const byId = Object.fromEntries(symbols.map((s) => [s.id, s]));
+    const reels = [...slots.querySelectorAll('[data-reel]')];
+    const windowEl = slots.querySelector('[data-slots-window]');
+    const resultEl = slots.querySelector('[data-slots-result]');
+    const form = slots.querySelector('[data-slots-form]');
+    const betInput = form && form.querySelector('input[name="bet"]');
+    const spinBtn = form && form.querySelector('[data-slots-spin]');
+    const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString('en-US');
+    const show = (reel, id) => {
+      const s = byId[id];
+      const icon = reel.querySelector('.reel__icon');
+      icon.setAttribute('class', `reel__icon reel__icon--${id}`);
+      icon.querySelector('use').setAttribute('href', `#${s.icon}`);
+      reel.querySelector('.reel__name').textContent = s.name;
+    };
+    const randomId = () => symbols[Math.floor(Math.random() * symbols.length)].id;
+
+    slots.querySelectorAll('[data-bet-chip]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        if (!betInput) return;
+        const v = chip.dataset.betChip;
+        const cash = Number((document.querySelector('[data-stat="cash"]') || {}).textContent?.replace(/[^0-9]/g, '') || 0);
+        betInput.value = v === 'max' ? Math.max(Number(betInput.min), Math.min(Number(betInput.max), cash)) : v;
+      });
+    });
+
+    const updateToday = (t) => {
+      const set = (k, v) => { const el = document.querySelector(`[data-today="${k}"]`); if (el) el.textContent = v; };
+      set('plays', t.plays.toLocaleString('en-US'));
+      set('wagered', money(t.wagered));
+      set('won', money(t.won));
+      set('net', money(t.net));
+      const net = document.querySelector('[data-today="net"]');
+      if (net) net.className = t.net > 0 ? 'is-up' : t.net < 0 ? 'is-down' : '';
+    };
+    const addHistory = (d) => {
+      const list = document.querySelector('[data-slots-history]');
+      if (!list) return;
+      const empty = document.querySelector('[data-slots-empty]');
+      if (empty) empty.remove();
+      const li = document.createElement('li');
+      const line = document.createElement('span');
+      line.className = 'slots-history__line';
+      line.setAttribute('aria-label', d.line.map((id) => byId[id].name).join(', '));
+      for (const id of d.line) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', `reel__icon--${id}`);
+        svg.setAttribute('aria-hidden', 'true');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttribute('href', `#${byId[id].icon}`);
+        svg.append(use);
+        line.append(svg);
+      }
+      const meta = document.createElement('span');
+      meta.className = 'muted small';
+      meta.textContent = `${money(d.bet)} bet · just now`;
+      const net = document.createElement('strong');
+      net.className = d.net > 0 ? 'is-up' : 'is-down';
+      net.textContent = `${d.net > 0 ? '+' : ''}${money(d.net)}`;
+      li.append(line, meta, net);
+      list.prepend(li);
+      while (list.children.length > 10) list.lastElementChild.remove();
+    };
+
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (spinBtn.disabled) return;
+        spinBtn.disabled = true;
+        windowEl.classList.remove('is-win', 'is-big');
+        resultEl.className = 'slots__result';
+        resultEl.textContent = 'Spinning…';
+        // Reels blur through random symbols until the result arrives, then stop left to right.
+        const timers = reels.map((reel) => {
+          reel.classList.add('is-spinning');
+          return reduceMotion ? null : setInterval(() => show(reel, randomId()), 70);
+        });
+        let data;
+        try {
+          const res = await fetch(form.action, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(form)) });
+          data = await res.json();
+        } catch {
+          data = { ok: false, error: 'Couldn’t reach the casino. Check your connection and try again.' };
+        }
+        const stopAfter = reduceMotion ? [0, 0, 0] : [450, 800, 1150];
+        if (!data.ok) {
+          timers.forEach((t) => t && clearInterval(t));
+          reels.forEach((r) => r.classList.remove('is-spinning'));
+          resultEl.className = 'slots__result is-loss';
+          resultEl.textContent = data.error;
+          spinBtn.disabled = false;
+          return;
+        }
+        reels.forEach((reel, i) => setTimeout(() => {
+          if (timers[i]) clearInterval(timers[i]);
+          show(reel, data.line[i]);
+          reel.classList.remove('is-spinning');
+          if (i === reels.length - 1) {
+            const won = data.payout > 0;
+            windowEl.classList.toggle('is-win', won);
+            windowEl.classList.toggle('is-big', data.big);
+            resultEl.className = `slots__result ${won ? 'is-win' : 'is-loss'}`;
+            resultEl.textContent = `${data.text}${won ? ` · you win ${money(data.payout)}` : ` · ${money(-data.bet)}`}`;
+            if (data.player) renderPlayer(data.player);
+            if (data.today) updateToday(data.today);
+            addHistory(data);
+            spinBtn.disabled = false;
+          }
+        }, stopAfter[i]));
+      });
+    }
+  }
 })();

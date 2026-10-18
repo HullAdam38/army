@@ -1,0 +1,42 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(Number(n)).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Officers’ club</p>
+      <h1 class="page-head__title">Casino</h1>
+      <p class="page-head__sub">Try your luck between missions. Every bet is in-game cash only: nothing here can be bought with, or swapped for, real money.</p>
+    </div>
+  </div>
+
+  <% if (blocker) { %><p class="notice notice--warn reveal" style="--i:1"><%= blocker %></p><% } %>
+
+  <section class="reveal" style="--i:1" aria-labelledby="games-title">
+    <h2 id="games-title" class="section-title">Choose a game</h2>
+    <ul class="casino-games">
+      <% games.forEach(function (g) { %>
+        <li>
+          <a class="card casino-game" href="<%= g.path %>">
+            <span class="casino-game__icon" aria-hidden="true"><svg><use href="#<%= g.icon %>"/></svg></span>
+            <span class="casino-game__body">
+              <span class="casino-game__name"><%= g.name %></span>
+              <span class="casino-game__blurb"><%= g.blurb %></span>
+              <span class="casino-game__today muted small"><%= g.today.plays ? `Today: ${g.today.plays} play${g.today.plays === 1 ? '' : 's'}, ${money(g.today.net)}` : 'You haven’t played today.' %></span>
+            </span>
+            <span class="casino-game__go">Play <svg aria-hidden="true"><use href="#i-arrow"/></svg></span>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+    <p class="muted small">More tables are on the way.</p>
+  </section>
+
+  <section class="card casino-note reveal" style="--i:2" aria-labelledby="note-title">
+    <h2 id="note-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg>Play smart</h2>
+    <p class="muted">Casino games pay back a little less than you bet over time, so over many plays the house wins. Bets come from the cash you carry, never your bank. Bank what you want to keep before you play.</p>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

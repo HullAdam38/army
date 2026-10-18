@@ -569,6 +569,20 @@ const SCHEMA = `
     PRIMARY KEY (raid_id, user_id)
   );
 
+  -- Casino (src/slots.js): every bet and what it paid. Kept for 30 days.
+  CREATE TABLE IF NOT EXISTS casino_plays (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    game       TEXT    NOT NULL,
+    bet        INTEGER NOT NULL,
+    payout     INTEGER NOT NULL,
+    mult       REAL    NOT NULL DEFAULT 0,
+    result     TEXT    NOT NULL, -- JSON: the game's outcome (e.g. the slot line)
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_casino_user ON casino_plays(user_id, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_casino_time ON casino_plays(created_at);
+
   -- Support tickets (src/support.js): a player's ticket and its messages (player, HQ replies and internal notes).
   CREATE TABLE IF NOT EXISTS support_tickets (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,

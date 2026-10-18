@@ -46,6 +46,11 @@ const SETTINGS = [
 
   // Access
   { key: 'registrationOpen', group: 'access', label: 'New sign-ups', type: 'bool', default: true, help: 'Turn off to stop new accounts being created (for example during maintenance or a spam wave). Existing players can still sign in.' },
+
+  // Casino
+  { key: 'casinoOpen', group: 'casino', label: 'Casino open', type: 'bool', default: true, help: 'Turn off to close the casino for everyone (for example while you look into a problem). Bets already settled are kept.' },
+  { key: 'casinoMinLevel', group: 'casino', label: 'Casino minimum level', type: 'int', unit: 'level', min: 1, max: 50, step: 1, default: 3, help: 'Players below this level can’t play casino games, so new players learn the game first.' },
+  { key: 'slotsMaxBet', group: 'casino', label: 'Slot machine maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can bet on one spin. The slot machine pays back about 95% of bets over time, so it takes cash out of the game.' },
 ];
 
 const GROUPS = [
@@ -55,6 +60,7 @@ const GROUPS = [
   { id: 'chat', name: 'Chat', blurb: 'Limits for game chat.' },
   { id: 'avatars', name: 'Avatars', blurb: 'Who can upload their own picture.' },
   { id: 'access', name: 'Access', blurb: 'Who can join.' },
+  { id: 'casino', name: 'Casino', blurb: 'Games played with in-game cash.' },
 ];
 
 const BY_KEY = new Map(SETTINGS.map((s) => [s.key, s]));
