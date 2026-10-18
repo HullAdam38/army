@@ -305,7 +305,7 @@ Prices run from $18k to $140k, and the best combat rating climbs from about 200 
 
 ### Supplies
 
-Consumables in the Armory from level 15, bought and used in one step (ledger reason `supplies`):
+Consumables in the Armory's Supplies shop (`/armory/shop/supplies`) from level 15, bought and used in one step (ledger reason `supplies`):
 - **Adrenaline Shot ($2,500):** +30 energy, up to your maximum, once every 20 hours.
 - **Combat Stim ($3,000):** +15% damage in your next attack. One at a time, and battle reports show when one was used.
 
@@ -1024,7 +1024,8 @@ The markup is in `views/partials/tabbar.ejs`.
 - `/players`: directory of all players. Search by callsign, filter to **Targets** (players you can attack right now) or **Online now**, and sort by level, PvP wins, newest or name, 25 per page. Each row shows rank, level, combat rating, PvP record and status, with an Attack button or the reason you can't attack.
 - `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.
 - `/profile/:username`: a player's public service record, showing rank, level, online status or last seen, enlistment date, mission stats and recent operations. Email, cash, energy, health and hospital visits stay private.
-- `/armory`: your combat profile and loadout, plus the gear catalogue. Buying an item equips it; you can stow items or swap between owned ones. Other players can see your loadout on your profile.
+- `/armory`: your combat profile, loadout and inventory: everything you own, grouped by slot, with Equip and Stow. Other players can see your loadout on your profile.
+- `/armory/shop/weapons`, `/armory/shop/armour`, `/armory/shop/helmets`, `/armory/shop/kit` and `/armory/shop/supplies`: the shops, one per gear slot plus supplies. A menu across the top of every Armory page switches between the inventory and the shops. Buying an item equips it and brings you back to the same shop; new-gear notifications link straight to the right shop.
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted

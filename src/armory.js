@@ -48,6 +48,29 @@ function loadoutView(level, equipment, trained = null) {
   };
 }
 
+// The Armory's shops: one per gear slot, plus supplies. `slot` is null for supplies.
+const SHOPS = [
+  { id: 'weapons', slot: 'weapon', name: 'Weapons', icon: 'i-weapon', blurb: 'Your main source of attack.' },
+  { id: 'armour', slot: 'body', name: 'Body armour', icon: 'i-body', blurb: 'Cuts the damage you take.' },
+  { id: 'helmets', slot: 'helmet', name: 'Helmets', icon: 'i-helmet', blurb: 'More armour, and some help to dodge.' },
+  { id: 'kit', slot: 'kit', name: 'Tactical kit', icon: 'i-kit', blurb: 'Scopes, uplinks and gadgets with special effects.' },
+  { id: 'supplies', slot: null, name: 'Supplies', icon: 'i-health', blurb: 'Single-use boosts, bought and used on the spot.' },
+];
+const SHOPS_BY_ID = new Map(SHOPS.map((s) => [s.id, s]));
+/** The shop that sells gear for `slotId`. */
+const shopForSlot = (slotId) => SHOPS.find((s) => s.slot === slotId) || null;
+
+/** Owned gear grouped by slot, best first, for the inventory. */
+function inventoryView(owned, equipment) {
+  return SLOTS.map((slot) => ({
+    ...slot,
+    shop: shopForSlot(slot.id),
+    items: ITEMS.filter((i) => i.slot === slot.id && owned.has(i.id))
+      .sort((a, b) => b.minLevel - a.minLevel)
+      .map((item) => ({ ...item, equipped: equipment[slot.id] === item.id, modText: item.mods.map(combat.describeModifier) })),
+  }));
+}
+
 /** Catalogue grouped by slot, annotated with each item's state for this player. */
 function catalogueView(player, owned, equipment) {
   return SLOTS.map((slot) => ({
@@ -63,4 +86,4 @@ function catalogueView(player, owned, equipment) {
   }));
 }
 
-module.exports = { catalogueView, checkEquip, checkPurchase, loadoutView, statsOf };
+module.exports = { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryView, loadoutView, shopForSlot, statsOf };

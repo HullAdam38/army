@@ -197,15 +197,34 @@ test('armory: buy, auto-equip, stow, re-equip; loadout shows on profile', async 
   // Earn cash the honest way isn't deterministic, so top up directly.
   server.db.prepare("UPDATE users SET cash = 1000 WHERE username = 'Quartermaster'").run();
   ({ res } = await c.request('/armory/buy/flak-vest', { method: 'POST', form: { _csrf: token } }));
-  assert.equal(res.headers.get('location'), '/armory#slot-body');
-  ({ text } = await c.request('/armory'));
+  assert.equal(res.headers.get('location'), '/armory/shop/armour#item-flak-vest', 'back to the shop it came from');
+  ({ text } = await c.request('/armory/shop/armour'));
   assert.match(text, /Flak Vest purchased and equipped/);
   assert.match(text, /data-stat="cash">880</);
+  assert.match(text, /Equipped: <strong>Flak Vest<\/strong>/);
+
+  // The Armory page itself is the loadout and inventory only; the shops have their own pages.
+  ({ text } = await c.request('/armory'));
+  assert.match(text, /id="inv-body"/);
+  assert.match(text, /inventory__item is-equipped/);
+  assert.doesNotMatch(text, /action="\/armory\/buy\//, 'nothing for sale on the inventory page');
+  assert.match(text, /Visit the weapons shop/);
+  for (const shop of ['weapons', 'armour', 'helmets', 'kit', 'supplies']) {
+    ({ res, text } = await c.request(`/armory/shop/${shop}`));
+    assert.equal(res.status, 200, shop);
+    assert.match(text, new RegExp(`href="/armory/shop/${shop}" aria-current="page"`));
+  }
+  assert.match(text, /action="\/armory\/supplies\//);
+  ({ text } = await c.request('/armory/shop/weapons'));
+  assert.match(text, /action="\/armory\/buy\/service-pistol"/);
+  assert.doesNotMatch(text, /Flak Vest/);
+  assert.equal((await c.request('/armory/shop/nope')).res.status, 404);
 
   ({ text } = await c.request('/profile/Quartermaster'));
   assert.match(text, /loadout__name">Flak Vest/);
 
-  await c.request('/armory/unequip/body', { method: 'POST', form: { _csrf: token } });
+  ({ res } = await c.request('/armory/unequip/body', { method: 'POST', form: { _csrf: token } }));
+  assert.equal(res.headers.get('location'), '/armory#inv-body');
   ({ text } = await c.request('/profile/Quartermaster'));
   assert.doesNotMatch(text, /loadout__name">Flak Vest/);
 

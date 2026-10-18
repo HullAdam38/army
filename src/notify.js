@@ -7,19 +7,23 @@ const units = require('./units');
 const perks = require('./perks');
 const { OPERATIONS } = require('./operations');
 const { SUPPLIES } = require('./supplies');
+const { shopForSlot } = require('./armory');
 
 /** What becomes available on reaching `level`: missions, gear and PvP. */
 function unlocksAt(level) {
   const unlocks = [];
   for (const m of game.MISSIONS) if (m.minLevel === level) unlocks.push({ kind: 'unlock', message: `New mission unlocked: ${m.name}.`, link: '/missions' });
-  const gear = ITEMS.filter((i) => i.minLevel === level).map((i) => i.name);
-  if (gear.length) unlocks.push({ kind: 'unlock', message: `New gear in the Armory: ${gear.join(', ')}.`, link: '/armory' });
+  const gear = ITEMS.filter((i) => i.minLevel === level);
+  if (gear.length) {
+    const shop = shopForSlot(gear[0].slot); // the link goes to the shop with the first new item
+    unlocks.push({ kind: 'unlock', message: `New gear in the Armory: ${gear.map((i) => i.name).join(', ')}.`, link: shop ? `/armory/shop/${shop.id}#item-${gear[0].id}` : '/armory' });
+  }
   if (level === pvp.MIN_PVP_LEVEL) {
     unlocks.push({ kind: 'unlock', message: 'PvP unlocked. You can now attack other soldiers, and they can attack you.', link: '/players?filter=targets' });
   }
   for (const op of OPERATIONS) if (op.minLevel === level) unlocks.push({ kind: 'unlock', message: `New operation unlocked: ${op.name}. Clear all three stages for a big bonus.`, link: `/missions#op-${op.id}` });
   const supplyNames = SUPPLIES.filter((s) => s.minLevel === level).map((s) => s.name);
-  if (supplyNames.length) unlocks.push({ kind: 'unlock', message: `New supplies in the Armory: ${supplyNames.join(', ')}.`, link: '/armory#supplies' });
+  if (supplyNames.length) unlocks.push({ kind: 'unlock', message: `New supplies in the Armory: ${supplyNames.join(', ')}.`, link: '/armory/shop/supplies' });
   for (const p of perks.perksAt(level)) unlocks.push({ kind: 'unlock', message: `Rank perk unlocked (${p.rank}): ${p.text}.`, link: '/missions' });
   if (level === 15) unlocks.push({ kind: 'unlock', message: 'Campaign 2 is open: Forward operations. Bigger missions, bigger pay.', link: '/missions#campaign-2' });
   const campaignOpens = { 51: [4, 'The shadow war'], 66: [5, 'Iron horizon'], 81: [6, 'Endgame'] };

@@ -4,13 +4,18 @@ const express = require('express');
 const supplies = require('../supplies');
 const game = require('../game');
 const { ITEMS_BY_ID, SLOTS } = require('../items');
-const { catalogueView, checkEquip, checkPurchase, loadoutView } = require('../armory');
+const { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryView, loadoutView, shopForSlot } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
 
+/**
+ * The Armory: your loadout and inventory on /armory, and a shop per gear slot
+ * (plus supplies) on /armory/shop/:shop.
+ */
 function armoryRoutes(players) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
-  const back = (res, slot) => res.redirect(slot ? `/armory#slot-${slot}` : '/armory');
+  const toInventory = (res, slot) => res.redirect(slot ? `/armory#inv-${slot}` : '/armory');
+  const shopUrl = (shop, hash = '') => `/armory/shop/${shop.id}${hash}`;
 
   router.get('/armory', requireAuth, (req, res) => {
     const owned = players.ownedItemIds(req.player.id);
@@ -18,20 +23,39 @@ function armoryRoutes(players) {
     res.render('armory', {
       title: 'Armory',
       nav: 'armory',
+      shops: SHOPS,
+      active: 'inventory',
       loadout: loadoutView(req.player.level, equipment, req.player),
-      catalogue: catalogueView(req.player, owned, equipment),
-      supplies: (() => {
-        const now = Date.now();
-        const me = game.applyRegen(req.player, now);
-        return supplies.SUPPLIES.map((s) => ({ ...s, locked: me.level < s.minLevel, blocker: supplies.buyBlocker(s, me, now), loaded: s.id === 'stim' && Boolean(me.stim_loaded) }));
-      })(),
+      inventory: inventoryView(owned, equipment),
+      stimLoaded: Boolean(req.player.stim_loaded),
+    });
+  });
+
+  router.get('/armory/shop/:shop', requireAuth, (req, res, next) => {
+    const shop = SHOPS_BY_ID.get(String(req.params.shop));
+    if (!shop) return next();
+    const now = Date.now();
+    const me = game.applyRegen(req.player, now);
+    const equipment = players.equipment(req.player.id);
+    const slot = shop.slot ? catalogueView(me, players.ownedItemIds(me.id), equipment).find((s) => s.id === shop.slot) : null;
+    res.render('armory-shop', {
+      title: shop.name,
+      nav: 'armory',
+      shops: SHOPS,
+      active: shop.id,
+      shop,
+      cash: me.cash,
+      items: slot ? slot.items : [],
+      equipped: shop.slot ? ITEMS_BY_ID.get(equipment[shop.slot]) || null : null,
+      supplies: shop.slot ? [] : supplies.SUPPLIES.map((s) => ({ ...s, locked: me.level < s.minLevel, blocker: supplies.buyBlocker(s, me, now), loaded: s.id === 'stim' && Boolean(me.stim_loaded) })),
     });
   });
 
   // Consumables: bought and used in one step.
   router.post('/armory/supplies/:id', requireAuth, (req, res) => {
+    const back = shopUrl(SHOPS_BY_ID.get('supplies'));
     const supply = supplies.SUPPLIES_BY_ID.get(String(req.params.id));
-    if (!supply) return res.redirect('/armory#supplies');
+    if (!supply) return res.redirect(back);
     const outcome = players.transaction(() => {
       const now = Date.now();
       const fresh = game.applyRegen(players.findById(req.player.id), now);
@@ -42,10 +66,11 @@ function armoryRoutes(players) {
       return out;
     });
     req.flash(outcome.error ? 'error' : 'success', outcome.error || `${supply.name} used: ${outcome.note}.`);
-    res.redirect('/armory#supplies');
+    res.redirect(back);
   });
 
   router.post('/armory/buy/:id', requireAuth, (req, res) => {
+    const item = ITEMS_BY_ID.get(String(req.params.id));
     const outcome = players.transaction(() => {
       const fresh = players.findById(req.player.id);
       const check = checkPurchase(req.params.id, fresh, players.ownedItemIds(fresh.id));
@@ -59,18 +84,21 @@ function armoryRoutes(players) {
     });
     if (outcome.error) req.flash('error', outcome.error);
     else req.flash('success', `${outcome.item.name} purchased and equipped.`);
-    back(res, outcome.item && outcome.item.slot);
+    // Back to the shop it was bought from (or the inventory for an unknown item).
+    const shop = item && shopForSlot(item.slot);
+    if (!shop) return toInventory(res);
+    res.redirect(shopUrl(shop, `#item-${item.id}`));
   });
 
   router.post('/armory/equip/:id', requireAuth, (req, res) => {
     const check = checkEquip(req.params.id, req.player, players.ownedItemIds(req.player.id));
     if (check.error) {
       req.flash('error', check.error);
-      return back(res);
+      return toInventory(res);
     }
     players.equip(req.player.id, check.item.slot, check.item.id);
     req.flash('success', `${check.item.name} equipped.`);
-    back(res, check.item.slot);
+    toInventory(res, check.item.slot);
   });
 
   router.post('/armory/unequip/:slot', requireAuth, (req, res) => {
@@ -78,11 +106,11 @@ function armoryRoutes(players) {
     const current = slot && ITEMS_BY_ID.get(players.equipment(req.player.id)[slot.id]);
     if (!current) {
       req.flash('error', 'Nothing equipped there.');
-      return back(res);
+      return toInventory(res);
     }
     players.unequip(req.player.id, slot.id);
     req.flash('info', `${current.name} stowed.`);
-    back(res, slot.id);
+    toInventory(res, slot.id);
   });
 
   return router;

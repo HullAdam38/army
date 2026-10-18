@@ -3,17 +3,19 @@
 <% const icons = { weapon: 'i-weapon', body: 'i-body', helmet: 'i-helmet', kit: 'i-kit' }; %>
 
 <main id="main" class="container game-main">
+  <%- include('partials/armory-subnav', { shops, active }) %>
   <div class="page-head reveal" style="--i:0">
     <div>
       <p class="eyebrow">Quartermaster</p>
       <h1 class="page-head__title">Armory</h1>
-      <p class="page-head__sub">Gear raises your combat rating, which improves mission success by up to 15%. Armour cuts the damage you take. The same stats will decide PvP fights.</p>
+      <p class="page-head__sub">Your loadout and everything you own. Gear raises your combat rating, which improves mission success by up to 15%, and decides PvP fights. Buy more in the shops above.</p>
     </div>
   </div>
 
   <section class="card armory-summary reveal" style="--i:1" aria-labelledby="loadout-title">
     <h2 id="loadout-title" class="card__title">Your loadout</h2>
     <%- include('partials/loadout', { loadout, editable: true }) %>
+    <% if (stimLoaded) { %><p class="supply-item__state">Stim ready. It kicks in on your next attack.</p><% } %>
     <details class="formula">
       <summary>How damage is calculated</summary>
       <div class="formula__body">
@@ -29,70 +31,41 @@
     </details>
   </section>
 
-  <section id="supplies" class="armory-slot" aria-labelledby="supplies-title">
-    <h2 id="supplies-title" class="armory-slot__title"><svg aria-hidden="true"><use href="#i-health"/></svg>Supplies</h2>
-    <p class="armory-slot__note muted">Single-use, bought and used on the spot. Limits stop money buying unlimited advantage.</p>
-    <ul class="supply-grid">
-      <% supplies.forEach(function (s) { %>
-        <li class="card supply-item<%= s.locked ? ' is-locked' : '' %><%= s.loaded ? ' is-loaded' : '' %>">
-          <div class="supply-item__head">
-            <h3 class="supply-item__name"><%= s.name %></h3>
-            <span class="supply-item__price">$<%= s.price.toLocaleString('en-US') %></span>
-          </div>
-          <p class="supply-item__blurb"><%= s.blurb %></p>
-          <% if (s.loaded) { %><p class="supply-item__state">Stim ready. It kicks in on your next attack.</p><% } %>
-          <form method="post" action="/armory/supplies/<%= s.id %>">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <% if (s.locked) { %>
-              <button class="btn btn--locked btn--sm" type="button" disabled><svg class="btn__icon" aria-hidden="true"><use href="#i-lock"/></svg>Level <%= s.minLevel %></button>
-            <% } else { %>
-              <button class="btn btn--primary btn--sm" type="submit" <%- s.blocker ? 'disabled' : '' %>>Buy &amp; use</button>
-              <% if (s.blocker) { %><span class="supply-item__why"><%= s.blocker %></span><% } %>
-            <% } %>
-          </form>
-        </li>
-      <% }) %>
-    </ul>
-  </section>
-
-  <% catalogue.forEach(function (slot, si) { %>
-    <section class="armory-slot" id="slot-<%= slot.id %>" aria-labelledby="slot-<%= slot.id %>-title">
-      <h2 id="slot-<%= slot.id %>-title" class="armory-slot__title"><svg aria-hidden="true"><use href="#<%= icons[slot.id] %>"/></svg><%= slot.label %></h2>
-      <ul class="item-grid">
-        <% slot.items.forEach(function (item) { %>
-          <li class="card item item--<%= item.state %>">
-            <div class="mission__head">
-              <span class="mission__theatre"><%= slot.label %></span>
-              <span class="mission__level">Lv <%= item.minLevel %>+</span>
-            </div>
-            <h3 class="item__name"><%= item.name %></h3>
-            <p class="item__blurb"><%= item.blurb %></p>
-            <ul class="item__mods">
-              <% item.modText.forEach(function (t) { %><li><%= t %></li><% }) %>
+  <section class="reveal" style="--i:2" aria-labelledby="inventory-title">
+    <h2 id="inventory-title" class="section-title">Inventory</h2>
+    <div class="inventory">
+      <% inventory.forEach(function (slot) { %>
+        <section class="card inventory__slot" id="inv-<%= slot.id %>" aria-labelledby="inv-<%= slot.id %>-title">
+          <h3 id="inv-<%= slot.id %>-title" class="inventory__title"><svg aria-hidden="true"><use href="#<%= icons[slot.id] %>"/></svg><%= slot.label %> <span class="muted small"><%= slot.items.length %></span></h3>
+          <% if (slot.items.length) { %>
+            <ul class="inventory__list">
+              <% slot.items.forEach(function (item) { %>
+                <li class="inventory__item<%= item.equipped ? ' is-equipped' : '' %>">
+                  <span class="inventory__body">
+                    <span class="inventory__name"><%= item.name %></span>
+                    <span class="inventory__mods"><%= item.modText.join(' · ') %></span>
+                  </span>
+                  <% if (item.equipped) { %>
+                    <form method="post" action="/armory/unequip/<%= slot.id %>">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <button class="btn btn--ghost btn--sm" type="submit" aria-label="Stow <%= item.name %>">Stow</button>
+                    </form>
+                  <% } else { %>
+                    <form method="post" action="/armory/equip/<%= item.id %>">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <button class="btn btn--primary btn--sm" type="submit" aria-label="Equip <%= item.name %>">Equip</button>
+                    </form>
+                  <% } %>
+                </li>
+              <% }) %>
             </ul>
-            <div class="item__foot">
-              <span class="item__price"><%= item.state === 'equipped' || item.state === 'owned' ? 'Owned' : '$' + item.price.toLocaleString('en-US') %></span>
-              <% if (item.state === 'equipped') { %>
-                <span class="item__status"><span class="status-dot" aria-hidden="true"></span>Equipped</span>
-              <% } else if (item.state === 'owned') { %>
-                <form method="post" action="/armory/equip/<%= item.id %>">
-                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                  <button class="btn btn--ghost btn--sm" type="submit">Equip</button>
-                </form>
-              <% } else if (item.state === 'locked') { %>
-                <span class="item__status item__status--muted"><svg aria-hidden="true"><use href="#i-lock"/></svg>Level <%= item.minLevel %></span>
-              <% } else { %>
-                <form method="post" action="/armory/buy/<%= item.id %>">
-                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                  <button class="btn btn--primary btn--sm" type="submit" <%- item.state === 'expensive' ? 'disabled' : '' %>><%= item.state === 'expensive' ? 'Need funds' : 'Buy' %></button>
-                </form>
-              <% } %>
-            </div>
-          </li>
-        <% }) %>
-      </ul>
-    </section>
-  <% }) %>
+          <% } else { %>
+            <p class="muted small inventory__empty">Nothing yet. <a href="/armory/shop/<%= slot.shop.id %>">Visit the <%= slot.shop.name.toLowerCase() %> shop</a>.</p>
+          <% } %>
+        </section>
+      <% }) %>
+    </div>
+  </section>
 </main>
 
 <%- include('partials/foot') %>

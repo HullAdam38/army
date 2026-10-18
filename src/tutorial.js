@@ -9,7 +9,7 @@
 
 const STEPS = [
   { id: 'mission', title: 'Run your first mission', hint: 'Missions earn XP and cash. Start with Perimeter Patrol.', link: '/missions', cta: 'Missions', xp: 20, cash: 100, done: (s) => s.missions >= 1 },
-  { id: 'gear', title: 'Equip gear from the Armory', hint: 'Gear raises your combat rating for missions and fights.', link: '/armory', cta: 'Armory', xp: 20, cash: 150, done: (s) => s.equipped >= 1 },
+  { id: 'gear', title: 'Equip gear from the Armory', hint: 'Gear raises your combat rating for missions and fights.', link: '/armory/shop/weapons', cta: 'Weapons shop', xp: 20, cash: 150, done: (s) => s.equipped >= 1 },
   { id: 'train', title: 'Train a stat', hint: 'Strength, Agility and Endurance are hidden from other players.', link: '/training', cta: 'Training', xp: 20, cash: 100, done: (s) => s.training >= 1 },
   { id: 'supply', title: 'Collect a supply drop', hint: 'Free cash every day. Keep a streak going for bigger drops.', link: '/hq#supply-title', cta: 'Supply drop', xp: 15, cash: 50, done: (s) => s.supplyDrops >= 1 },
   { id: 'bank', title: 'Bank some cash', hint: 'Cash in the bank can’t be taken when you lose a fight.', link: '/bank', cta: 'Bank', xp: 15, cash: 50, done: (s) => s.deposits >= 1 },

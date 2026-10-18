@@ -3539,6 +3539,21 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .server-only > div { padding: 8px 10px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
 .server-only dd { margin: 2px 0 0; overflow-wrap: anywhere; font-family: var(--font-ui); }
 #server-only ~ p code, #server-only + p code { overflow-wrap: anywhere; }
+.page-head__icon { width: 0.8em; height: 0.8em; margin-right: 0.3em; vertical-align: -0.05em; color: var(--accent); }
+.shop-status { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0 0 16px; }
+.shop-status strong { color: var(--text); }
+.item__name, .supply-item__name { margin-bottom: 0; }
+.inventory { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 16px; align-items: start; }
+.inventory__title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-family: var(--font-ui); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+.inventory__title svg { width: 18px; height: 18px; color: var(--olive); }
+.inventory__list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.inventory__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.inventory__item.is-equipped { border-color: var(--olive); box-shadow: inset 3px 0 0 var(--olive); }
+.inventory__body { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.inventory__name { font-family: var(--font-ui); font-weight: 700; }
+.inventory__item.is-equipped .inventory__name::after { content: ' · Equipped'; font-weight: 600; font-size: 0.78rem; color: var(--health); }
+.inventory__mods { font-size: 0.85rem; color: var(--text-muted); }
+.inventory__empty { margin: 0; }
 .launch-summary { margin-bottom: 16px; }
 .launch-list { display: grid; gap: 12px; margin: 0 0 20px; padding: 0; list-style: none; }
 .launch-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; }

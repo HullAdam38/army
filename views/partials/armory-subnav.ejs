@@ -1,0 +1,7 @@
+<%# The Armory's menu: your inventory, then a shop per gear slot and supplies. Expects `shops` and `active`. %>
+<nav class="subnav" aria-label="Armory">
+  <a class="subnav__link" href="/armory" <%- active === 'inventory' ? 'aria-current="page"' : '' %>>Inventory</a>
+  <% shops.forEach(function (s) { %>
+    <a class="subnav__link" href="/armory/shop/<%= s.id %>" <%- active === s.id ? 'aria-current="page"' : '' %>><%= s.name %></a>
+  <% }) %>
+</nav>
