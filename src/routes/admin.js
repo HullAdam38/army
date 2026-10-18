@@ -13,6 +13,7 @@ const { ITEMS, ITEMS_BY_ID, SLOTS } = require('../items');
 const { EMAIL_RE, USERNAME_RE } = require('./auth');
 const { announceLevels } = require('../notify');
 const { createStatsService } = require('../stats-service');
+const { createCasinoStats } = require('../casino-stats');
 
 const PAGE_SIZE = 25;
 const timeLeft = (ms) => {
@@ -354,6 +355,11 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   // Reported private messages. Admins only ever see messages someone reported.
   // ----- Player stats -----
   const stats = createStatsService(adminRepo.db);
+  const casinoStats = createCasinoStats(adminRepo.db);
+  router.get('/admin/casino', (req, res) => {
+    const days = [1, 7, 30].includes(Number(req.query.days)) ? Number(req.query.days) : 7;
+    res.render('admin/casino', { title: 'Admin · Casino', nav: 'admin', c: casinoStats.overview({ days }), luckZ: casinoStats.LUCK_Z, luckMin: casinoStats.LUCK_MIN_PLAYS });
+  });
   router.get('/admin/stats', (req, res) => {
     const range = req.query.range === 'all' ? 'all' : 'month';
     res.render('admin/stats', { title: 'Admin · Player stats', nav: 'admin', s: stats.overview(Date.now(), { range }), RETENTION: stats.RETENTION });

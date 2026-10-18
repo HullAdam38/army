@@ -35,7 +35,7 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
     load: db.prepare('SELECT state FROM blackjack_tables WHERE id = ?'),
     save: db.prepare(`INSERT INTO blackjack_tables (id, state, updated_at) VALUES (?, ?, ?)
                       ON CONFLICT(id) DO UPDATE SET state = excluded.state, updated_at = excluded.updated_at`),
-    play: db.prepare('INSERT INTO casino_plays (user_id, game, bet, payout, mult, result, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'),
+    play: db.prepare('INSERT INTO casino_plays (user_id, game, bet, payout, mult, result, created_at, variance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'),
     user: db.prepare('SELECT id, username, avatar_v FROM users WHERE id = ?'),
   };
 
@@ -151,7 +151,8 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
       }
       if (paid) payCash(seat.userId, paid, s, now);
       const result = { table: s.id, round: s.round, dealer: s.dealer, hands: seat.hands.map((h) => ({ cards: h.cards, bet: h.bet, result: h.result })) };
-      stmts.play.run(seat.userId, 'blackjack', staked, paid, Math.round((paid / staked) * 100) / 100, JSON.stringify(result), now);
+      const variance = seat.hands.reduce((n, h) => n + h.bet * h.bet * bj.VARIANCE, 0);
+      stmts.play.run(seat.userId, 'blackjack', staked, paid, Math.round((paid / staked) * 100) / 100, JSON.stringify(result), now, variance);
       const net = paid - staked;
       log(s, `${seat.username}: ${seat.hands.map((h) => bj.RESULT_LABEL[h.result]).join(' / ')} (${net >= 0 ? '+' : '−'}${money(Math.abs(net))}).`);
     }

@@ -86,16 +86,19 @@ function checkBet(raw, { cash, maxBet }) {
 /** Exact return to player and win rates over every possible line (ignoring rounding). */
 function returnToPlayer() {
   let rtp = 0;
+  let squares = 0;
   let wins = 0;
   let big = 0;
   for (const a of SYMBOLS) for (const b of SYMBOLS) for (const c of SYMBOLS) {
     const p = (a.weight * b.weight * c.weight) / TOTAL_WEIGHT ** 3;
     const { mult } = evaluate([a.id, b.id, c.id]);
     rtp += p * mult;
+    squares += p * mult * mult;
     if (mult > 1) wins += p;
     if (mult >= BIG_WIN) big += p;
   }
-  return { rtp, winRate: wins, bigWinOdds: Math.round(1 / big) };
+  // `variance` is per $1 bet: a spin of $b has variance b² × variance.
+  return { rtp, variance: squares - rtp * rtp, winRate: wins, bigWinOdds: Math.round(1 / big) };
 }
 
 /** The paytable for the page, best first. */

@@ -814,6 +814,7 @@ const ADDED_COLUMNS = [
   ['units', 'rally_at', 'INTEGER'], // when the last rally was called (for the cooldown)
   ['raids', 'supply_cost', 'INTEGER'], // what the unit paid, so HQ can refund a cancelled raid
   ['users', 'support_alerts', 'INTEGER NOT NULL DEFAULT 1'], // admins: push alerts for new support tickets
+  ['casino_plays', 'variance', 'REAL'], // the play's statistical variance, for spotting unusual luck (Admin › Casino)
 ];
 
 function migrate(db) {

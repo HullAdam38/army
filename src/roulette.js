@@ -100,7 +100,14 @@ function returnToPlayer(spot) {
   return (winning * (info.odds + 1)) / WHEEL.length;
 }
 
+/** The exact variance of what a set of bets pays back, over the 37 pockets. */
+function varianceOf(bets) {
+  const payouts = WHEEL.map((n) => settle(bets, n).payout);
+  const mean = payouts.reduce((a, b) => a + b, 0) / payouts.length;
+  return payouts.reduce((a, p) => a + (p - mean) ** 2, 0) / payouts.length;
+}
+
 /** The number grid as the board draws it: 12 rows of three, low numbers first. */
 const ROWS = Array.from({ length: 12 }, (_, r) => [3 * r + 1, 3 * r + 2, 3 * r + 3]);
 
-module.exports = { MAX_SPOTS, MIN_CHIP, OUTSIDE, RED, ROWS, WHEEL, checkBets, colorOf, returnToPlayer, settle, spin, spotInfo };
+module.exports = { MAX_SPOTS, MIN_CHIP, OUTSIDE, RED, ROWS, WHEEL, checkBets, colorOf, returnToPlayer, settle, spin, spotInfo, varianceOf };

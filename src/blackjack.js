@@ -94,6 +94,11 @@ function settleHand(hand, dealerCards) {
   return { result: 'lose', payout: 0 };
 }
 
+// Blackjack's spread of results per $1 bet (about 1.15² with doubles and
+// splits). Used to judge whether a player's winnings are unusually lucky.
+const VARIANCE = 1.3;
+const RTP = 0.995; // with perfect basic strategy under these rules; real players do worse
+
 const RESULT_LABEL = { blackjack: 'Blackjack!', win: 'Win', push: 'Push', lose: 'Lose', bust: 'Bust' };
 
 /** A card for display: { rank, suit, red, label }. */
@@ -102,4 +107,4 @@ function show(card) {
   return { rank: rankOf(card), suit: SUIT_SYMBOL[suit], red: suit === 'H' || suit === 'D', label: `${rankOf(card)}${SUIT_SYMBOL[suit]}` };
 }
 
-module.exports = { DECKS, RESULT_LABEL, actionsFor, cardValue, dealerPeeks, dealerPlay, handValue, isBlackjack, isBust, needsShuffle, newShoe, rankOf, settleHand, show };
+module.exports = { DECKS, RESULT_LABEL, RTP, VARIANCE, actionsFor, cardValue, dealerPeeks, dealerPlay, handValue, isBlackjack, isBust, needsShuffle, newShoe, rankOf, settleHand, show };

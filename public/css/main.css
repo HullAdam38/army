@@ -3674,3 +3674,25 @@ section[id], li[id] { scroll-margin-top: 190px; }
   .bj-seat.is-empty { padding: 6px; align-content: center; }
   .bj-seat.is-you { grid-column: 1 / -1; }
 }
+
+/* Admin › Casino */
+.admin-table-wrap { overflow-x: auto; margin-bottom: 10px; }
+.admin-table-wrap .admin-flow { min-width: 34rem; }
+.admin-casino__games, .admin-casino__luck { margin-bottom: 20px; }
+.admin-casino__list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; overflow-wrap: anywhere; }
+.admin-casino__list strong.is-up, .admin-casino__list strong.is-down { float: right; margin-left: 8px; font-variant-numeric: tabular-nums; }
+.admin-casino__players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 14px; }
+.takechart { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; height: 160px; margin-top: 6px; }
+.takechart__day { display: grid; grid-template-rows: 1fr 1fr; min-width: 0; }
+.takechart__half { position: relative; }
+.takechart__half:first-child { border-bottom: 1px solid var(--line-strong); }
+.takechart__bar { position: absolute; left: 0; right: 0; border-radius: 2px; }
+.takechart__half:first-child .takechart__bar { bottom: 0; }
+.takechart__half:last-child .takechart__bar { top: 0; }
+.takechart__bar.is-up { background: var(--health); }
+.takechart__bar.is-down { background: var(--danger); }
+@media (max-width: 700px) {
+  .admin-casino__players { grid-template-columns: minmax(0, 1fr); }
+}
+.admin-casino__games .theatre__sub { margin: 14px 0 6px; }
+.admin-casino__luck .admin-table-wrap + p, .admin-casino__luck > p + p { margin-top: 8px; }

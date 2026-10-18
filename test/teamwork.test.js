@@ -180,6 +180,11 @@ test('raids: Lieutenants launch from the treasury, members strike, loot is share
     assert.equal(db.prepare('SELECT treasury FROM units WHERE id = ?').get(unitId).treasury, treasury + Math.round(plan.cash * raids.TREASURY_SHARE));
     assert.match((await c.pvt.request(U)).text, /Last raid: Fortified Compound, taken/);
 
+    // The unit regroups for a day before the next raid.
+    assert.match((await c.cmd.act(`${U}/raid`, { stronghold: 'outpost' }, U)).message, /regroup: the next raid can launch in 24 hours/);
+    assert.match((await c.pvt.request(U)).text, /The unit is regrouping/);
+    db.prepare('UPDATE raids SET finished_at = finished_at - ? WHERE unit_id = ?').run(24 * 3_600_000, unitId);
+
     // A raid that runs out of time pays nothing.
     assert.match((await c.cmd.act(`${U}/raid`, { stronghold: 'outpost' }, U)).message, /Raid launched/);
     await c.pvt.act(`${U}/raid/strike`, {}, U);

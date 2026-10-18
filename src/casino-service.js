@@ -8,6 +8,7 @@ const tuning = require('./tuning');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const KEEP_MS = 30 * DAY_MS;
+const SLOTS_VARIANCE = slots.returnToPlayer().variance; // per $1 bet
 
 /**
  * Casino games played with in-game cash. Every bet is one ledger entry with
@@ -16,7 +17,7 @@ const KEEP_MS = 30 * DAY_MS;
  */
 function createCasinoService(db, players) {
   const stmts = {
-    insert: db.prepare('INSERT INTO casino_plays (user_id, game, bet, payout, mult, result, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'),
+    insert: db.prepare('INSERT INTO casino_plays (user_id, game, bet, payout, mult, result, created_at, variance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'),
     lastAt: db.prepare('SELECT MAX(created_at) AS at FROM casino_plays WHERE user_id = ?'),
     recent: db.prepare('SELECT * FROM casino_plays WHERE user_id = ? AND game = ? ORDER BY id DESC LIMIT ?'),
     today: db.prepare(`SELECT COUNT(*) AS plays, COALESCE(SUM(bet), 0) AS wagered, COALESCE(SUM(payout), 0) AS won, COALESCE(MAX(payout - bet), 0) AS best
@@ -51,7 +52,7 @@ function createCasinoService(db, players) {
       if (b.error) return b;
       if (now - (stmts.lastAt.get(userId).at || 0) < slots.SPIN_COOLDOWN_MS) return { error: 'The reels are still turning. Give it a moment.' };
       const result = slots.spin(b.bet, randomInt);
-      const id = Number(stmts.insert.run(userId, 'slots', b.bet, result.payout, result.mult, JSON.stringify({ line: result.line, kind: result.kind }), now).lastInsertRowid);
+      const id = Number(stmts.insert.run(userId, 'slots', b.bet, result.payout, result.mult, JSON.stringify({ line: result.line, kind: result.kind }), now, b.bet * b.bet * SLOTS_VARIANCE).lastInsertRowid);
       player.cash += result.payout - b.bet;
       players.save(player, { reason: 'casino-slots', ref: `casino:${id}` });
       return { ...result, bet: b.bet, net: result.payout - b.bet, text: slots.describe(result), cash: player.cash, playId: id, player };
@@ -71,7 +72,7 @@ function createCasinoService(db, players) {
       const wheel = roulette.spin(randomInt);
       const { payout, winners } = roulette.settle(b.bets, wheel.number);
       const mult = Math.round((payout / b.total) * 100) / 100;
-      const id = Number(stmts.insert.run(userId, 'roulette', b.total, payout, mult, JSON.stringify({ number: wheel.number, bets: b.bets }), now).lastInsertRowid);
+      const id = Number(stmts.insert.run(userId, 'roulette', b.total, payout, mult, JSON.stringify({ number: wheel.number, bets: b.bets }), now, roulette.varianceOf(b.bets)).lastInsertRowid);
       player.cash += payout - b.total;
       players.save(player, { reason: 'casino-roulette', ref: `casino:${id}` });
       return { ...wheel, bets: b.bets, total: b.total, payout, mult, net: payout - b.total, winners, cash: player.cash, playId: id, player };

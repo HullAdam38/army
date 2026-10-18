@@ -1,0 +1,133 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<%
+  const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(Math.round(Number(n))).toLocaleString('en-US');
+  const pct = (x, dp = 1) => (x === null || x === undefined ? '—' : `${(x * 100).toFixed(dp)}%`);
+  const short = (day) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const peak = Math.max(1, ...c.daily.map((d) => Math.abs(d.take)));
+  const label = { 1: 'Last 24 hours', 7: 'Last 7 days', 30: 'Last 30 days' }[c.days];
+%>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'casino' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Casino</h1>
+      <p class="page-head__sub">What the casino takes out of the game, whether each game pays what its maths says, and who is winning more than luck explains. Plays are kept for 30 days. Days are UTC.</p>
+    </div>
+  </div>
+
+  <nav class="tabs support-tabs" aria-label="Period">
+    <% [[1, '24 hours'], [7, '7 days'], [30, '30 days']].forEach(function ([d, l]) { %>
+      <a class="tabs__tab" href="/admin/casino?days=<%= d %>" <%- c.days === d ? 'aria-current="page"' : '' %>><%= l %></a>
+    <% }) %>
+  </nav>
+
+  <dl class="admin-stats stats-kpis">
+    <div><dt>Bet</dt><dd><%= money(c.total.wagered) %></dd></div>
+    <div><dt>Paid back</dt><dd><%= money(c.total.paid) %></dd></div>
+    <div title="Bet minus paid back: the cash the casino removed from the game"><dt>House take</dt><dd class="<%= c.total.take >= 0 ? 'is-up' : 'is-down' %>"><%= money(c.total.take) %></dd></div>
+    <div title="The house take as a share of all the cash players earned in the same period (missions, deployments, PvP, rewards…)"><dt>Of cash earned</dt><dd><%= c.total.take < 0 ? 'Players ahead' : pct(c.takeShare) %></dd></div>
+    <div><dt>Plays</dt><dd><%= c.total.plays.toLocaleString('en-US') %></dd></div>
+  </dl>
+
+  <section class="card admin-casino__games" aria-labelledby="games-title">
+    <h2 id="games-title" class="card__title">By game · <%= label.toLowerCase() %></h2>
+    <div class="admin-table-wrap">
+      <table class="admin-flow">
+        <thead><tr><th scope="col">Game</th><th scope="col" class="num">Plays</th><th scope="col" class="num">Players</th><th scope="col" class="num">Bet</th><th scope="col" class="num">Paid</th><th scope="col" class="num">House take</th><th scope="col" class="num">Return</th><th scope="col" class="num">Expected</th></tr></thead>
+        <tbody>
+          <% c.games.forEach(function (g) { %>
+            <tr>
+              <th scope="row"><%= g.name %></th>
+              <td class="num"><%= g.plays.toLocaleString('en-US') %></td>
+              <td class="num"><%= g.players.toLocaleString('en-US') %></td>
+              <td class="num"><%= money(g.wagered) %></td>
+              <td class="num"><%= money(g.paid) %></td>
+              <td class="num <%= g.take >= 0 ? 'is-up' : 'is-down' %>"><%= money(g.take) %></td>
+              <td class="num"><%= pct(g.actualRtp) %></td>
+              <td class="num" title="<%= g.rtpNote %>"><%= pct(g.rtp) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small">A game's return swings a lot over a few plays (one jackpot is 100× its bet) and settles towards the expected figure as plays add up. Blackjack's expected figure assumes perfect play, so players usually return a little less.</p>
+    <% const wins = c.games.filter(function (g) { return g.biggest; }); %>
+    <% if (wins.length) { %>
+      <h3 class="theatre__sub">Biggest single wins</h3>
+      <ul class="admin-casino__list">
+        <% wins.forEach(function (g) { %>
+          <li><%= g.name %>: <a href="/admin/players/<%= g.biggest.user_id %>"><%= g.biggest.username %></a> won <strong><%= money(g.biggest.payout - g.biggest.bet) %></strong> on a <%= money(g.biggest.bet) %> bet</li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+
+  <section class="card" aria-labelledby="daily-title">
+    <h2 id="daily-title" class="card__title">House take per day</h2>
+    <div class="takechart" role="img" aria-label="House take per day: bars above the line are cash the casino took, below are days players won. A table follows.">
+      <% c.daily.forEach(function (d) { const h = Math.round((Math.abs(d.take) / peak) * 100); %>
+        <span class="takechart__day" title="<%= short(d.day) %>: <%= money(d.take) %> on <%= money(d.wagered) %> bet">
+          <span class="takechart__half"><% if (d.take > 0) { %><span class="takechart__bar is-up" style="height:<%= Math.max(3, h) %>%"></span><% } %></span>
+          <span class="takechart__half"><% if (d.take < 0) { %><span class="takechart__bar is-down" style="height:<%= Math.max(3, h) %>%"></span><% } %></span>
+        </span>
+      <% }) %>
+    </div>
+    <div class="colchart__axis"><span><%= short(c.daily[0].day) %></span><span><%= short(c.daily.at(-1).day) %></span></div>
+    <details class="colchart__table">
+      <summary>Show as table</summary>
+      <table>
+        <thead><tr><th scope="col">Day</th><th scope="col" class="num">Bet</th><th scope="col" class="num">House take</th></tr></thead>
+        <tbody><% [...c.daily].reverse().forEach(function (d) { %><tr><th scope="row"><%= short(d.day) %></th><td class="num"><%= money(d.wagered) %></td><td class="num"><%= money(d.take) %></td></tr><% }) %></tbody>
+      </table>
+    </details>
+  </section>
+
+  <section class="card admin-casino__luck" aria-labelledby="luck-title">
+    <h2 id="luck-title" class="card__title">Unusually lucky</h2>
+    <p class="muted small">Players whose winnings at a game are at least <%= luckZ %> standard deviations above what it pays on average, over <%= luckMin %>+ plays. By chance alone that happens to about 1 player-and-game in 740, so a name here is worth a look (the ledger and their linked accounts), not proof of anything.</p>
+    <% if (c.lucky.length) { %>
+      <div class="admin-table-wrap">
+        <table class="admin-flow">
+          <thead><tr><th scope="col">Player</th><th scope="col">Game</th><th scope="col" class="num">Plays</th><th scope="col" class="num">Bet</th><th scope="col" class="num">Net</th><th scope="col" class="num">Return</th><th scope="col" class="num" title="Standard deviations above the expected result">Luck</th></tr></thead>
+          <tbody>
+            <% c.lucky.forEach(function (r) { %>
+              <tr>
+                <th scope="row"><a href="/admin/players/<%= r.user_id %>"><%= r.username %></a><% if (r.banned_at) { %> <span class="tag tag--hospital">Suspended</span><% } %></th>
+                <td><%= r.gameName %></td>
+                <td class="num"><%= r.plays.toLocaleString('en-US') %></td>
+                <td class="num"><%= money(r.wagered) %></td>
+                <td class="num is-up"><%= money(r.net) %></td>
+                <td class="num"><%= pct(r.actualRtp, 0) %></td>
+                <td class="num"><strong><%= r.z.toFixed(1) %>σ</strong></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <p class="muted">Nobody is beating the odds by that much. Good.</p>
+    <% } %>
+  </section>
+
+  <div class="admin-casino__players">
+    <% [['Top winners', c.winners, 'is-up', 'Nobody is up in this period.'], ['Biggest losers', c.losers, 'is-down', 'Nobody is down in this period.']].forEach(function ([title, rows, cls, empty], i) { %>
+      <section class="card" aria-labelledby="players-<%= i %>">
+        <h2 id="players-<%= i %>" class="card__title"><%= title %></h2>
+        <% if (rows.length) { %>
+          <ol class="admin-casino__list">
+            <% rows.forEach(function (r) { %>
+              <li><a href="/admin/players/<%= r.user_id %>"><%= r.username %></a><% if (r.banned_at) { %> <span class="tag tag--hospital">Suspended</span><% } %> <span class="muted small">· <%= r.plays.toLocaleString('en-US') %> plays, <%= money(r.wagered) %> bet</span> <strong class="<%= cls %>"><%= money(r.net) %></strong></li>
+            <% }) %>
+          </ol>
+        <% } else { %>
+          <p class="muted small"><%= empty %></p>
+        <% } %>
+      </section>
+    <% }) %>
+  </div>
+  <p class="muted small">Limits and on/off are in <a href="/admin/settings#g-casino">Game settings › Casino</a>. Every bet and win is also in the ledger (reasons <code>casino-slots</code>, <code>casino-roulette</code>, <code>casino-blackjack</code>) and on <a href="/admin/economy">Economy</a>.</p>
+</main>
+
+<%- include('../partials/foot') %>

@@ -71,6 +71,12 @@ Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. F
 - adjust cash, set level, restore energy and health, or release from hospital
 - **edit a player:** change their callsign (they're told why) or email, adjust their bank balance, grant XP (levels up as if earned), set trained stats (Endurance also changes max health), give or take gear (taken gear is unequipped first), remove them from their unit (not its Commander), clear their title, clear their notifications (the page shows how many they have), or sign them out on every device. Another admin's callsign and email can only be changed on the server. Every change needs a reason and goes in the audit log; money changes go through the ledger as `admin-cash` / `admin-bank`.
 - **Units** (`/admin/units`): search every unit, see members, treasury, upgrades and war record, and add to or take from a treasury (noted in the unit's log). Rename or disband from the unit's own page.
+- **Casino** (`/admin/casino`): for the last 24 hours, 7 days or 30 days:
+  - totals bet, paid back and the house's take, and that take as a share of all the cash players earned in the same period;
+  - per game: plays, players, take, and the actual return against the expected one (slots 94.9%, roulette 97.3%, blackjack ~99.5% with perfect play), plus the biggest single wins;
+  - the house's take per day (bars below the line are days players came out ahead);
+  - top winners and biggest losers;
+  - **Unusually lucky:** players winning at least 3 standard deviations more than a game pays on average, over 20+ plays (about 1 in 740 by chance). Each play stores its exact variance, so bet sizes and roulette bet types are judged fairly. It's a prompt to look at the ledger and linked accounts, not proof.
 - **Raids & map** (`/admin/teamwork`): fix problems with raids and the theatre of war. Every change needs a reason, goes in the audit log and is shown to the unit.
   - **Raids under way:** health left, strikers, time left, loot and supplies paid. **Give more time** (1–48 hours, e.g. after an outage) or **call off** a raid with no loot, optionally refunding the supplies to the treasury. Recent raids show how each ended.
   - **Regions:** holder, income, this week's fronts and standings. **Change who holds it** by unit tag, or leave the tag empty to free the region.
@@ -523,7 +529,8 @@ A Lieutenant or the Commander spends treasury on **"Advance!"**: +15% mission an
 
 A co-op boss fight against an enemy stronghold (`#raid` on the unit page).
 
-- **Launching:** a Lieutenant or the Commander picks a stronghold and pays for supplies from the treasury. Six tiers open with the unit's average level: Insurgent Outpost (1), Fortified Compound (10), Mountain Bunker (20), Coastal Battery (35), Command Citadel (50) and Black Site (75). One raid at a time.
+- **Launching:** a Lieutenant or the Commander picks a stronghold and pays for supplies from the treasury. Six tiers open with the unit's average level: Insurgent Outpost (1), Fortified Compound (10), Mountain Bunker (20), Coastal Battery (35), Command Citadel (50) and Black Site (75). One raid at a time, and the unit regroups for 24 hours after a raid ends before launching the next (**Game settings › Pace › Wait between raids**; raids HQ calls off don't count).
+- **Pay:** loot is tuned so a member earns about **1.75× the cash and 1.5× the XP** the same energy would earn on missions, at every tier (`npm run balance` prints the figures). The treasury gets back more than the supplies cost.
 - **Sizing:** health, supply cost and loot scale with the number of members (counted as at least 3) and their average level, so a big unit faces a bigger stronghold.
 - **Striking:** each strike costs **10 energy** and deals damage from your combat rating, and you take 3–8% of your health in return fire. You can't strike from hospital, on deployment or below 20% health.
 - **Winning:** the unit has **48 hours**. If the stronghold falls, 25% of the cash goes to the treasury and the rest, plus all the XP, is shared by damage dealt. Everyone who struck shares, even if they've left the unit since (so removing strikers gains nothing); suspended players don't. Payouts go through the ledger as `raid-loot`.

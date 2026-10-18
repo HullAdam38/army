@@ -1,6 +1,7 @@
 'use strict';
 
 const raids = require('./raids');
+const tuning = require('./tuning');
 const units = require('./units');
 const game = require('./game');
 const { statsOf } = require('./armory');
@@ -42,9 +43,12 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
                                     (SELECT COUNT(*) FROM raid_hits h WHERE h.raid_id = r.id) AS strikers
                              FROM raids r JOIN units u ON u.id = r.unit_id
                              WHERE r.status != 'active' ORDER BY r.finished_at DESC LIMIT ?`),
+    lastFinished: db.prepare("SELECT MAX(finished_at) AS at FROM raids WHERE unit_id = ? AND status IN ('won', 'failed')"),
     extend: db.prepare("UPDATE raids SET ends_at = ends_at + ?, reminded_at = NULL WHERE id = ? AND status = 'active'"),
   };
 
+  /** When `unitId` may launch its next raid (raids HQ calls off don't count). */
+  const readyAt = (unitId) => (stmts.lastFinished.get(unitId).at || 0) + tuning.get('raidCooldownHours') * 3_600_000;
   const strongholdOf = (raid) => raids.STRONGHOLDS_BY_ID.get(raid.stronghold);
   const unitSize = (unitId) => {
     const m = stmts.members.get(unitId);
@@ -100,6 +104,11 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
     launch({ unit, role, me, strongholdId, now = Date.now() }) {
       if (!units.can.raid(role)) return { error: 'Only Lieutenants and the Commander can launch a raid.' };
       if (stmts.active.get(unit.id)) return { error: 'Your unit is already on a raid. Finish it first.' };
+      const ready = readyAt(unit.id);
+      if (ready > now) {
+        const hours = Math.ceil((ready - now) / 3_600_000);
+        return { error: `Your unit needs to regroup: the next raid can launch in ${hours} hour${hours === 1 ? '' : 's'}.` };
+      }
       const size = unitSize(unit.id);
       const s = raids.STRONGHOLDS_BY_ID.get(String(strongholdId || ''));
       if (!s) return { error: 'Pick a stronghold.' };
@@ -149,6 +158,7 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
       const last = stmts.recent.all(unit.id, 1)[0] || null;
       const card = {
         canLaunch: units.can.raid(role),
+        readyAt: readyAt(unit.id) > now ? readyAt(unit.id) : null,
         options: raids.available(size).map((s) => ({ ...s, affordable: unit.treasury >= s.cost })),
         next: raids.STRONGHOLDS.find((s) => s.minLevel > size.avgLevel) || null,
         energy: raids.STRIKE_ENERGY,

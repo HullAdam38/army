@@ -21,14 +21,17 @@ const REMIND_BEFORE_MS = 6 * 60 * 60 * 1000;
 const MIN_MEMBERS = 3; // strongholds are sized for at least this many
 
 // Each tier: the unit's average level it opens at, how much health per member
-// (in strikes at that level) and how big the loot is.
+// (in strikes at that level), and how big the cash and XP loot are. The loot
+// figures are tuned (see `npm run balance`) so a member earns about 1.75× the
+// cash and 1.5× the XP that the same energy would earn on missions, at every
+// tier: a clear reward for working together, without making missions pointless.
 const STRONGHOLDS = [
-  { id: 'outpost', name: 'Insurgent Outpost', minLevel: 1, strikes: 8, loot: 1, blurb: 'A lightly held forward post. A good first raid.' },
-  { id: 'compound', name: 'Fortified Compound', minLevel: 10, strikes: 11, loot: 1.6, blurb: 'Walls, wire and a garrison that shoots back.' },
-  { id: 'bunker', name: 'Mountain Bunker', minLevel: 20, strikes: 14, loot: 2.5, blurb: 'Dug into rock. Bring everyone.' },
-  { id: 'battery', name: 'Coastal Battery', minLevel: 35, strikes: 17, loot: 3.6, blurb: 'Heavy guns covering the landing beaches.' },
-  { id: 'citadel', name: 'Command Citadel', minLevel: 50, strikes: 20, loot: 5, blurb: 'The enemy’s regional headquarters.' },
-  { id: 'blacksite', name: 'Black Site', minLevel: 75, strikes: 24, loot: 7, blurb: 'Off the map, and defended like it.' },
+  { id: 'outpost', name: 'Insurgent Outpost', minLevel: 1, strikes: 8, cash: 0.8, xp: 1.6, blurb: 'A lightly held forward post. A good first raid.' },
+  { id: 'compound', name: 'Fortified Compound', minLevel: 10, strikes: 11, cash: 0.85, xp: 1.6, blurb: 'Walls, wire and a garrison that shoots back.' },
+  { id: 'bunker', name: 'Mountain Bunker', minLevel: 20, strikes: 14, cash: 1.25, xp: 1.8, blurb: 'Dug into rock. Bring everyone.' },
+  { id: 'battery', name: 'Coastal Battery', minLevel: 35, strikes: 17, cash: 1.55, xp: 1.8, blurb: 'Heavy guns covering the landing beaches.' },
+  { id: 'citadel', name: 'Command Citadel', minLevel: 50, strikes: 20, cash: 2.25, xp: 2.2, blurb: 'The enemy’s regional headquarters.' },
+  { id: 'blacksite', name: 'Black Site', minLevel: 75, strikes: 24, cash: 3.7, xp: 2.7, blurb: 'Off the map, and defended like it.' },
 ];
 const STRONGHOLDS_BY_ID = new Map(STRONGHOLDS.map((s) => [s.id, s]));
 
@@ -43,9 +46,9 @@ function plan(stronghold, { members, avgLevel }) {
   const mult = tuning.get('raidRewardMult');
   return {
     hp: Math.round(stronghold.strikes * m * typicalStrike(level)),
-    cost: Math.round((3 * m * hourPay(level) * Math.sqrt(stronghold.loot)) / 100) * 100,
-    cash: Math.round(20 * m * hourPay(level) * stronghold.loot * mult),
-    xp: Math.round(10 * m * hourXp(level) * stronghold.loot * mult),
+    cost: Math.round((3 * m * hourPay(level) * Math.sqrt(stronghold.cash)) / 100) * 100,
+    cash: Math.round(20 * m * hourPay(level) * stronghold.cash * mult),
+    xp: Math.round(10 * m * hourXp(level) * stronghold.xp * mult),
   };
 }
 

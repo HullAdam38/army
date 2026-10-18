@@ -31,6 +31,7 @@ const SETTINGS = [
   { key: 'energyRegenMinutes', group: 'pace', label: 'Energy regeneration', type: 'number', unit: 'min per point', min: 0.5, max: 10, step: 0.5, default: 2, help: 'Minutes for one energy point to come back. Lower is faster and lets players do more each day.' },
   { key: 'hospitalStayMinutes', group: 'pace', label: 'Hospital stay after a knockout', type: 'int', unit: 'min', min: 1, max: 120, step: 1, default: 10, help: 'How long a knocked-out soldier stays in hospital.' },
   { key: 'deploymentCapHours', group: 'pace', label: 'Deployment hours per day', type: 'int', unit: 'h per 24h', min: 1, max: 24, step: 1, default: 16, help: 'The most deployed hours a player can use in any rolling 24 hours.' },
+  { key: 'raidCooldownHours', group: 'pace', label: 'Wait between raids', type: 'int', unit: 'h', min: 0, max: 168, step: 1, default: 24, help: 'How long a unit waits after a raid ends (won or failed) before it can launch the next. Raids HQ calls off don’t count. 0 means no wait.' },
 
   // PvP seasons
   { key: 'seasonPlacementFights', group: 'seasons', label: 'Placement fights', type: 'int', unit: 'fights', min: 1, max: 50, step: 1, default: 5, help: 'Ranked fights a player needs to appear in the standings and earn season rewards.' },

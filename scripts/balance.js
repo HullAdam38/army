@@ -128,3 +128,48 @@ for (const level of [1, 5, 10, 15, 20, 25, 30]) {
   const order = daily.orderReward(level).cash * 4;
   console.log(`L${level}: missions ≈ ${fmt(missionPerHour)}/h of energy (${ms.m.name}) | long-range deployment ${fmt(dep)}/h (${Math.round(100 * dep / missionPerHour)}% of missions) | all daily orders ${fmt(order)}/day`);
 }
+
+// ---- Team play: what raids pay a member, against spending the same energy on missions ----
+const raids = require(path + 'raids');
+const objectives = require(path + 'objectives');
+const units = require(path + 'units');
+const theatre = require(path + 'theatre');
+/** The best mission's expected cash and XP per point of energy at a level (no gear). */
+const missionPerEnergy = (level) => {
+  const p = { ...newPlayer(0), level, max_energy: 50 + 5 * (level - 1), max_health: 100 + 10 * (level - 1), health: 100 + 10 * (level - 1) };
+  return game.MISSIONS.filter((m) => m.minLevel <= level)
+    .map((m) => ({ cash: game.successChance(m, p) * (m.cash[0] + m.cash[1]) / 2 / m.energy, xp: game.successChance(m, p) * (m.xp[0] + m.xp[1]) / 2 / m.energy }))
+    .sort((a, b) => b.cash - a.cash)[0];
+};
+console.log(`\n== Raids: a 5-member unit, everyone striking equally (no gear). One raid per ${require(path + 'tuning').get('raidCooldownHours')}h at most`);
+const MEMBERS = 5;
+for (const level of [5, 10, 20, 35, 50, 75]) {
+  const s = [...raids.STRONGHOLDS].reverse().find((x) => x.minLevel <= level);
+  const plan = raids.plan(s, { members: MEMBERS, avgLevel: level });
+  // A strike averages 1.025 × a typical strike, so each member needs this much energy for their share of the health.
+  const energy = (plan.hp / MEMBERS / (raids.typicalStrike(level) * 1.025)) * raids.STRIKE_ENERGY;
+  const share = (plan.cash * (1 - raids.TREASURY_SHARE)) / MEMBERS;
+  const m = missionPerEnergy(level);
+  const xpEach = plan.xp / MEMBERS;
+  console.log(`L${level} ${s.name}: ${Math.round(energy)} energy each → ${fmt(share)} + ${Math.round(xpEach)} XP each (cash ${(share / energy / m.cash).toFixed(2)}× missions, XP ${(xpEach / energy / m.xp).toFixed(2)}×); supplies ${fmt(plan.cost)} from the treasury, ${fmt(plan.cash * raids.TREASURY_SHARE)} back`);
+}
+
+console.log('\n== Unit treasury income per week (5 members)');
+for (const level of [10, 30, 50]) {
+  const objectivesWeek = 3 * Math.round((12 * MEMBERS * objectives.hourPay(level)) / 100) * 100;
+  const capital = theatre.REGIONS_BY_ID.get('capital').income * 7;
+  const rally = units.rallyCost(MEMBERS, level);
+  console.log(`L${level}: three objectives ${fmt(objectivesWeek)} · holding the Capital District ${fmt(capital)} · one rally costs ${fmt(rally)} (+${Math.round(units.RALLY.bonus * 100)}% mission pay for an hour each)`);
+}
+
+// ---- The casino: how much cash it takes out of the game ----
+const slots = require(path + 'slots');
+const blackjack = require(path + 'blackjack');
+const houseEdge = { 'Slot machine': 1 - slots.returnToPlayer().rtp, Roulette: 1 / 37, 'Blackjack (perfect play)': 1 - blackjack.RTP, 'Blackjack (typical play)': 0.02 };
+console.log('\n== Casino: expected cash removed from the game');
+const regular = run(profiles[1]);
+const monthly = regular.income.missions + regular.income.deployments + regular.income.daily;
+for (const [name, edge] of Object.entries(houseEdge)) {
+  console.log(`${name}: house edge ${(edge * 100).toFixed(2)}% → keeps ${fmt(edge * 100000)} of every $100,000 bet; a Regular player betting their whole month's income (${fmt(monthly)}) once loses about ${fmt(edge * monthly)}`);
+}
+console.log('Casino play is optional, so it is a cash sink for those who choose it and never adds money to the game on average.');
