@@ -2,6 +2,7 @@
 
 const crypto = require('node:crypto');
 const slots = require('./slots');
+const roulette = require('./roulette');
 const game = require('./game');
 const tuning = require('./tuning');
 
@@ -36,6 +37,7 @@ function createCasinoService(db, players) {
   return {
     blocker,
     limits: () => ({ minBet: slots.MIN_BET, maxBet: tuning.get('slotsMaxBet') }),
+    rouletteLimits: () => ({ minChip: roulette.MIN_CHIP, maxBet: tuning.get('rouletteMaxBet'), maxSpots: roulette.MAX_SPOTS }),
 
     /**
      * One spin of the slot machine, inside the caller's transaction.
@@ -53,6 +55,26 @@ function createCasinoService(db, players) {
       player.cash += result.payout - b.bet;
       players.save(player, { reason: 'casino-slots', ref: `casino:${id}` });
       return { ...result, bet: b.bet, net: result.payout - b.bet, text: slots.describe(result), cash: player.cash, playId: id, player };
+    },
+
+    /**
+     * One spin of the roulette wheel with `bets` ({ spot: amount }), inside the
+     * caller's transaction. Returns { number, color, pocket, payout, net, winners, total, cash } or { error }.
+     */
+    spinRoulette({ userId, bets: rawBets, now = Date.now(), randomInt = crypto.randomInt }) {
+      const player = game.applyRegen(players.findById(userId), now);
+      const why = blocker(player);
+      if (why) return { error: why };
+      const b = roulette.checkBets(rawBets, { cash: player.cash, maxBet: tuning.get('rouletteMaxBet') });
+      if (b.error) return b;
+      if (now - (stmts.lastAt.get(userId).at || 0) < slots.SPIN_COOLDOWN_MS) return { error: 'The wheel is still turning. Give it a moment.' };
+      const wheel = roulette.spin(randomInt);
+      const { payout, winners } = roulette.settle(b.bets, wheel.number);
+      const mult = Math.round((payout / b.total) * 100) / 100;
+      const id = Number(stmts.insert.run(userId, 'roulette', b.total, payout, mult, JSON.stringify({ number: wheel.number, bets: b.bets }), now).lastInsertRowid);
+      player.cash += payout - b.total;
+      players.save(player, { reason: 'casino-roulette', ref: `casino:${id}` });
+      return { ...wheel, bets: b.bets, total: b.total, payout, mult, net: payout - b.total, winners, cash: player.cash, playId: id, player };
     },
 
     /** The player's latest plays of a game, newest first. */

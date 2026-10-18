@@ -2,6 +2,7 @@
 
 const express = require('express');
 const slots = require('../slots');
+const roulette = require('../roulette');
 const game = require('../game');
 const presence = require('../presence');
 const { wantsJson } = require('../middleware');
@@ -10,6 +11,7 @@ const { createRequireAuth } = require('../require-auth');
 // The games on the casino floor. `path` null means it isn't open yet.
 const GAMES = [
   { id: 'slots', name: 'Slot machine', path: '/casino/slots', icon: 'i-star', blurb: 'Three reels, one line. Line up Stars, Crests and Cash for up to 100× your bet.' },
+  { id: 'roulette', name: 'Roulette', path: '/casino/roulette', icon: 'i-target', blurb: 'A European wheel with one zero. Bet on numbers, colours, dozens and more; a single number pays 35 to 1.' },
 ];
 
 /** The casino: a lobby to pick a game, and the games themselves. All bets are in-game cash. */
@@ -74,6 +76,62 @@ function casinoRoutes(players, casino) {
     if (out.error) req.flash('error', out.error);
     else req.session.lastSpin = { line: out.line, text: out.text, payout: out.payout, bet: out.bet, net: out.net, big: out.mult >= slots.BIG_WIN };
     res.redirect('/casino/slots#machine');
+  });
+
+  // ---- Roulette ----
+  router.get('/casino/roulette', requireAuth, (req, res) => {
+    const now = Date.now();
+    const last = req.session.lastRoulette || null; // shown once after a spin without JavaScript
+    delete req.session.lastRoulette;
+    const recent = casino.recent(req.player.id, 'roulette', 12);
+    res.render('casino-roulette', {
+      title: 'Roulette',
+      nav: 'casino',
+      wheel: roulette.WHEEL,
+      rows: roulette.ROWS,
+      colorOf: roulette.colorOf,
+      outside: roulette.OUTSIDE,
+      limits: casino.rouletteLimits(),
+      chips: [10, 50, 100, 500, 1000, 5000].filter((c) => c <= casino.rouletteLimits().maxBet),
+      bet: Math.min(casino.rouletteLimits().maxBet, req.session.rouletteBet || 100),
+      last,
+      today: casino.today(req.player.id, 'roulette', now),
+      recent: recent.map((p) => ({ ...p, ago: presence.timeAgo(p.created_at, now), color: roulette.colorOf(p.result.number) })),
+      bigWins: casino.bigWins('roulette', 8, now).map((p) => ({ ...p, ago: presence.timeAgo(p.created_at, now), color: roulette.colorOf(p.result.number) })),
+      blocker: casino.blocker(req.player),
+    });
+  });
+
+  /** Bets from the form: `b-<spot>` fields (the table, with JavaScript), or one `spot` and `amount` (without). */
+  const betsFrom = (body) => {
+    const bets = Object.create(null); // field names come from the browser, so no prototype to tamper with
+    for (const [k, v] of Object.entries(body || {})) if (k.startsWith('b-')) bets[k.slice(2)] = v;
+    if (body && body.spot !== undefined) bets[String(body.spot)] = (Number(bets[String(body.spot)]) || 0) + (Number(String(body.amount || '').replace(/[$,\s]/g, '')) || 0);
+    return bets;
+  };
+
+  router.post('/casino/roulette/spin', requireAuth, (req, res) => {
+    const out = players.transaction(() => casino.spinRoulette({ userId: req.player.id, bets: betsFrom(req.body) }));
+    if (!out.error && req.body.spot !== undefined) req.session.rouletteBet = Number(req.body.amount) || req.session.rouletteBet;
+    if (wantsJson(req)) {
+      if (out.error) return res.status(400).json({ ok: false, error: out.error });
+      return res.json({
+        ok: true,
+        number: out.number,
+        color: out.color,
+        pocket: out.pocket,
+        total: out.total,
+        payout: out.payout,
+        net: out.net,
+        winners: out.winners,
+        big: out.mult >= slots.BIG_WIN,
+        player: game.playerView(out.player),
+        today: casino.today(req.player.id, 'roulette'),
+      });
+    }
+    if (out.error) req.flash('error', out.error);
+    else req.session.lastRoulette = { number: out.number, color: out.color, total: out.total, payout: out.payout, net: out.net, winners: out.winners };
+    res.redirect('/casino/roulette#table');
   });
 
   return router;

@@ -1,0 +1,154 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(Number(n)).toLocaleString('en-US'); %>
+<%
+  // The wheel, drawn once: 37 pockets clockwise from zero at the top.
+  const step = 360 / wheel.length;
+  const rad = (deg) => ((deg - 90) * Math.PI) / 180;
+  const pt = (r, deg) => `${(100 + r * Math.cos(rad(deg))).toFixed(2)} ${(100 + r * Math.sin(rad(deg))).toFixed(2)}`;
+  const wedge = (i) => {
+    const a = i * step - step / 2;
+    const b = a + step;
+    return `M${pt(95, a)} A95 95 0 0 1 ${pt(95, b)} L${pt(64, b)} A64 64 0 0 0 ${pt(64, a)} Z`;
+  };
+  const startAt = last ? -wheel.indexOf(last.number) * step : 0;
+  // An outside bet's button (opening tag): `area` is its grid-row / grid-column.
+  const outsideCell = (spot, area, { extra = '', label = '' } = {}) => `<button type="submit" class="rb__cell rb__cell--out${extra}" name="spot" value="${spot}" data-spot="${spot}" style="grid-area:${area}"${label ? ` aria-label="${label}"` : ''}>`;
+%>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/casino"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Casino</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Casino</p>
+      <h1 class="page-head__title">Roulette</h1>
+      <p class="page-head__sub">A European wheel with a single zero. Put chips on numbers or outside bets, then spin. Zero loses every outside bet.</p>
+    </div>
+  </div>
+
+  <div class="roulette-layout">
+    <section class="card roulette-wheel reveal" style="--i:1" aria-labelledby="wheel-title">
+      <h2 id="wheel-title" class="visually-hidden">The wheel</h2>
+      <div class="wheel">
+        <svg class="wheel__svg" viewBox="0 0 200 200" role="img" aria-label="<%= last ? `The ball landed on ${last.number} ${last.color}` : 'Roulette wheel' %>" data-wheel-svg>
+          <circle cx="100" cy="100" r="99" class="wheel__rim"/>
+          <g class="wheel__spin" data-wheel style="transform: rotate(<%= startAt %>deg)">
+            <% wheel.forEach(function (n, i) { %>
+              <path d="<%= wedge(i) %>" class="wheel__pocket wheel__pocket--<%= colorOf(n) %>"/>
+              <text class="wheel__num" x="100" y="15" transform="rotate(<%= (i * step).toFixed(3) %> 100 100)" text-anchor="middle"><%= n %></text>
+            <% }) %>
+            <circle cx="100" cy="100" r="64" class="wheel__bowl"/>
+            <% for (let i = 0; i < 8; i++) { %><line x1="100" y1="100" x2="<%= pt(54, i * 45).split(' ')[0] %>" y2="<%= pt(54, i * 45).split(' ')[1] %>" class="wheel__spoke"/><% } %>
+            <circle cx="100" cy="100" r="14" class="wheel__hub"/>
+          </g>
+          <path d="M93 0 L107 0 L100 9 Z" class="wheel__pointer"/>
+          <circle cx="100" cy="29" r="4" class="wheel__ball" data-wheel-ball <%- last ? '' : 'hidden' %>/>
+        </svg>
+        <div class="wheel__result<%= last ? ` wheel__result--${last.color}` : '' %>" data-wheel-result aria-live="polite">
+          <% if (last) { %><span class="wheel__big"><%= last.number %></span><span><%= last.color === 'green' ? 'Zero' : last.color === 'red' ? 'Red' : 'Black' %></span><% } else { %><span class="muted small">Place your bets</span><% } %>
+        </div>
+      </div>
+      <p class="roulette__outcome<%= last ? (last.payout > 0 ? ' is-win' : ' is-loss') : '' %>" data-roulette-outcome>
+        <% if (last) { %><%= last.payout > 0 ? `You win ${money(last.payout)} (${last.winners.map(function (w) { return w.name; }).join(', ')})` : `No luck: ${money(-last.total)}` %><% } %>
+      </p>
+      <% if (recent.length) { %>
+        <ol class="roulette-strip" aria-label="Your last numbers" data-roulette-strip>
+          <% recent.forEach(function (p) { %><li class="rnum rnum--<%= p.color %>"><%= p.result.number %></li><% }) %>
+        </ol>
+      <% } else { %>
+        <ol class="roulette-strip" aria-label="Your last numbers" data-roulette-strip></ol>
+      <% } %>
+    </section>
+
+    <section id="table" class="card roulette-table reveal" style="--i:1" aria-labelledby="table-title">
+      <h2 id="table-title" class="card__title">The table</h2>
+      <% if (blocker) { %>
+        <p class="notice notice--warn"><%= blocker %></p>
+      <% } else { %>
+        <form method="post" action="/casino/roulette/spin" class="roulette-form" data-roulette data-max="<%= limits.maxBet %>" data-min="<%= limits.minChip %>" data-max-spots="<%= limits.maxSpots %>">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="roulette-nojs" data-nojs>
+            <div class="slots__bet">
+              <label for="amount">Bet</label>
+              <span class="slots__bet-input">$<input id="amount" name="amount" type="number" inputmode="numeric" min="<%= limits.minChip %>" max="<%= limits.maxBet %>" step="1" value="<%= bet %>"></span>
+            </div>
+            <p class="muted small">Tap a place on the table to bet this much on it and spin.</p>
+          </div>
+
+          <div class="roulette-controls" data-js hidden>
+            <div class="slots__chips" role="radiogroup" aria-label="Chip value">
+              <% chips.forEach(function (c, i) { %><button type="button" class="bet-chip<%= c === 100 || (i === 0 && !chips.includes(100)) ? ' is-on' : '' %>" data-chip="<%= c %>" role="radio" aria-checked="<%= c === 100 || (i === 0 && !chips.includes(100)) ? 'true' : 'false' %>"><%= money(c) %></button><% }) %>
+            </div>
+            <p class="muted small">Pick a chip, then tap places on the table to add it. Tap Undo to take the last chip back.</p>
+          </div>
+
+          <div class="rb" role="group" aria-label="Roulette table">
+            <button type="submit" class="rb__cell rb__cell--green rb__zero" name="spot" value="0" data-spot="0">0</button>
+            <% rows.forEach(function (row, r) { %>
+              <% row.forEach(function (n, c) { %>
+                <button type="submit" class="rb__cell rb__cell--<%= colorOf(n) %>" name="spot" value="<%= n %>" data-spot="<%= n %>" style="grid-row:<%= r + 2 %>;grid-column:<%= c + 3 %>"><%= n %></button>
+              <% }) %>
+            <% }) %>
+            <% ['dozen1', 'dozen2', 'dozen3'].forEach(function (d, i) { %>
+              <%- outsideCell(d, `${2 + i * 4} / 1 / span 4 / span 1`) %><span class="rb__vert"><%= outside[d].label %></span></button>
+            <% }) %>
+            <% ['low', 'even', 'red', 'black', 'odd', 'high'].forEach(function (o, i) { %>
+              <%- outsideCell(o, `${2 + i * 2} / 2 / span 2 / span 1`, { extra: o === 'red' ? ' rb__cell--redbet' : o === 'black' ? ' rb__cell--blackbet' : '' }) %><span class="rb__vert"><%= outside[o].label %></span></button>
+            <% }) %>
+            <% ['col1', 'col2', 'col3'].forEach(function (col, i) { %>
+              <%- outsideCell(col, `14 / ${3 + i}`, { label: `Column ${i + 1}, pays 2 to 1` }) %>2:1</button>
+            <% }) %>
+          </div>
+
+          <div class="roulette-bar" data-js hidden>
+            <span>On the table: <strong data-roulette-total>$0</strong></span>
+            <button type="button" class="btn btn--ghost btn--sm" data-roulette-undo disabled>Undo</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-roulette-clear disabled>Clear</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-roulette-rebet disabled>Rebet</button>
+          </div>
+          <button type="button" class="btn btn--primary slots__spin" data-js data-roulette-spin hidden disabled>Spin</button>
+          <p class="muted small">Up to <%= money(limits.maxBet) %> on the table per spin, at least <%= money(limits.minChip) %> on each place. Bets come from your cash ($<span data-stat="cash"><%= player.cash.toLocaleString('en-US') %></span>).</p>
+        </form>
+      <% } %>
+    </section>
+  </div>
+
+  <div class="slots-lists">
+    <section class="card reveal" style="--i:2" aria-labelledby="pays-title">
+      <h2 id="pays-title" class="card__title">What pays</h2>
+      <ol class="paytable roulette-pays">
+        <li><span class="paytable__label">A single number (0–36)</span><span class="paytable__mult">35 to 1</span></li>
+        <li><span class="paytable__label">A dozen (1st, 2nd, 3rd 12) or a column (2:1)</span><span class="paytable__mult">2 to 1</span></li>
+        <li><span class="paytable__label">Red or Black, Odd or Even, 1–18 or 19–36</span><span class="paytable__mult">1 to 1</span></li>
+      </ol>
+      <p class="muted small">Winning bets get their stake back too. With one zero, every bet pays back 97.3% over time.</p>
+      <h3 class="theatre__sub">Your last 24 hours</h3>
+      <dl class="slots-today" data-slots-today>
+        <div><dt>Spins</dt><dd data-today="plays"><%= today.plays %></dd></div>
+        <div><dt>Bet</dt><dd data-today="wagered"><%= money(today.wagered) %></dd></div>
+        <div><dt>Won</dt><dd data-today="won"><%= money(today.won) %></dd></div>
+        <div><dt>Net</dt><dd data-today="net" class="<%= today.net > 0 ? 'is-up' : today.net < 0 ? 'is-down' : '' %>"><%= money(today.net) %></dd></div>
+      </dl>
+    </section>
+
+    <section class="card reveal" style="--i:2" aria-labelledby="big-title">
+      <h2 id="big-title" class="card__title">Big wins this week</h2>
+      <% if (bigWins.length) { %>
+        <ol class="slots-history">
+          <% bigWins.forEach(function (p) { %>
+            <li>
+              <span class="slots-bigwin__who"><%- include('partials/avatar', { url: avatarUrl(p.user_id, p.avatar_v), size: 'xs' }) %><a href="/profile/<%= encodeURIComponent(p.username) %>"><%= p.username %></a></span>
+              <span class="muted small"><span class="rnum rnum--sm rnum--<%= p.color %>"><%= p.result.number %></span> <%= money(p.bet) %> bet · <%= p.ago %></span>
+              <strong class="is-up">+<%= money(p.payout - p.bet) %></strong>
+            </li>
+          <% }) %>
+        </ol>
+      <% } else { %>
+        <p class="muted small">Nobody has won 20× their bet this week. A single number pays 35 to 1.</p>
+      <% } %>
+    </section>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

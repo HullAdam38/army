@@ -1013,4 +1013,156 @@
       });
     }
   }
+
+  // ---- Casino: roulette ----
+  // Without JavaScript each place on the table is a submit button: it bets the
+  // amount in the box on that place and spins. With it, taps add chips, and
+  // Spin sends them all at once while the wheel turns to the result.
+  const rForm = document.querySelector('[data-roulette]');
+  if (rForm) {
+    const wheelG = document.querySelector('[data-wheel]');
+    const ball = document.querySelector('[data-wheel-ball]');
+    const centre = document.querySelector('[data-wheel-result]');
+    const outcome = document.querySelector('[data-roulette-outcome]');
+    const strip = document.querySelector('[data-roulette-strip]');
+    const totalEl = rForm.querySelector('[data-roulette-total]');
+    const spinBtn = rForm.querySelector('[data-roulette-spin]');
+    const undoBtn = rForm.querySelector('[data-roulette-undo]');
+    const clearBtn = rForm.querySelector('[data-roulette-clear]');
+    const rebetBtn = rForm.querySelector('[data-roulette-rebet]');
+    const max = Number(rForm.dataset.max);
+    const maxSpots = Number(rForm.dataset.maxSpots);
+    const POCKETS = 37;
+    const step = 360 / POCKETS;
+    const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString('en-US');
+    const short = (n) => (n >= 1000 ? `${Math.round(n / 100) / 10}k` : String(n));
+    let rotation = Number((/rotate\((-?[\d.]+)deg\)/.exec(wheelG.getAttribute('style')) || [])[1] || 0);
+    let chip = Number((rForm.querySelector('.bet-chip.is-on') || {}).dataset?.chip || 100);
+    let bets = {};
+    let history = [];
+    let lastBets = null;
+    let busy = false;
+
+    rForm.querySelectorAll('[data-nojs]').forEach((el) => { el.hidden = true; });
+    rForm.querySelectorAll('[data-js]').forEach((el) => { el.hidden = false; });
+    // Each place's spoken name, kept before chips are added to it.
+    rForm.querySelectorAll('[data-spot]').forEach((cell) => { cell.dataset.label = cell.getAttribute('aria-label') || cell.textContent.trim(); });
+    const amountInput = rForm.querySelector('input[name="amount"]');
+    if (amountInput) amountInput.disabled = true; // the table sends its own bets
+
+    const total = () => Object.values(bets).reduce((a, b) => a + b, 0);
+    const say = (text, kind = '') => { outcome.className = `roulette__outcome${kind ? ` is-${kind}` : ''}`; outcome.textContent = text; };
+    function render() {
+      rForm.querySelectorAll('[data-spot]').forEach((cell) => {
+        const amt = bets[cell.dataset.spot];
+        let c = cell.querySelector('.rb__chip');
+        if (amt && !c) { c = document.createElement('span'); c.className = 'rb__chip'; c.setAttribute('aria-hidden', 'true'); cell.append(c); }
+        if (c) { if (amt) c.textContent = short(amt); else c.remove(); }
+        cell.setAttribute('aria-label', amt ? `${cell.dataset.label}: ${money(amt)} on it` : cell.dataset.label);
+      });
+      totalEl.textContent = money(total());
+      const any = total() > 0;
+      spinBtn.disabled = busy || !any;
+      undoBtn.disabled = busy || !history.length;
+      clearBtn.disabled = busy || !any;
+      rebetBtn.disabled = busy || !lastBets || any;
+    }
+
+    rForm.querySelectorAll('[data-chip]').forEach((btn) => btn.addEventListener('click', () => {
+      chip = Number(btn.dataset.chip);
+      rForm.querySelectorAll('[data-chip]').forEach((b) => { b.classList.toggle('is-on', b === btn); b.setAttribute('aria-checked', String(b === btn)); });
+    }));
+    rForm.querySelectorAll('[data-spot]').forEach((cell) => cell.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (busy) return;
+      const spot = cell.dataset.spot;
+      if (total() + chip > max) return say(`The table limit is ${money(max)} a spin.`, 'loss');
+      if (!bets[spot] && Object.keys(bets).length >= maxSpots) return say(`You can bet on up to ${maxSpots} places at once.`, 'loss');
+      bets[spot] = (bets[spot] || 0) + chip;
+      history.push({ spot, amount: chip });
+      rForm.querySelectorAll('.is-winner').forEach((c) => c.classList.remove('is-winner'));
+      say(`${money(total())} on the table.`);
+      render();
+    }));
+    undoBtn.addEventListener('click', () => {
+      const last = history.pop();
+      if (!last) return;
+      bets[last.spot] -= last.amount;
+      if (bets[last.spot] <= 0) delete bets[last.spot];
+      render();
+    });
+    clearBtn.addEventListener('click', () => { bets = {}; history = []; render(); });
+    rebetBtn.addEventListener('click', () => {
+      if (!lastBets) return;
+      bets = { ...lastBets };
+      history = Object.entries(bets).map(([spot, amount]) => ({ spot, amount }));
+      render();
+    });
+    // Enter in the page shouldn't submit the no-JS form.
+    rForm.addEventListener('submit', (e) => e.preventDefault());
+
+    spinBtn.addEventListener('click', async () => {
+      if (busy || !total()) return;
+      busy = true;
+      render();
+      say('No more bets…');
+      ball.setAttribute('hidden', '');
+      centre.className = 'wheel__result';
+      centre.innerHTML = '';
+      rForm.querySelectorAll('.is-winner').forEach((c) => c.classList.remove('is-winner'));
+      const body = new URLSearchParams({ _csrf: rForm.querySelector('input[name="_csrf"]').value });
+      for (const [spot, amount] of Object.entries(bets)) body.set(`b-${spot}`, String(amount));
+      let data;
+      try {
+        const res = await fetch(rForm.action, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        data = await res.json();
+      } catch {
+        data = { ok: false, error: 'Couldn’t reach the casino. Check your connection and try again.' };
+      }
+      if (!data.ok) {
+        busy = false;
+        say(data.error, 'loss');
+        render();
+        return;
+      }
+      // Turn forward at least four full turns, ending with the winning pocket under the pointer.
+      const target = -data.pocket * step;
+      const turns = Math.ceil((rotation + 360 * 4 - target) / 360);
+      rotation = target + 360 * turns;
+      wheelG.style.transform = `rotate(${rotation}deg)`;
+      setTimeout(() => {
+        ball.removeAttribute('hidden');
+        const colour = data.color === 'green' ? 'Zero' : data.color === 'red' ? 'Red' : 'Black';
+        centre.className = `wheel__result wheel__result--${data.color}`;
+        const big = document.createElement('span');
+        big.className = 'wheel__big';
+        big.textContent = data.number;
+        const name = document.createElement('span');
+        name.textContent = colour;
+        centre.append(big, name);
+        if (data.payout > 0) say(`${data.number} ${colour}: you win ${money(data.payout)} (${data.winners.map((w) => w.name).join(', ')})`, 'win');
+        else say(`${data.number} ${colour}: no luck, ${money(-data.total)}`, 'loss');
+        for (const w of data.winners) { const cell = rForm.querySelector(`[data-spot="${w.spot}"]`); if (cell) cell.classList.add('is-winner'); }
+        const li = document.createElement('li');
+        li.className = `rnum rnum--${data.color}`;
+        li.textContent = data.number;
+        strip.prepend(li);
+        while (strip.children.length > 12) strip.lastElementChild.remove();
+        if (data.player) renderPlayer(data.player);
+        const t = data.today;
+        if (t) {
+          const set = (k, v) => { const el = document.querySelector(`[data-today="${k}"]`); if (el) el.textContent = v; };
+          set('plays', t.plays.toLocaleString('en-US')); set('wagered', money(t.wagered)); set('won', money(t.won)); set('net', money(t.net));
+          const net = document.querySelector('[data-today="net"]');
+          if (net) net.className = t.net > 0 ? 'is-up' : t.net < 0 ? 'is-down' : '';
+        }
+        lastBets = { ...bets };
+        bets = {};
+        history = [];
+        busy = false;
+        render();
+      }, reduceMotion ? 0 : 3700);
+    });
+    render();
+  }
 })();

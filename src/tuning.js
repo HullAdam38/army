@@ -51,6 +51,7 @@ const SETTINGS = [
   { key: 'casinoOpen', group: 'casino', label: 'Casino open', type: 'bool', default: true, help: 'Turn off to close the casino for everyone (for example while you look into a problem). Bets already settled are kept.' },
   { key: 'casinoMinLevel', group: 'casino', label: 'Casino minimum level', type: 'int', unit: 'level', min: 1, max: 50, step: 1, default: 3, help: 'Players below this level can’t play casino games, so new players learn the game first.' },
   { key: 'slotsMaxBet', group: 'casino', label: 'Slot machine maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can bet on one spin. The slot machine pays back about 95% of bets over time, so it takes cash out of the game.' },
+  { key: 'rouletteMaxBet', group: 'casino', label: 'Roulette table limit', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can have on the table in one spin (all their bets added up). Roulette pays back 97.3% of bets over time.' },
 ];
 
 const GROUPS = [

@@ -150,3 +150,125 @@ test('casino lobby and slot machine through the app', async () => {
     server.close();
   }
 });
+
+test('roulette rules: the wheel, bets, payouts and the house edge', () => {
+  const roulette = require('../src/roulette');
+  assert.equal(roulette.WHEEL.length, 37);
+  assert.deepEqual([...roulette.WHEEL].sort((a, b) => a - b), Array.from({ length: 37 }, (_, i) => i), 'every number once');
+  assert.equal(roulette.RED.size, 18);
+  assert.deepEqual([roulette.colorOf(0), roulette.colorOf(1), roulette.colorOf(2), roulette.colorOf(36)], ['green', 'red', 'black', 'red']);
+  // Every bet on the table pays back 36/37.
+  for (const spot of ['0', '17', '36', 'red', 'black', 'odd', 'even', 'low', 'high', 'dozen1', 'dozen2', 'dozen3', 'col1', 'col2', 'col3']) {
+    assert.ok(Math.abs(roulette.returnToPlayer(spot) - 36 / 37) < 1e-12, spot);
+  }
+  // Settling: stakes come back with the winnings; zero loses outside bets.
+  assert.deepEqual(roulette.settle({ 17: 10, red: 100, dozen2: 50, col2: 20 }, 17), {
+    payout: 360 + 150 + 60,
+    winners: [{ spot: '17', name: '17', amount: 10, won: 360 }, { spot: 'dozen2', name: '2nd 12', amount: 50, won: 150 }, { spot: 'col2', name: 'Column 2', amount: 20, won: 60 }],
+  });
+  assert.equal(roulette.settle({ red: 100, black: 100, even: 50, low: 50, dozen1: 50, col3: 50 }, 0).payout, 0);
+  assert.equal(roulette.settle({ 0: 10 }, 0).payout, 360);
+  assert.equal(roulette.spin(() => 0).number, 0);
+  assert.deepEqual(roulette.spin(() => 8), { pocket: 8, number: 17, color: 'black' });
+
+  const limits = { cash: 1000, maxBet: 500 };
+  assert.match(roulette.checkBets({}, limits).error, /Place a bet/);
+  assert.match(roulette.checkBets({ 37: 10 }, limits).error, /isn’t a place/);
+  assert.match(roulette.checkBets({ __proto__: 10 }, limits).error, /Place a bet/);
+  assert.match(roulette.checkBets(Object.fromEntries([['__proto__', 10]]), limits).error, /isn’t a place/);
+  assert.match(roulette.checkBets({ red: 5 }, limits).error, /least you can put on one place is \$10/);
+  assert.match(roulette.checkBets({ red: 300, black: 300 }, limits).error, /table limit is \$500/);
+  assert.match(roulette.checkBets({ red: 300 }, { cash: 100, maxBet: 500 }).error, /only have \$100 in cash/);
+  assert.match(roulette.checkBets({ red: 1.5 }, limits).error, /whole dollars/);
+  assert.deepEqual({ ...roulette.checkBets({ red: '100', 7: 20, black: '' }, limits) }, { bets: Object.assign(Object.create(null), { red: 100, 7: 20 }), total: 120 });
+});
+
+test('roulette through the app', async () => {
+  const db = openDatabase(':memory:');
+  const app = createApp({ db, secret: 'test-secret', tutorial: false });
+  const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const jar = new Map();
+  const request = async (p, { method = 'GET', form, json = false } = {}) => {
+    const res = await fetch(base + p, {
+      method, redirect: 'manual',
+      headers: { ...(jar.size ? { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; ') } : {}), ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}), ...(json ? { accept: 'application/json' } : {}) },
+      body: form ? new URLSearchParams(form) : undefined,
+    });
+    for (const ck of res.headers.getSetCookie()) { const [pair] = ck.split(';'); const i = pair.indexOf('='); jar.set(pair.slice(0, i), pair.slice(i + 1)); }
+    return { res, text: await res.text(), location: res.headers.get('location') };
+  };
+  const csrf = async (from) => (await request(from)).text.match(/name="_csrf" value="([^"]+)"/)[1];
+  const spin = async (fields, { json = true } = {}) => {
+    const r = await request('/casino/roulette/spin', { method: 'POST', form: { _csrf: await csrf('/casino/roulette'), ...fields }, json });
+    return json ? { status: r.res.status, ...JSON.parse(r.text) } : r;
+  };
+  try {
+    await request('/register', { method: 'POST', form: { _csrf: await csrf('/login'), username: 'Wheel', email: 'wheel@x.com', password: 'password123', confirm: 'password123', adult: 'on', terms: 'on' } });
+    const id = db.prepare("SELECT id FROM users WHERE username = 'Wheel'").get().id;
+    const cash = () => db.prepare('SELECT cash FROM users WHERE id = ?').get(id).cash;
+    const topUp = 2000 - cash();
+    db.prepare('UPDATE users SET level = 5, cash = 2000 WHERE id = ?').run(id);
+    db.prepare("INSERT INTO ledger (user_id, delta_cash, delta_bank, reason, created_at) VALUES (?, ?, 0, 'test', 0)").run(id, topUp);
+    const age = () => db.prepare('UPDATE casino_plays SET created_at = created_at - 5000').run();
+
+    // The lobby lists it; the page has the wheel and the whole table.
+    assert.match((await request('/casino')).text, /href="\/casino\/roulette"/);
+    const page = (await request('/casino/roulette')).text;
+    assert.match(page, /data-wheel/);
+    for (const spot of ['0', '17', '36', 'red', 'black', 'odd', 'even', 'low', 'high', 'dozen1', 'dozen3', 'col1', 'col3']) assert.ok(page.includes(`data-spot="${spot}"`), spot);
+    assert.match(page, /every bet pays back 97\.3%/);
+
+    // Several bets at once (JavaScript table): cash moves by the net result.
+    let s = await spin({ 'b-red': '100', 'b-17': '20', 'b-dozen2': '50' });
+    assert.equal(s.ok, true);
+    assert.equal(s.total, 170);
+    const expected = require('../src/roulette').settle({ red: 100, 17: 20, dozen2: 50 }, s.number).payout;
+    assert.equal(s.payout, expected);
+    assert.equal(cash(), 2000 + s.payout - 170);
+    assert.equal(s.player.cash, cash());
+    assert.equal(s.today.plays, 1);
+    if (s.net) assert.equal(db.prepare("SELECT delta_cash FROM ledger WHERE user_id = ? AND reason = 'casino-roulette'").get(id).delta_cash, s.net);
+    assert.match((await spin({ 'b-red': '100' })).error, /still turning/);
+
+    // Bad bets cost nothing.
+    age();
+    const c0 = cash();
+    assert.match((await spin({ 'b-red': '5' })).error, /least you can put/);
+    assert.match((await spin({ 'b-49': '50' })).error, /isn’t a place/);
+    assert.match((await spin({ 'b-__proto__': '50' })).error, /isn’t a place/);
+    assert.match((await spin({})).error, /Place a bet/);
+    assert.match((await spin({ 'b-red': String(c0 + 100) })).error, /table limit|only have/);
+    assert.equal(cash(), c0);
+
+    // Without JavaScript: one place, the amount in the box, and the result on the page once.
+    const r = await spin({ spot: 'black', amount: '50' }, { json: false });
+    assert.equal(r.location, '/casino/roulette#table');
+    const after = (await request('/casino/roulette')).text;
+    assert.match(after, /class="roulette__outcome is-(win|loss)"/);
+    assert.match(after, /class="rnum rnum--(red|black|green)"/);
+    assert.match(after, /value="50"/, 'the amount is remembered');
+
+    // A straight-up hit (forced wheel) pays 35 to 1 and makes the big wins board.
+    age();
+    const before = cash();
+    const hit = app.players.transaction(() => app.casino.spinRoulette({ userId: id, bets: { 17: 20, red: 30 }, randomInt: () => 8 }));
+    assert.equal(hit.number, 17, '17 is black, so the Red bet loses');
+    assert.equal(hit.payout, 720);
+    assert.equal(cash(), before + 670);
+    assert.doesNotMatch((await request('/casino/roulette')).text, /Big wins this week[\s\S]*Wheel/, '14.4× the total bet is not a big win');
+    age();
+    const lone = app.players.transaction(() => app.casino.spinRoulette({ userId: id, bets: { 0: 10 }, randomInt: () => 0 }));
+    assert.equal(lone.payout, 360);
+    assert.match((await request('/casino/roulette')).text, /Big wins this week[\s\S]*Wheel/);
+    assert.equal(app.anti.runScan().newFlags, 0, 'the money adds up');
+
+    // The table limit is an admin setting.
+    age();
+    tuning.set({ rouletteMaxBet: 100 });
+    assert.match((await spin({ 'b-red': '60', 'b-black': '60' })).error, /table limit is \$100/);
+  } finally {
+    tuning.reset();
+    server.close();
+  }
+});

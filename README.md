@@ -769,6 +769,18 @@ The **Casino** (`/casino`, in the main menu and under More on phones) is a lobby
 - Admins: **Game settings › Casino** has *Casino open*, *Casino minimum level* (default 3) and *Slot machine maximum bet*. Admin › Economy shows the casino's take under `casino-slots`.
 - Rules and maths: `src/slots.js`. Bets and history: `src/casino-service.js`. Adding a game: add it to `GAMES` in `src/routes/casino.js`.
 
+
+### Roulette
+
+`/casino/roulette`: a European wheel (one zero, 37 pockets) and a full table.
+
+- **Bets:** single numbers 0–36 pay 35 to 1; dozens and columns pay 2 to 1; Red/Black, Odd/Even, 1–18/19–36 pay 1 to 1. Winning bets get their stake back too, and zero loses every outside bet. Every bet pays back exactly 36/37 = **97.3%** over time.
+- **Playing:** pick a chip ($10 to $5,000), tap places on the table to stack chips (up to 20 places, at least $10 on each), then Spin. Undo, Clear and Rebet (the last spin's bets) help. The wheel turns and stops with the winning pocket under the pointer; winning places light up and your last 12 numbers show under the wheel.
+- **Without JavaScript:** type an amount and tap a place on the table: it bets that much there and spins.
+- The wheel is spun on the server with a cryptographic RNG; the animation only shows the result. Each spin is one ledger entry (`casino-roulette`) with the net result.
+- Admins: **Game settings › Casino › Roulette table limit** (default $10,000 in total per spin). The casino's open switch and minimum level apply too.
+- Rules: `src/roulette.js`. Spins: `spinRoulette` in `src/casino-service.js`.
+
 ## Help & support
 
 Players open tickets with HQ Support at `/support` (in the phone menu under More, and in every page footer).
