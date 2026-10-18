@@ -42,6 +42,13 @@ function createTheatreService(db, players, unitRepo) {
     results: db.prepare('SELECT * FROM theatre_results WHERE week = (SELECT MAX(week) FROM theatre_results)'),
     paid: db.prepare('INSERT OR IGNORE INTO theatre_income (day, region, unit_id, amount) VALUES (?, ?, ?, ?)'),
     members: db.prepare('SELECT COUNT(*) AS n FROM users WHERE unit_id = ? AND banned_at IS NULL'),
+    // Admin tools.
+    release: db.prepare('DELETE FROM theatre_regions WHERE region = ?'),
+    history: db.prepare('SELECT * FROM theatre_results WHERE week >= ? ORDER BY week DESC, region'),
+    frontsFull: db.prepare(`SELECT f.unit_id, f.region, f.set_at, u.name, u.tag FROM theatre_fronts f JOIN units u ON u.id = f.unit_id
+                            WHERE f.week = ? ORDER BY f.region, u.name`),
+    wipeScores: db.prepare('DELETE FROM theatre_scores WHERE week = ? AND unit_id = ?'),
+    wipeContrib: db.prepare('DELETE FROM theatre_contrib WHERE week = ? AND unit_id = ?'),
   };
 
   const tell = (unitId, message, link = '/theatre') => {
@@ -180,6 +187,66 @@ function createTheatreService(db, players, unitRepo) {
         income: held.reduce((n, r) => n + incomeOf(r), 0),
         xpPct: Math.round(theatre.xpBonus(held.map((r) => r.id)) * 100),
       };
+    },
+
+    /** Everything Admin › Raids & map shows about the theatre. */
+    adminView(now = Date.now()) {
+      const week = theatre.weekKey(now);
+      const holders = holderMap();
+      const standings = stmts.standings.all(week);
+      const fronts = stmts.frontsFull.all(week);
+      return {
+        week,
+        endsAt: Date.parse(`${week}T00:00:00Z`) + theatre.WEEK_MS,
+        regions: theatre.REGIONS.map((r) => {
+          const holder = holders.get(r.id) || null;
+          return {
+            ...r,
+            income: incomeOf(r),
+            holder,
+            fronts: fronts.filter((f) => f.region === r.id),
+            standings: standings.filter((s) => s.region === r.id)
+              .map((s) => ({ ...s, effective: theatre.effectivePoints(s.points, Boolean(holder && holder.unit_id === s.unit_id)) }))
+              .sort((a, b) => b.effective - a.effective).slice(0, 5),
+          };
+        }),
+        // Units with points this week, for wiping a cheating unit's score.
+        scorers: [...new Map(standings.map((s) => [s.unit_id, { unitId: s.unit_id, name: s.name, tag: s.tag, points: standings.filter((x) => x.unit_id === s.unit_id).reduce((n, x) => n + x.points, 0) }])).values()],
+        history: stmts.history.all(theatre.weekKey(now - 8 * theatre.WEEK_MS))
+          .map((h) => ({ ...h, region: theatre.REGIONS_BY_ID.get(h.region) })).filter((h) => h.region),
+      };
+    },
+
+    /**
+     * Admin: hands a region to `unit` (or frees it when null). The units involved
+     * are told. Returns { region, from } or { error }.
+     */
+    setHolder(regionId, unit, now = Date.now()) {
+      const region = theatre.REGIONS_BY_ID.get(String(regionId || ''));
+      if (!region) return { error: 'That region doesn’t exist.' };
+      const from = holderMap().get(region.id) || null;
+      if ((from ? from.unit_id : null) === (unit ? unit.id : null)) return { error: unit ? `[${unit.tag}] already holds ${region.name}.` : `${region.name} is already unheld.` };
+      if (unit) stmts.hold.run(region.id, unit.id, now);
+      else stmts.release.run(region.id);
+      if (from) {
+        unitRepo.log(from.unit_id, 'theatre', `HQ took ${region.name} from the unit.`, now);
+        tell(from.unit_id, `HQ has taken ${region.name} from [${from.tag}].`);
+      }
+      if (unit) {
+        unitRepo.log(unit.id, 'theatre', `HQ handed ${region.name} to the unit.`, now);
+        tell(unit.id, `HQ has handed ${region.name} to [${unit.tag}]. It pays ${money(incomeOf(region))} a day into the treasury.`);
+      }
+      return { region, from };
+    },
+
+    /** Admin: wipes a unit's theatre points for the current week (its front stays). Returns the points removed. */
+    wipePoints(unitId, now = Date.now()) {
+      const week = theatre.weekKey(now);
+      const points = stmts.unitPoints.get(week, unitId).points;
+      stmts.wipeScores.run(week, unitId);
+      stmts.wipeContrib.run(week, unitId);
+      if (points) unitRepo.log(unitId, 'theatre', `HQ removed the unit’s ${points.toLocaleString('en-US')} theatre points for this week.`, now);
+      return points;
     },
 
     /** Settles weeks that have ended. */

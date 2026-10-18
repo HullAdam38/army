@@ -548,7 +548,7 @@ const SCHEMA = `
     max_hp       INTEGER NOT NULL,
     cash_pool    INTEGER NOT NULL,
     xp_pool      INTEGER NOT NULL,
-    status       TEXT    NOT NULL DEFAULT 'active', -- active, won, failed
+    status       TEXT    NOT NULL DEFAULT 'active', -- active, won, failed, cancelled (by HQ)
     launched_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
     started_at   INTEGER NOT NULL,
     ends_at      INTEGER NOT NULL,
@@ -762,6 +762,7 @@ const ADDED_COLUMNS = [
   ['users', 'app_seen_at', 'INTEGER'], // last time they played in the installed app
   ['units', 'rally_until', 'INTEGER'], // an "Advance!" rally order is active until then
   ['units', 'rally_at', 'INTEGER'], // when the last rally was called (for the cooldown)
+  ['raids', 'supply_cost', 'INTEGER'], // what the unit paid, so HQ can refund a cancelled raid
 ];
 
 function migrate(db) {

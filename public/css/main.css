@@ -3418,3 +3418,12 @@ section[id], li[id] { scroll-margin-top: 190px; }
 @media (max-width: 560px) {
   .unit-theatre .unit-rally__action .btn { width: 100%; }
 }
+
+/* Admin › Raids & map */
+.page-admin #raids, .page-admin #map { margin-bottom: 28px; }
+.page-admin #raids .unit-raid__meter { margin: 4px 0 10px; }
+.admin-teamwork__list { list-style: none; display: grid; gap: 8px; margin-bottom: 20px; }
+.admin-teamwork__list li { min-width: 0; overflow-wrap: anywhere; }
+.admin-teamwork__status.is-won { color: var(--health); }
+.admin-teamwork__status.is-failed, .admin-teamwork__status.is-cancelled { color: var(--text-muted); }
+.admin-teamwork__scorer { display: grid; gap: 4px; }

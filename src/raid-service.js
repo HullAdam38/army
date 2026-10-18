@@ -17,8 +17,8 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
     active: db.prepare("SELECT * FROM raids WHERE unit_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"),
     byId: db.prepare('SELECT * FROM raids WHERE id = ?'),
     recent: db.prepare("SELECT * FROM raids WHERE unit_id = ? AND status != 'active' ORDER BY id DESC LIMIT ?"),
-    insert: db.prepare(`INSERT INTO raids (unit_id, stronghold, hp, max_hp, cash_pool, xp_pool, launched_by, started_at, ends_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`),
+    insert: db.prepare(`INSERT INTO raids (unit_id, stronghold, hp, max_hp, cash_pool, xp_pool, launched_by, started_at, ends_at, supply_cost)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
     // The stronghold only loses what it has left, so it can't go below zero.
     damage: db.prepare("UPDATE raids SET hp = MAX(0, hp - ?) WHERE id = ? AND status = 'active'"),
     hit: db.prepare(`INSERT INTO raid_hits (raid_id, user_id, damage, strikes, last_at) VALUES (?, ?, ?, 1, ?)
@@ -33,6 +33,16 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
     overdue: db.prepare("SELECT * FROM raids WHERE status = 'active' AND ends_at <= ?"),
     endingSoon: db.prepare("SELECT * FROM raids WHERE status = 'active' AND reminded_at IS NULL AND ends_at > ?1 AND ends_at <= ?2"),
     members: db.prepare('SELECT COUNT(*) AS n, AVG(level) AS level FROM users WHERE unit_id = ? AND banned_at IS NULL'),
+    // Admin tools.
+    adminActive: db.prepare(`SELECT r.*, u.name AS unit_name, u.tag AS unit_tag, l.username AS launcher,
+                                    (SELECT COUNT(*) FROM raid_hits h WHERE h.raid_id = r.id) AS strikers
+                             FROM raids r JOIN units u ON u.id = r.unit_id LEFT JOIN users l ON l.id = r.launched_by
+                             WHERE r.status = 'active' ORDER BY r.ends_at`),
+    adminRecent: db.prepare(`SELECT r.*, u.name AS unit_name, u.tag AS unit_tag,
+                                    (SELECT COUNT(*) FROM raid_hits h WHERE h.raid_id = r.id) AS strikers
+                             FROM raids r JOIN units u ON u.id = r.unit_id
+                             WHERE r.status != 'active' ORDER BY r.finished_at DESC LIMIT ?`),
+    extend: db.prepare("UPDATE raids SET ends_at = ends_at + ?, reminded_at = NULL WHERE id = ? AND status = 'active'"),
   };
 
   const strongholdOf = (raid) => raids.STRONGHOLDS_BY_ID.get(raid.stronghold);
@@ -94,7 +104,7 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
       if (size.avgLevel < s.minLevel) return { error: `The ${s.name} needs a unit average of level ${s.minLevel}.` };
       const p = raids.plan(s, size);
       if (!unitRepo.spendTreasury(unit.id, p.cost)) return { error: `Supplies for this raid cost ${money(p.cost)} from the treasury, which has ${money(unit.treasury)}.` };
-      const id = Number(stmts.insert.run(unit.id, s.id, p.hp, p.hp, p.cash, p.xp, me.id, now, now + raids.DURATION_MS).lastInsertRowid);
+      const id = Number(stmts.insert.run(unit.id, s.id, p.hp, p.hp, p.cash, p.xp, me.id, now, now + raids.DURATION_MS, p.cost).lastInsertRowid);
       unitRepo.log(unit.id, 'raid', `${me.username} launched a raid on the ${s.name} (${money(p.cost)} in supplies). 48 hours on the clock.`, now);
       tell(unit.id, `${units.roleLabel(role)} ${me.username} launched a raid on the ${s.name}! Strike it together within 48 hours to share ${money(p.cash)} in loot.`, `/units/${unit.id}#raid`, me.id);
       return { raid: stmts.byId.get(id), stronghold: s, plan: p };
@@ -159,6 +169,40 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
           blocker: raid.ends_at <= now ? 'The raid has run out of time' : raids.strikeBlocker(p, now),
         },
       };
+    },
+
+    /** Active raids and recent results, for Admin › Raids & map. */
+    adminView(limit = 20) {
+      const shape = (r) => ({ ...r, name: strongholdOf(r).name, pct: Math.round((r.hp / r.max_hp) * 100) });
+      return { active: stmts.adminActive.all().map(shape), recent: stmts.adminRecent.all(limit).map(shape) };
+    },
+
+    /**
+     * Admin: calls off an active raid with no loot. With `refund`, the supplies
+     * go back to the treasury. Members are told. Returns { raid, refunded } or { error }.
+     */
+    cancel(raidId, { refund = false, reason, now = Date.now() } = {}) {
+      const raid = stmts.byId.get(raidId);
+      if (!raid || !stmts.settle.run('cancelled', now, raid.id).changes) return { error: 'That raid isn’t under way any more.' };
+      const refunded = refund && raid.supply_cost ? raid.supply_cost : 0;
+      if (refunded) unitRepo.addTreasury(raid.unit_id, refunded);
+      const s = strongholdOf(raid);
+      const unit = unitRepo.findById(raid.unit_id);
+      unitRepo.log(raid.unit_id, 'raid', `HQ called off the raid on the ${s.name}: ${reason}${refunded ? ` (${money(refunded)} in supplies refunded)` : ''}.`, now);
+      if (unit) tell(unit.id, `HQ called off [${unit.tag}]'s raid on the ${s.name}: ${reason}.${refunded ? ` The ${money(refunded)} in supplies went back to the treasury.` : ''}`, `/units/${unit.id}#raid`);
+      return { raid: stmts.byId.get(raid.id), refunded, stronghold: s };
+    },
+
+    /** Admin: gives an active raid more time (1–48 hours). Returns { raid } or { error }. */
+    extend(raidId, hours, { reason, now = Date.now() } = {}) {
+      const h = Number(hours);
+      if (!Number.isInteger(h) || h < 1 || h > 48) return { error: 'Add between 1 and 48 hours.' };
+      const raid = stmts.byId.get(raidId);
+      if (!raid || !stmts.extend.run(h * 3_600_000, raid.id).changes) return { error: 'That raid isn’t under way any more.' };
+      const s = strongholdOf(raid);
+      unitRepo.log(raid.unit_id, 'raid', `HQ gave the raid on the ${s.name} ${h} more hour${h === 1 ? '' : 's'}: ${reason}.`, now);
+      tell(raid.unit_id, `HQ gave your raid on the ${s.name} ${h} more hour${h === 1 ? '' : 's'}.`, `/units/${raid.unit_id}#raid`);
+      return { raid: stmts.byId.get(raid.id), stronghold: s };
     },
 
     recent: (unitId, limit = 5) => stmts.recent.all(unitId, limit).map((r) => ({ ...r, name: strongholdOf(r).name })),

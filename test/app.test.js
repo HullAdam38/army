@@ -362,6 +362,8 @@ test('notifications: welcome, attack alerts, polling, read state, unlocks and th
   // Alpha attacks Bravo; Bravo is told even though they weren't looking.
   const set = (sql, ...args) => server.db.prepare(sql).run(...args);
   set('UPDATE users SET level = 5, max_health = 140, health = 140, cash = 1000');
+  // Pin today's high-value target to Alpha (without its alert), so the day's random pick can't add one for Bravo.
+  set("INSERT OR REPLACE INTO daily_targets (day, user_id, created_at) SELECT ?, id, ? FROM users WHERE username = 'Alpha'", require('../src/target').dayKey(Date.now()), Date.now());
   set("UPDATE users SET health = 1 WHERE username = 'Bravo'");
   const token = await alpha.csrf('/hq');
   await alpha.request('/attack/Bravo', { method: 'POST', form: { _csrf: token } });

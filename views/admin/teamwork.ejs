@@ -1,0 +1,145 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+<% const num = (n) => Number(n).toLocaleString('en-US'); %>
+<% const date = (ms) => new Date(ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC'; %>
+<% const day = (key) => new Date(`${key}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }); %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'teamwork' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Raids &amp; map</h1>
+      <p class="page-head__sub">Fix problems with unit raids and the theatre of war. Every change needs a reason, goes in the audit log and is shown to the unit.</p>
+    </div>
+  </div>
+
+  <section id="raids" aria-labelledby="raids-title">
+    <h2 id="raids-title" class="section-title">Raids under way (<%= raids.active.length %>)</h2>
+    <% if (raids.active.length) { %>
+      <ol class="admin-units">
+        <% raids.active.forEach(function (r) { %>
+          <li class="card admin-unit" id="raid-<%= r.id %>">
+            <div class="admin-unit__head">
+              <a class="admin-unit__name" href="/units/<%= r.unit_id %>#raid"><span class="unit-tag">[<%= r.unit_tag %>]</span> <%= r.unit_name %></a>
+              <span class="muted"><%= r.name %> · launched by <%= r.launcher || '—' %> on <%= date(r.started_at) %></span>
+            </div>
+            <span class="meter meter--lg unit-raid__meter" role="progressbar" aria-label="Stronghold health" aria-valuemin="0" aria-valuemax="<%= r.max_hp %>" aria-valuenow="<%= r.hp %>"><span class="meter__fill" style="width:<%= r.pct %>%"></span></span>
+            <dl class="admin-unit__stats">
+              <div><dt>Health left</dt><dd><%= r.pct %>% <span class="muted">(<%= num(r.hp) %>)</span></dd></div>
+              <div><dt>Strikers</dt><dd><%= r.strikers %></dd></div>
+              <div><dt>Ends</dt><dd><% if (r.ends_at > now) { %>in <span data-until="<%= r.ends_at %>"><%= date(r.ends_at) %></span><% } else { %>now (settling)<% } %></dd></div>
+              <div><dt>Loot</dt><dd><%= money(r.cash_pool) %> + <%= num(r.xp_pool) %> XP</dd></div>
+              <div><dt>Supplies paid</dt><dd><%= r.supply_cost == null ? 'not recorded' : money(r.supply_cost) %></dd></div>
+            </dl>
+            <details class="admin-unit__edit">
+              <summary>Give more time</summary>
+              <form method="post" action="/admin/raids/<%= r.id %>/extend" class="form admin-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="field-row">
+                  <div class="field"><label for="hours-<%= r.id %>">Extra hours (1–48)</label><input id="hours-<%= r.id %>" name="hours" type="number" min="1" max="48" step="1" value="12" required></div>
+                  <div class="field"><label for="ext-why-<%= r.id %>">Reason (shown in the unit log)</label><input id="ext-why-<%= r.id %>" name="reason" maxlength="200" placeholder="Server outage on Saturday" required></div>
+                </div>
+                <button class="btn btn--primary btn--sm" type="submit">Add time</button>
+              </form>
+            </details>
+            <details class="admin-unit__edit">
+              <summary>Call off this raid</summary>
+              <form method="post" action="/admin/raids/<%= r.id %>/cancel" class="form admin-form" data-confirm="Call off this raid? Nobody gets any loot.">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="field"><label for="can-why-<%= r.id %>">Reason (shown to the unit)</label><input id="can-why-<%= r.id %>" name="reason" maxlength="200" placeholder="Alt accounts used to strike" required></div>
+                <% if (r.supply_cost) { %>
+                  <label class="check"><input type="checkbox" name="refund" checked> Refund the <%= money(r.supply_cost) %> supplies to the treasury</label>
+                <% } %>
+                <button class="btn btn--danger btn--sm" type="submit">Call off raid</button>
+              </form>
+            </details>
+          </li>
+        <% }) %>
+      </ol>
+    <% } else { %>
+      <p class="card muted">No raids are under way.</p>
+    <% } %>
+
+    <% if (raids.recent.length) { %>
+      <h3 class="section-title">Recent raids</h3>
+      <ul class="card admin-teamwork__list">
+        <% raids.recent.forEach(function (r) { %>
+          <li>
+            <a href="/units/<%= r.unit_id %>">[<%= r.unit_tag %>]</a> <%= r.name %>:
+            <strong class="admin-teamwork__status is-<%= r.status %>"><%= { won: 'taken', failed: 'ran out of time', cancelled: 'called off by HQ' }[r.status] %></strong>
+            <span class="muted">· <%= r.strikers %> striker<%= r.strikers === 1 ? '' : 's' %> · <%= r.pct %>% health left · <%= date(r.finished_at) %></span>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+
+  <section id="map" aria-labelledby="map-title">
+    <h2 id="map-title" class="section-title">Theatre of war <span class="muted small">· week of <%= day(map.week) %>, ends in <span data-until="<%= map.endsAt %>">a few days</span></span></h2>
+    <ol class="admin-units">
+      <% map.regions.forEach(function (r) { %>
+        <li class="card admin-unit" id="region-<%= r.id %>">
+          <div class="admin-unit__head">
+            <span class="admin-unit__name"><%= r.name %></span>
+            <span class="muted"><% if (r.holder) { %>Held by <a href="/units/<%= r.holder.unit_id %>">[<%= r.holder.tag %>] <%= r.holder.name %></a> since <%= date(r.holder.held_since) %><% } else { %>Unheld<% } %> · <%= money(r.income) %> a day<%= r.xp ? ` · +${Math.round(r.xp * 100)}% XP` : '' %></span>
+          </div>
+          <p class="small"><span class="muted">Fronts this week:</span> <%= r.fronts.length ? r.fronts.map(function (f) { return `[${f.tag}]`; }).join(', ') : 'none' %></p>
+          <% if (r.standings.length) { %>
+            <ol class="theatre-card__standings">
+              <% r.standings.forEach(function (s, i) { %>
+                <li><span class="theatre-card__pos"><%= i + 1 %></span><a href="/units/<%= s.unit_id %>">[<%= s.tag %>] <%= s.name %></a><span class="theatre-card__pts"><%= num(s.effective) %><%= s.effective !== s.points ? '*' : '' %></span></li>
+              <% }) %>
+            </ol>
+          <% } %>
+          <details class="admin-unit__edit">
+            <summary>Change who holds it</summary>
+            <form method="post" action="/admin/theatre/<%= r.id %>/holder" class="form admin-form">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field-row">
+                <div class="field"><label for="tag-<%= r.id %>">Unit tag (leave empty to free it)</label><input id="tag-<%= r.id %>" name="tag" maxlength="6" placeholder="IW" autocomplete="off"></div>
+                <div class="field"><label for="hold-why-<%= r.id %>">Reason (audit log)</label><input id="hold-why-<%= r.id %>" name="reason" maxlength="200" placeholder="Won with points from alt accounts" required></div>
+              </div>
+              <button class="btn btn--primary btn--sm" type="submit">Change holder</button>
+            </form>
+          </details>
+        </li>
+      <% }) %>
+    </ol>
+    <p class="muted small">* includes the holder’s home bonus.</p>
+
+    <h3 class="section-title">Points this week</h3>
+    <% if (map.scorers.length) { %>
+      <ul class="card admin-teamwork__list">
+        <% map.scorers.forEach(function (s) { %>
+          <li class="admin-teamwork__scorer">
+            <span><a href="/units/<%= s.unitId %>">[<%= s.tag %>] <%= s.name %></a> <span class="muted">· <%= num(s.points) %> points</span></span>
+            <details class="admin-unit__edit">
+              <summary>Wipe this week’s points</summary>
+              <form method="post" action="/admin/theatre/units/<%= s.unitId %>/wipe" class="form admin-form" data-confirm="Remove all of this unit's points for the week?">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="field"><label for="wipe-why-<%= s.unitId %>">Reason (audit log)</label><input id="wipe-why-<%= s.unitId %>" name="reason" maxlength="200" placeholder="Points farmed with alt accounts" required></div>
+                <button class="btn btn--danger btn--sm" type="submit">Wipe points</button>
+              </form>
+            </details>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="card muted">No unit has scored this week yet.</p>
+    <% } %>
+
+    <h3 class="section-title">Who held what (last 8 weeks)</h3>
+    <% if (map.history.length) { %>
+      <ul class="card admin-teamwork__list">
+        <% map.history.forEach(function (h) { %>
+          <li><span class="muted">Week of <%= day(h.week) %>:</span> <strong><%= h.region.name %></strong> <%= h.from_unit === h.to_unit ? `held by ${h.to_name}` : h.from_name ? `${h.to_name} took it from ${h.from_name}` : `taken by ${h.to_name}` %> <span class="muted">(<%= num(h.points) %> points)</span></li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="card muted">No weeks have ended yet. HQ changes are in the <a href="/admin/audit">audit log</a>.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

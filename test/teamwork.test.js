@@ -312,3 +312,77 @@ test('theatre maths: deciding a region', () => {
   assert.equal(theatre.decide([{ unit_id: 1, points: 10 }, { unit_id: 2, points: 13 }], 1), 2);
   assert.equal(theatre.xpBonus(theatre.REGIONS.map((r) => r.id)), theatre.MAX_XP_BONUS);
 });
+
+test('admin raids & map: extend and call off raids, hand over regions, wipe points', async () => {
+  const { db, app, server, c, unitId, join, U } = await setup();
+  const raid = () => db.prepare('SELECT * FROM raids WHERE unit_id = ? ORDER BY id DESC').get(unitId);
+  const treasury = () => db.prepare('SELECT treasury FROM units WHERE id = ?').get(unitId).treasury;
+  const lastNote = (id) => db.prepare("SELECT message FROM notifications WHERE user_id = ? AND kind = 'unit' ORDER BY id DESC").get(id).message;
+  const audit = () => ({ ...db.prepare('SELECT action, details FROM admin_actions ORDER BY id DESC').get() });
+  try {
+    const hq = await join('HQBoss');
+    db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(hq.id);
+    const A = '/admin/teamwork';
+    assert.equal((await c.cmd.request(A)).res.status, 404, 'admins only');
+
+    await c.lt.act(`${U}/raid`, { stronghold: 'outpost' }, U);
+    await c.pvt.act(`${U}/raid/strike`, {}, U);
+    const cost = raid().supply_cost;
+    assert.ok(cost > 0, 'supplies are recorded');
+    let page = (await hq.request(A)).text;
+    assert.match(page, /Raids under way \(1\)/);
+    assert.match(page, /Insurgent Outpost · launched by Lieut/);
+    assert.match(page, /class="admin-nav__link" href="\/admin\/teamwork" aria-current="page"/);
+
+    // More time: needs a reason and 1–48 hours.
+    const R = `/admin/raids/${raid().id}`;
+    assert.match((await hq.act(`${R}/extend`, { hours: '12', reason: '' }, A)).message, /Give a reason/);
+    assert.match((await hq.act(`${R}/extend`, { hours: '99', reason: 'Outage' }, A)).message, /between 1 and 48/);
+    const ends = raid().ends_at;
+    assert.match((await hq.act(`${R}/extend`, { hours: '12', reason: 'Outage' }, A)).message, /Gave \[IW\] Iron Wolves(?:'|&#39;)s raid on the Insurgent Outpost 12 more hours/);
+    assert.equal(raid().ends_at, ends + 12 * 3_600_000);
+    assert.match(lastNote(c.pvt.id), /12 more hours/);
+    assert.deepEqual(audit(), { action: 'raid-extend', details: "Gave [IW] Iron Wolves's raid on the Insurgent Outpost 12 more hours. Reason: Outage" });
+
+    // Calling it off: no loot, supplies refunded when asked, and it can't be called off twice.
+    const before = treasury();
+    const cash = db.prepare('SELECT cash FROM users WHERE id = ?').get(c.pvt.id).cash;
+    assert.match((await hq.act(`${R}/cancel`, { reason: 'Alt accounts striking', refund: 'on' }, A)).message, /Called off .* and refunded \$/);
+    assert.equal(raid().status, 'cancelled');
+    assert.equal(treasury(), before + cost);
+    assert.equal(db.prepare('SELECT cash FROM users WHERE id = ?').get(c.pvt.id).cash, cash);
+    assert.match(lastNote(c.pvt.id), /HQ called off \[IW\](?:'|&#39;)s raid on the Insurgent Outpost: Alt accounts striking/);
+    assert.match((await hq.act(`${R}/cancel`, { reason: 'Again' }, A)).message, /isn’t under way/);
+    assert.match((await c.pvt.request(U)).text, /Last raid: Insurgent Outpost, called off by HQ/);
+    assert.match((await hq.request(A)).text, /called off by HQ/);
+    // Without the refund box, the supplies stay spent.
+    await c.lt.act(`${U}/raid`, { stronghold: 'outpost' }, U);
+    const t2 = treasury();
+    assert.match((await hq.act(`/admin/raids/${raid().id}/cancel`, { reason: 'Test' }, A)).message, /with no refund/);
+    assert.equal(treasury(), t2);
+
+    // Regions: hand one over by tag, refuse unknown tags and no-ops, then free it.
+    assert.match((await hq.act('/admin/theatre/capital/holder', { tag: 'ZZ', reason: 'x' }, A)).message, /No unit has the tag \[ZZ\]/);
+    assert.match((await hq.act('/admin/theatre/capital/holder', { tag: '[iw]', reason: 'Compensation' }, A)).message, /Handed Capital District to \[IW\] Iron Wolves \(was nobody\)/);
+    assert.equal(app.theatre.xpBonus(unitId), 0.03);
+    assert.match(lastNote(c.cmd.id), /HQ has handed Capital District to \[IW\]/);
+    assert.match((await hq.act('/admin/theatre/capital/holder', { tag: 'IW', reason: 'x' }, A)).message, /already holds/);
+    assert.match((await hq.request(A)).text, /Held by <a href="\/units\/\d+">\[IW\] Iron Wolves<\/a>/);
+    assert.match((await hq.act('/admin/theatre/capital/holder', { tag: '', reason: 'Undo' }, A)).message, /Freed Capital District \(was \[IW\] Iron Wolves\)/);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM theatre_regions WHERE region = 'capital'").get().n, 0);
+    assert.match(lastNote(c.cmd.id), /HQ has taken Capital District from \[IW\]/);
+    assert.equal((await hq.act('/admin/theatre/atlantis/holder', { tag: 'IW', reason: 'x' }, A)).message.includes('doesn’t exist'), true);
+
+    // Wiping a unit's points for the week.
+    await c.lt.act('/theatre/front', { region: 'port' }, '/theatre');
+    app.theatre.track(c.pvt.id, 'missions', 4);
+    assert.match((await hq.request(A)).text, /\[IW\] Iron Wolves<\/a> <span class="muted">· 4 points/);
+    assert.match((await hq.act(`/admin/theatre/units/${unitId}/wipe`, { reason: 'Farmed' }, A)).message, /Removed \[IW\] Iron Wolves(?:'|&#39;)s 4 theatre points/);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM theatre_scores WHERE unit_id = ?').get(unitId).n, 0);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM theatre_contrib WHERE unit_id = ?').get(unitId).n, 0);
+    assert.match((await hq.act(`/admin/theatre/units/${unitId}/wipe`, { reason: 'Again' }, A)).message, /no theatre points this week/);
+    assert.equal(audit().action, 'theatre-wipe');
+  } finally {
+    server.close();
+  }
+});

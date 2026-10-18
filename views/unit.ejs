@@ -148,7 +148,7 @@
       <% } else { %>
         <p class="muted">Pick an enemy stronghold and strike it together. It has one shared health bar and your unit has 48 hours. Each strike costs <%= raid.energy %> energy. If it falls, the loot is shared by damage dealt, with <%= Math.round(raidShare * 100) %>% going to the treasury. If time runs out, there’s no loot and the supplies are lost.</p>
         <% if (raid.last) { %>
-          <p class="unit-raid__last <%= raid.last.status === 'won' ? 'is-won' : 'is-failed' %>">Last raid: <%= raid.last.name %>, <%= raid.last.status === 'won' ? 'taken' : 'ran out of time' %>.</p>
+          <p class="unit-raid__last <%= raid.last.status === 'won' ? 'is-won' : 'is-failed' %>">Last raid: <%= raid.last.name %>, <%= { won: 'taken', failed: 'ran out of time', cancelled: 'called off by HQ' }[raid.last.status] %>.</p>
         <% } %>
         <% if (raid.canLaunch) { %>
           <form method="post" action="/units/<%= unit.id %>/raid" class="unit-raid__launch" data-confirm="Spend treasury on supplies and launch this raid?">

@@ -30,7 +30,7 @@ const REASON_LABELS = {
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -374,6 +374,82 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   });
 
   // ----- Economy -----
+  // ---- Raids & map: fix problems with unit raids and the theatre of war ----
+  router.get('/admin/teamwork', (req, res, next) => {
+    if (!raidService || !theatreService) return next('router');
+    res.render('admin/teamwork', {
+      title: 'Admin · Raids & map',
+      nav: 'admin',
+      raids: raidService.adminView(),
+      map: theatreService.adminView(),
+      now: Date.now(),
+    });
+  });
+
+  /** Runs an admin change that needs a reason: flashes the error, or logs it and flashes `ok`. */
+  const withReason = (req, res, anchor, fn) => {
+    const reason = admin.cleanReason(req.body.reason);
+    if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else {
+      const out = players.transaction(() => fn(reason));
+      if (out.error) req.flash('error', out.error);
+      else {
+        adminRepo.log(req.player.id, null, out.action, `${out.log} Reason: ${reason}`);
+        req.flash('success', out.ok);
+      }
+    }
+    res.redirect(`/admin/teamwork#${anchor}`);
+  };
+  const raidLabel = (r) => `[${r.unit_tag}] ${r.unit_name}'s raid on the ${r.name}`;
+
+  router.post('/admin/raids/:id/cancel', (req, res, next) => {
+    if (!raidService) return next('router');
+    withReason(req, res, 'raids', (reason) => {
+      const before = raidService.adminView().active.find((r) => r.id === Number(req.params.id));
+      const out = raidService.cancel(Number(req.params.id), { refund: req.body.refund === 'on', reason });
+      if (out.error || !before) return out.error ? out : { error: 'That raid isn’t under way any more.' };
+      const refund = out.refunded ? ` and refunded $${out.refunded.toLocaleString('en-US')} in supplies` : ' with no refund';
+      return { action: 'raid-cancel', log: `Called off ${raidLabel(before)}${refund}.`, ok: `Called off ${raidLabel(before)}${refund}.` };
+    });
+  });
+
+  router.post('/admin/raids/:id/extend', (req, res, next) => {
+    if (!raidService) return next('router');
+    withReason(req, res, 'raids', (reason) => {
+      const before = raidService.adminView().active.find((r) => r.id === Number(req.params.id));
+      const out = raidService.extend(Number(req.params.id), req.body.hours, { reason });
+      if (out.error || !before) return out.error ? out : { error: 'That raid isn’t under way any more.' };
+      const h = Number(req.body.hours);
+      return { action: 'raid-extend', log: `Gave ${raidLabel(before)} ${h} more hour${h === 1 ? '' : 's'}.`, ok: `Gave ${raidLabel(before)} ${h} more hour${h === 1 ? '' : 's'}.` };
+    });
+  });
+
+  router.post('/admin/theatre/:region/holder', (req, res, next) => {
+    if (!theatreService) return next('router');
+    withReason(req, res, 'map', () => {
+      const tag = String(req.body.tag || '').trim();
+      const unit = tag ? adminRepo.unitByTag(tag) : null;
+      if (tag && !unit) return { error: `No unit has the tag [${tag.replace(/^\[|\]$/g, '')}].` };
+      const out = theatreService.setHolder(req.params.region, unit);
+      if (out.error) return out;
+      const from = out.from ? `[${out.from.tag}] ${out.from.name}` : 'nobody';
+      const msg = unit ? `Handed ${out.region.name} to [${unit.tag}] ${unit.name} (was ${from}).` : `Freed ${out.region.name} (was ${from}).`;
+      return { action: 'theatre-holder', log: msg, ok: msg };
+    });
+  });
+
+  router.post('/admin/theatre/units/:id/wipe', (req, res, next) => {
+    if (!theatreService) return next('router');
+    withReason(req, res, 'map', () => {
+      const unit = adminRepo.unitById(Number(req.params.id));
+      if (!unit) return { error: 'That unit no longer exists.' };
+      const points = theatreService.wipePoints(unit.id);
+      if (!points) return { error: `[${unit.tag}] has no theatre points this week.` };
+      const msg = `Removed [${unit.tag}] ${unit.name}'s ${points.toLocaleString('en-US')} theatre points for this week.`;
+      return { action: 'theatre-wipe', log: msg, ok: msg };
+    });
+  });
+
   router.get('/admin/economy', (req, res) => {
     const now = Date.now();
     const e = adminRepo.economy({ now });

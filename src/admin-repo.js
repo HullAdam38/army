@@ -56,6 +56,7 @@ function createAdminRepo(db) {
       ORDER BY un.treasury DESC, un.id LIMIT ?3 OFFSET ?4`),
     unitCount: db.prepare(`SELECT COUNT(*) AS n FROM units WHERE (?1 = '' OR name LIKE ?2 ESCAPE '\\' OR tag LIKE ?2 ESCAPE '\\')`),
     unitById: db.prepare('SELECT * FROM units WHERE id = ?'),
+    unitByTag: db.prepare('SELECT * FROM units WHERE tag = ? COLLATE NOCASE'),
     setTreasury: db.prepare('UPDATE units SET treasury = treasury + ?1 WHERE id = ?2 AND treasury + ?1 >= 0'),
 
     // Economy
@@ -132,6 +133,7 @@ function createAdminRepo(db) {
       return { rows: stmts.units.all(q, like(q), limit, offset), total: stmts.unitCount.get(q, like(q)).n };
     },
     unitById: (id) => stmts.unitById.get(id) || null,
+    unitByTag: (tag) => stmts.unitByTag.get(String(tag || '').trim().replace(/^\[|\]$/g, '')) || null,
     /** Adds to (or takes from) a unit treasury; false if it would go below zero. */
     adjustTreasury: (unitId, amount) => stmts.setTreasury.run(amount, unitId).changes > 0,
 

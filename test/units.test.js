@@ -306,6 +306,8 @@ test('war end to end: declare, score PvP fights, settle, forfeit', async () => {
     for (const n of names) c[n] = await enlist(base, n);
     const id = (n) => db.prepare('SELECT id FROM users WHERE username = ?').get(n).id;
     db.prepare('UPDATE users SET level = 6, cash = 20000').run();
+    // Pin today's high-value target to Alpha, so the day's random pick can't put someone else's card on the Players page.
+    db.prepare("INSERT OR REPLACE INTO daily_targets (day, user_id, created_at) SELECT ?, id, ? FROM users WHERE username = 'Alpha'").run(require('../src/target').dayKey(Date.now()), Date.now());
     db.prepare("INSERT INTO ledger (user_id, delta_cash, reason, created_at) SELECT id, 20000 - 100, 'test', 0 FROM users").run();
     const found = async (lead, name, tag) => Number((await c[lead].flash('/units', { name, tag })).location.split('/').pop());
     const wolves = await found('Alpha', 'Iron Wolves', 'IW');
