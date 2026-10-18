@@ -51,6 +51,7 @@ const { settingsRoutes } = require('./routes/settings');
 const { createObjectiveService } = require('./objective-service');
 const { createRaidService } = require('./raid-service');
 const { createTheatreService } = require('./theatre-service');
+const { createSupportService } = require('./support-service');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
@@ -59,6 +60,7 @@ const { createPushService } = require('./push-service');
 const { alertRoutes, pushRenewRoute } = require('./routes/alerts');
 const { adminRoutes } = require('./routes/admin');
 const { theatreRoutes } = require('./routes/theatre');
+const { supportRoutes } = require('./routes/support');
 const { createAdminRepo } = require('./admin-repo');
 const { createAntiCheat } = require('./anticheat');
 const { createDailyService } = require('./daily-service');
@@ -117,6 +119,10 @@ function createApp({
   const pushService = createPushService(db, players, { sender: pushSender });
   pushService.schedule();
   app.push = pushService; // exposed for tests
+  // Support tickets: admins hear about new tickets and replies in-game and by push.
+  const supportService = createSupportService(db, players, { alertStaff: (adminId, message, link) => pushService.staff(adminId, message, link) });
+  supportService.schedule();
+  app.support = supportService; // exposed for tests
   const eventService = createEventService(db, {
     onAnnounce: (message, link) => pushService.broadcast('news', message, link).catch((err) => console.error('[push] broadcast failed', err)),
   });
@@ -262,9 +268,10 @@ function createApp({
   app.use(messageRoutes(players, messageService, pushService));
   app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService, raidService, theatreService));
   app.use(theatreRoutes(players, unitRepo, theatreService));
+  app.use(supportRoutes(players, supportService));
   app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
-  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService));
+  app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService));
 
   app.use((req, res) => {
     res.status(404).render('error', { title: 'Not found', status: 404, message: 'That grid reference doesn’t exist.' });

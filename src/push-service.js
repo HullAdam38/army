@@ -97,12 +97,13 @@ function createPushService(db, players, { sender = null, contact = null } = {}) 
    * and aren't busy playing or in quiet hours. Resolves to how many devices
    * it reached. `force` (the test button) skips those checks.
    */
-  async function deliver(userId, category, message, link, { now = Date.now(), force = false } = {}) {
+  async function deliver(userId, category, message, link, { now = Date.now(), force = false, staff = false } = {}) {
     const subs = stmts.subs.all(userId);
     if (!subs.length) return 0;
     if (!force) {
-      const prefs = prefsOf(userId);
-      if (!prefs || !prefs.categories.includes(category)) return 0;
+      const prefs = prefsOf(userId) || push.normalizePrefs({}, { useDefaults: true });
+      // Staff alerts are switched on and off on their admin page, so only quiet hours apply.
+      if (!staff && !prefs.categories.includes(category)) return 0;
       if (push.inQuietHours(prefs, now)) return 0;
       if (now - (visibleAt.get(userId) || 0) < ACTIVE_MS) return 0; // they'll see it in the game
       const log = (sentLog.get(userId) || []).filter((t) => t > now - 60 * 60 * 1000);
@@ -190,6 +191,15 @@ function createPushService(db, players, { sender = null, contact = null } = {}) 
     /** A private message arrived. `text` is what the alert says. */
     message(recipientId, text, conversationId) {
       const p = deliver(recipientId, 'messages', String(text).slice(0, 200), `/messages/${conversationId}#latest`)
+        .catch((err) => console.error('[push] send failed', err));
+      pending.add(p);
+      p.finally(() => pending.delete(p));
+      return p;
+    },
+
+    /** An alert for an admin (e.g. a new support ticket). Their own on/off switch is checked by the caller. */
+    staff(adminId, text, link, category = 'support') {
+      const p = deliver(adminId, category, String(text).slice(0, 200), link, { staff: true })
         .catch((err) => console.error('[push] send failed', err));
       pending.add(p);
       p.finally(() => pending.delete(p));

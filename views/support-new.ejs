@@ -1,0 +1,40 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/support"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Help &amp; support</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">HQ Support</p>
+      <h1 class="page-head__title">New ticket</h1>
+      <p class="page-head__sub">Tell us what happened, what you expected, and anything that helps us find it: callsigns, unit tags, the page you were on and roughly when.</p>
+    </div>
+  </div>
+
+  <section class="card compose reveal" style="--i:1">
+    <% if (blocker) { %><p class="notice notice--warn compose__notice"><%= blocker %></p><% } %>
+    <form method="post" action="/support" class="form compose__form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <fieldset class="support-cats">
+        <legend>What’s it about?</legend>
+        <% categories.forEach(function (c) { %>
+          <label class="support-cat">
+            <input type="radio" name="category" value="<%= c.id %>" <%- draft.category === c.id ? 'checked' : '' %> required>
+            <span><strong><%= c.name %></strong><span class="muted small"><%= c.help %></span></span>
+          </label>
+        <% }) %>
+      </fieldset>
+      <div class="field">
+        <label for="subject">Subject</label>
+        <input id="subject" name="subject" required minlength="4" maxlength="<%= limits.subject %>" value="<%= draft.subject %>" placeholder="e.g. Raid loot didn’t arrive">
+      </div>
+      <%- include('partials/bb-editor', { id: 'body', value: draft.body, max: limits.body, rows: 8, label: 'Message', placeholder: 'What happened?' }) %>
+      <div class="compose__actions">
+        <button class="btn btn--primary" type="submit" <%- blocker ? 'disabled' : '' %>><svg class="btn__icon" aria-hidden="true"><use href="#i-radio"/></svg>Send to HQ</button>
+        <span class="muted compose__hint">Never share your password. HQ will never ask for it.</span>
+      </div>
+    </form>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

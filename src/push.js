@@ -8,7 +8,7 @@
 
 const CATEGORIES = [
   { id: 'mentions', name: 'Chat mentions', help: 'Someone @mentions you in chat.', title: 'You were mentioned', default: true },
-  { id: 'messages', name: 'Private messages', help: 'A new private message arrives.', title: 'New message', default: true },
+  { id: 'messages', name: 'Messages and support', help: 'A new private message arrives, or HQ Support answers your ticket.', title: 'New message', default: true },
   { id: 'attacks', name: 'Attacks on you', help: 'Another player attacks you, win or lose.', title: 'You were attacked', default: true },
   { id: 'bounties', name: 'Bounties', help: 'A bounty is placed on you, or one you posted is collected.', title: 'Bounty', default: true },
   { id: 'deployments', name: 'Deployments', help: 'Your troops come back from a deployment.', title: 'Deployment complete', default: true },
@@ -17,11 +17,17 @@ const CATEGORIES = [
   { id: 'energy', name: 'Energy full', help: 'Your energy bar is full again, so you’re not wasting regeneration.', title: 'Energy full', default: false },
   { id: 'progress', name: 'Progress', help: 'Promotions, unlocks, medals, titles, daily orders and season results.', title: 'Progress', default: false },
 ];
-const CATEGORY = new Map(CATEGORIES.map((c) => [c.id, c]));
+// Alerts only admins get. They're switched on and off on their own admin page,
+// not with the categories above.
+const STAFF_CATEGORIES = [
+  { id: 'support', title: 'Support ticket' },
+];
+const CATEGORY = new Map([...CATEGORIES, ...STAFF_CATEGORIES].map((c) => [c.id, c]));
 
 // Notification kinds (players.notify) → category. Kinds not listed never push.
 const KIND_CATEGORY = {
   chat: 'mentions',
+  support: 'messages',
   'attacked-lost': 'attacks',
   'attacked-won': 'attacks',
   bounty: 'bounties',

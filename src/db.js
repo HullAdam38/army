@@ -569,6 +569,35 @@ const SCHEMA = `
     PRIMARY KEY (raid_id, user_id)
   );
 
+  -- Support tickets (src/support.js): a player's ticket and its messages (player, HQ replies and internal notes).
+  CREATE TABLE IF NOT EXISTS support_tickets (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id        INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    category       TEXT    NOT NULL,
+    subject        TEXT    NOT NULL,
+    status         TEXT    NOT NULL DEFAULT 'open', -- open, answered, closed
+    assigned_to    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    last_player_at INTEGER,
+    last_staff_at  INTEGER,
+    player_seen_at INTEGER,
+    closed_at      INTEGER,
+    closed_by      INTEGER REFERENCES users(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_support_user ON support_tickets(user_id, updated_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_support_status ON support_tickets(status, updated_at);
+  CREATE TABLE IF NOT EXISTS support_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id  INTEGER NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+    author_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    staff      INTEGER NOT NULL DEFAULT 0,
+    internal   INTEGER NOT NULL DEFAULT 0, -- staff-only notes the player never sees
+    body       TEXT    NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_support_messages ON support_messages(ticket_id, id);
+
   -- Theatre of war (src/theatre.js): who holds each region, each unit's weekly front and points.
   CREATE TABLE IF NOT EXISTS theatre_regions (
     region     TEXT PRIMARY KEY,
@@ -763,6 +792,7 @@ const ADDED_COLUMNS = [
   ['units', 'rally_until', 'INTEGER'], // an "Advance!" rally order is active until then
   ['units', 'rally_at', 'INTEGER'], // when the last rally was called (for the cooldown)
   ['raids', 'supply_cost', 'INTEGER'], // what the unit paid, so HQ can refund a cancelled raid
+  ['users', 'support_alerts', 'INTEGER NOT NULL DEFAULT 1'], // admins: push alerts for new support tickets
 ];
 
 function migrate(db) {

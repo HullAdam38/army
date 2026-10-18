@@ -744,6 +744,20 @@ A hit is `attack × damage × variance(±10%) × critDamage (on a crit) × (1 �
 
 To add a new source of bonuses (training, buffs, perks), produce modifiers and pass them to `buildStats` alongside the gear modifiers. Items live in `src/items.js`.
 
+## Help & support
+
+Players open tickets with HQ Support at `/support` (in the phone menu under More, and in every page footer).
+
+- **Opening a ticket:** pick a category (account, bug, gameplay question, report a player, units/raids/map, something else), a subject and a message written with the formatting editor. Up to 3 open tickets at once and 5 new ones a day; a failed send keeps what they wrote.
+- **The conversation:** HQ replies show as **HQ Support · admin name**. The player gets a notification (and a push alert under *Messages and support*), and the ticket shows **New reply** until they read it. Replying reopens a closed ticket. Players can close their own tickets.
+- **Statuses:** *Waiting for HQ* (open), *HQ replied* (answered) and *Closed*. A ticket HQ answered closes itself after a week without a reply, and the player is told.
+- **Admin › Support** (`/admin/support`): the queue by status (oldest waiting first), with a count in the admin menu, and an "only mine" filter. On a ticket:
+  - reply (optionally closing it), or add an **internal note** only admins see;
+  - assign it to an admin, close without replying, or reopen;
+  - see the player's level, a link to their admin page, and their other tickets.
+- **Push alerts for admins:** every admin is told in-game about new tickets and player replies; once a ticket is assigned, only its assignee is. Admins also get a push alert on devices where they've turned alerts on (outside quiet hours, and not while they're in the game). It has its own switch at the top of Admin › Support, separate from the player alert categories.
+- Rules: `src/support.js`. Storage, alerts and auto-close: `src/support-service.js`.
+
 ## Performance
 
 `npm run bench` builds a 20,000-player test database (in `data/bench/`, separate from the real game), starts the game in production mode and fires the busiest pages and polls at it, 50 requests at a time. It prints requests per second and response times per page. Options: `--players`, `--concurrency`, `--seconds`.

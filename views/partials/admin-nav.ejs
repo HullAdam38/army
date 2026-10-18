@@ -2,6 +2,7 @@
 <nav class="admin-nav" aria-label="Admin">
   <% [
     ['overview', '/admin', 'Overview'],
+    ['support', '/admin/support', 'Support'],
     ['stats', '/admin/stats', 'Player stats'],
     ['players', '/admin/players', 'Players'],
     ['units', '/admin/units', 'Units'],
@@ -15,6 +16,6 @@
     ['avatars', '/admin/avatars', 'Avatars'],
     ['flags', '/admin/flags', 'Anti-cheat'],
   ].forEach(function ([key, href, label]) { %>
-    <a class="admin-nav__link" href="<%= href %>" <%- active === key ? 'aria-current="page"' : '' %>><%= label %></a>
+    <a class="admin-nav__link" href="<%= href %>" <%- active === key ? 'aria-current="page"' : '' %>><%= label %><% if (key === 'support' && typeof supportWaiting !== 'undefined' && supportWaiting) { %> <span class="admin-nav__count" aria-label="<%= supportWaiting %> waiting"><%= supportWaiting %></span><% } %></a>
   <% }) %>
 </nav>

@@ -8,6 +8,7 @@ const presence = require('../presence');
 const { loadoutView } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
 const bbcode = require('../bbcode');
+const support = require('../support');
 const { ITEMS, ITEMS_BY_ID, SLOTS } = require('../items');
 const { EMAIL_RE, USERNAME_RE } = require('./auth');
 const { announceLevels } = require('../notify');
@@ -30,7 +31,7 @@ const REASON_LABELS = {
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -42,6 +43,11 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
     next();
   };
   router.use('/admin', adminOnly, requireAuth);
+  // Tickets waiting for HQ, for the badge in the admin menu.
+  router.use('/admin', (req, res, next) => {
+    res.locals.supportWaiting = supportService ? supportService.waiting() : 0;
+    next();
+  });
 
   const loadTarget = (req, res, next) => {
     const id = Number(req.params.id);
@@ -374,6 +380,80 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   });
 
   // ----- Economy -----
+  // ---- Support tickets ----
+  router.get('/admin/support', (req, res, next) => {
+    if (!supportService) return next('router');
+    const now = Date.now();
+    const page = Math.max(1, Math.floor(Number(req.query.page)) || 1);
+    const mine = req.query.mine === '1';
+    const q = supportService.queue({ status: String(req.query.status || 'open'), assignedTo: mine ? req.player.id : null, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+    res.render('admin/support', {
+      title: 'Admin · Support',
+      nav: 'admin',
+      ...q,
+      rows: q.rows.map((t) => ({ ...t, ago: presence.timeAgo(t.updated_at, now), waitingSince: presence.timeAgo(t.last_player_at || t.created_at, now) })),
+      mine,
+      page,
+      pages: Math.max(1, Math.ceil(q.total / PAGE_SIZE)),
+      counts: supportService.counts(),
+      statuses: support.STATUSES,
+      alertsOn: supportService.alertsOn(req.player.id),
+    });
+  });
+
+  router.post('/admin/support/alerts', (req, res, next) => {
+    if (!supportService) return next('router');
+    const on = req.body.on === '1';
+    supportService.setAlerts(req.player.id, on);
+    req.flash('success', on ? 'You’ll get a push alert for new tickets and player replies (on devices with alerts turned on).' : 'Push alerts for support tickets are off. You’ll still see them in your notifications.');
+    res.redirect('/admin/support');
+  });
+
+  router.get('/admin/support/:id', (req, res, next) => {
+    if (!supportService) return next('router');
+    const view = supportService.forStaff(req.params.id);
+    if (!view) return next();
+    const now = Date.now();
+    res.render('admin/support-ticket', {
+      title: `Admin · Ticket #${view.ticket.id}`,
+      nav: 'admin',
+      ...view,
+      messages: view.messages.map((m) => ({ ...m, ago: presence.timeAgo(m.created_at, now), when: new Date(m.created_at).toISOString() })),
+      others: view.others.map((t) => ({ ...t, ago: presence.timeAgo(t.created_at, now) })),
+      opened: presence.timeAgo(view.ticket.created_at, now),
+      limits: { body: support.MAX_BODY },
+    });
+  });
+
+  const ticketAction = (fn) => (req, res, next) => {
+    if (!supportService) return next('router');
+    const out = players.transaction(() => fn(req));
+    req.flash(out.error ? 'error' : 'success', out.error || out.ok);
+    res.redirect(`/admin/support/${Number(req.params.id) || ''}${out.error ? '' : '#latest'}`);
+  };
+
+  router.post('/admin/support/:id/reply', ticketAction((req) => {
+    const internal = req.body.internal === 'on';
+    const close = !internal && req.body.close === 'on';
+    const out = supportService.staffReply({ admin: req.player, ticketId: req.params.id, body: req.body.body, internal, close });
+    if (out.error) return out;
+    return { ok: internal ? 'Note added (only admins can see it).' : close ? 'Reply sent and ticket closed.' : 'Reply sent. The player has been notified.' };
+  }));
+
+  router.post('/admin/support/:id/status', ticketAction((req) => {
+    const status = String(req.body.status || '');
+    const out = supportService.setStatus({ admin: req.player, ticketId: req.params.id, status });
+    if (out.error) return out;
+    return { ok: status === 'closed' ? 'Ticket closed. The player has been told.' : 'Ticket reopened.' };
+  }));
+
+  router.post('/admin/support/:id/assign', ticketAction((req) => {
+    const to = req.body.to === 'me' ? req.player.id : Number(req.body.to) || null;
+    const out = supportService.assign({ ticketId: req.params.id, adminId: to });
+    if (out.error) return out;
+    return { ok: out.ticket.assignee ? `Assigned to ${out.ticket.assignee}. Only they get alerts about it now.` : 'Unassigned. Every admin gets alerts about it again.' };
+  }));
+
   // ---- Raids & map: fix problems with unit raids and the theatre of war ----
   router.get('/admin/teamwork', (req, res, next) => {
     if (!raidService || !theatreService) return next('router');

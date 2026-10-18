@@ -1,0 +1,55 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'support' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Support</h1>
+      <p class="page-head__sub">Player tickets. “Needs a reply” is waiting for HQ, oldest first. Replying moves a ticket to “Waiting for player”; tickets nobody answers for a week close themselves.</p>
+    </div>
+    <form method="post" action="/admin/support/alerts" class="support-alerts">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="on" value="<%= alertsOn ? '0' : '1' %>">
+      <span class="muted small">Push alerts for new tickets: <strong><%= alertsOn ? 'on' : 'off' %></strong></span>
+      <button class="btn btn--ghost btn--sm" type="submit"><%= alertsOn ? 'Turn off' : 'Turn on' %></button>
+    </form>
+  </div>
+  <% if (alertsOn) { %><p class="muted small support-alerts__hint">Alerts reach devices where you’ve turned on alerts in <a href="/account/alerts">App &amp; alerts</a>, outside your quiet hours, when you’re not already in the game.</p><% } %>
+
+  <nav class="tabs support-tabs" aria-label="Ticket status">
+    <% Object.entries(statuses).forEach(function ([key, s]) { %>
+      <a class="tabs__tab" href="/admin/support?status=<%= key %><%= mine ? '&mine=1' : '' %>" <%- status === key ? 'aria-current="page"' : '' %>><%= s.staffLabel %> <span class="muted">(<%= counts[key] %>)</span></a>
+    <% }) %>
+    <a class="tabs__tab support-tabs__mine" href="/admin/support?status=<%= status %><%= mine ? '' : '&mine=1' %>" <%- mine ? 'aria-current="page"' : '' %>><%= mine ? 'Showing mine' : 'Only mine' %></a>
+  </nav>
+
+  <% if (rows.length) { %>
+    <ol class="support-list">
+      <% rows.forEach(function (t) { %>
+        <li>
+          <a class="card support-row" href="/admin/support/<%= t.id %>">
+            <span class="support-row__main">
+              <span class="support-row__subject">#<%= t.id %> <%= t.subject %></span>
+              <span class="muted small"><%= t.username %> (Lv <%= t.level %>) · <%= t.categoryName %> · <%= t.messages %> message<%= t.messages === 1 ? '' : 's' %> · <%= status === 'open' ? `waiting ${t.waitingSince}` : `updated ${t.ago}` %><%= t.assignee ? ` · ${t.assignee}` : '' %></span>
+            </span>
+            <span class="support-status support-status--<%= t.status %>"><%= t.statusInfo.staffLabel %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted"><%= status === 'open' ? 'Nothing waiting. Inbox zero, soldier.' : 'No tickets here.' %></p>
+  <% } %>
+
+  <% if (pages > 1) { %>
+    <nav class="pager" aria-label="Pages">
+      <% const link = (p) => `/admin/support?${new URLSearchParams({ status, ...(mine && { mine: '1' }), page: String(p) })}`; %>
+      <% if (page > 1) { %><a class="btn btn--ghost btn--sm" href="<%= link(page - 1) %>" rel="prev">Previous</a><% } else { %><span></span><% } %>
+      <span class="pager__info">Page <%= page %> of <%= pages %></span>
+      <% if (page < pages) { %><a class="btn btn--ghost btn--sm" href="<%= link(page + 1) %>" rel="next">Next</a><% } else { %><span></span><% } %>
+    </nav>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

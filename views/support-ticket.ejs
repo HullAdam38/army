@@ -1,0 +1,52 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/support"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Help &amp; support</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Ticket #<%= ticket.id %> · <%= ticket.categoryName %></p>
+      <h1 class="page-head__title thread__title"><%= ticket.subject %></h1>
+      <p class="page-head__sub"><span class="support-status support-status--<%= ticket.status %>"><%= ticket.statusInfo.label %></span></p>
+    </div>
+    <% if (ticket.status !== 'closed') { %>
+      <div class="page-head__actions">
+        <form method="post" action="/support/<%= ticket.id %>/close" data-confirm="Close this ticket? You can reopen it by replying.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Close ticket</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <ol class="thread reveal" style="--i:1">
+    <% messages.forEach(function (m, i) { %>
+      <li class="msg<%= m.staff ? ' msg--staff' : ' msg--mine' %><%= m.unread ? ' is-new' : '' %>" id="<%= i === messages.length - 1 ? 'latest' : `m${m.id}` %>">
+        <div class="msg__head">
+          <% if (m.staff) { %>
+            <span class="msg__from"><svg class="inline-icon" aria-hidden="true"><use href="#i-crest"/></svg>HQ Support<% if (m.username) { %> <span class="muted">· <%= m.username %></span><% } %></span>
+          <% } else { %>
+            <span class="msg__from">You</span>
+          <% } %>
+          <time class="msg__time" datetime="<%= m.when %>"><%= m.ago %></time>
+        </div>
+        <div class="msg__body bb-content"><%- m.html %></div>
+      </li>
+    <% }) %>
+  </ol>
+
+  <section id="reply" class="card compose reveal" style="--i:2" aria-labelledby="reply-title">
+    <h2 id="reply-title" class="card__title"><%= ticket.status === 'closed' ? 'Reopen with a reply' : 'Reply' %></h2>
+    <% if (ticket.status === 'closed') { %><p class="muted small">This ticket is closed. Replying reopens it.</p><% } %>
+    <form method="post" action="/support/<%= ticket.id %>/reply" class="compose__form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('partials/bb-editor', { id: 'body', value: draft, max: limits.body, rows: 6, placeholder: 'Add more details or answer HQ…' }) %>
+      <div class="compose__actions">
+        <button class="btn btn--primary" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-mail"/></svg><%= ticket.status === 'closed' ? 'Reopen and send' : 'Send reply' %></button>
+        <span class="muted compose__hint">Ctrl+Enter sends</span>
+      </div>
+    </form>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

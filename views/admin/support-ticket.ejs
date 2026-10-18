@@ -1,0 +1,86 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'support' }) %>
+  <a class="back-link" href="/admin/support?status=<%= ticket.status %>"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Support</a>
+  <div class="page-head">
+    <div>
+      <p class="eyebrow">Ticket #<%= ticket.id %> · <%= ticket.categoryName %> · opened <%= opened %></p>
+      <h1 class="page-head__title thread__title"><%= ticket.subject %></h1>
+      <p class="page-head__sub"><span class="support-status support-status--<%= ticket.status %>"><%= ticket.statusInfo.staffLabel %></span></p>
+    </div>
+  </div>
+
+  <div class="support-layout">
+    <div class="support-layout__main">
+      <ol class="thread">
+        <% messages.forEach(function (m, i) { %>
+          <li class="msg<%= m.internal ? ' msg--note' : m.staff ? ' msg--staff' : '' %>" id="<%= i === messages.length - 1 ? 'latest' : `m${m.id}` %>">
+            <div class="msg__head">
+              <span class="msg__from"><%= m.username || 'Deleted account' %><%= m.internal ? ' · internal note' : m.staff ? ' · HQ Support' : '' %></span>
+              <time class="msg__time" datetime="<%= m.when %>"><%= m.ago %></time>
+            </div>
+            <div class="msg__body bb-content"><%- m.html %></div>
+          </li>
+        <% }) %>
+      </ol>
+
+      <section id="reply" class="card compose" aria-labelledby="reply-title">
+        <h2 id="reply-title" class="card__title">Reply to <%= ticket.username %></h2>
+        <form method="post" action="/admin/support/<%= ticket.id %>/reply" class="compose__form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <%- include('../partials/bb-editor', { id: 'body', max: limits.body, rows: 6, placeholder: 'Your reply. The player is notified.' }) %>
+          <label class="check"><input type="checkbox" name="internal"> <span>Internal note: only admins see it, and the player isn’t told</span></label>
+          <label class="check"><input type="checkbox" name="close"> <span>Close the ticket with this reply</span></label>
+          <div class="compose__actions">
+            <button class="btn btn--primary" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-mail"/></svg>Send</button>
+            <span class="muted compose__hint">Ctrl+Enter sends</span>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <aside class="support-layout__side">
+      <section class="card support-side">
+        <h2 class="card__title">Player</h2>
+        <p><%- include('../partials/avatar', { url: avatarUrl(ticket.user_id, ticket.avatar_v), size: 'sm' }) %> <a href="/admin/players/<%= ticket.user_id %>"><%= ticket.username %></a> <span class="muted">· Lv <%= ticket.level %></span><% if (ticket.banned_at) { %> <span class="tag tag--hospital">Suspended</span><% } %></p>
+        <p class="small"><a href="/profile/<%= encodeURIComponent(ticket.username) %>">Public profile</a></p>
+      </section>
+
+      <section class="card support-side">
+        <h2 class="card__title">Ticket</h2>
+        <form method="post" action="/admin/support/<%= ticket.id %>/assign" class="support-side__form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label for="assign-to" class="small">Assigned to</label>
+          <select id="assign-to" name="to">
+            <option value="">Nobody (all admins get alerts)</option>
+            <% admins.forEach(function (a) { %><option value="<%= a.id %>" <%- ticket.assigned_to === a.id ? 'selected' : '' %>><%= a.username %><%= a.id === player.id ? ' (you)' : '' %></option><% }) %>
+          </select>
+          <button class="btn btn--ghost btn--sm" type="submit">Assign</button>
+        </form>
+        <form method="post" action="/admin/support/<%= ticket.id %>/status">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% if (ticket.status === 'closed') { %>
+            <input type="hidden" name="status" value="open">
+            <button class="btn btn--ghost btn--sm" type="submit">Reopen ticket</button>
+          <% } else { %>
+            <input type="hidden" name="status" value="closed">
+            <button class="btn btn--ghost btn--sm" type="submit">Close without replying</button>
+          <% } %>
+        </form>
+      </section>
+
+      <% if (others.length) { %>
+        <section class="card support-side">
+          <h2 class="card__title">Their other tickets</h2>
+          <ul class="support-side__list">
+            <% others.forEach(function (o) { %><li><a href="/admin/support/<%= o.id %>">#<%= o.id %> <%= o.subject %></a> <span class="muted small">· <%= o.statusInfo.staffLabel %>, <%= o.ago %></span></li><% }) %>
+          </ul>
+        </section>
+      <% } %>
+    </aside>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

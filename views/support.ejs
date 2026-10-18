@@ -1,0 +1,42 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">HQ Support</p>
+      <h1 class="page-head__title">Help &amp; support</h1>
+      <p class="page-head__sub">Stuck, found a bug, or need to report a player? Open a ticket and HQ Support will reply here. You’ll get a notification (and a push alert, if you’ve turned them on) when they do.</p>
+    </div>
+    <div class="page-head__actions">
+      <% if (blocker) { %>
+        <span class="muted small support__blocker"><%= blocker %></span>
+      <% } else { %>
+        <a class="btn btn--primary" href="/support/new"><svg class="btn__icon" aria-hidden="true"><use href="#i-radio"/></svg>New ticket</a>
+      <% } %>
+    </div>
+  </div>
+
+  <section class="reveal" style="--i:1" aria-labelledby="tickets-title">
+    <h2 id="tickets-title" class="section-title">Your tickets</h2>
+    <% if (tickets.length) { %>
+      <ol class="support-list">
+        <% tickets.forEach(function (t) { %>
+          <li>
+            <a class="card support-row<%= t.unread ? ' is-unread' : '' %><%= t.status === 'closed' ? ' is-closed' : '' %>" href="/support/<%= t.id %>">
+              <span class="support-row__main">
+                <span class="support-row__subject"><%= t.subject %><% if (t.unread) { %> <span class="tag tag--new">New reply</span><% } %></span>
+                <span class="muted small">#<%= t.id %> · <%= t.categoryName %> · <%= t.messages %> message<%= t.messages === 1 ? '' : 's' %> · updated <%= t.ago %></span>
+              </span>
+              <span class="support-status support-status--<%= t.status %>"><%= t.statusInfo.label %></span>
+            </a>
+          </li>
+        <% }) %>
+      </ol>
+    <% } else { %>
+      <p class="card muted">You haven’t opened any tickets. If something’s wrong, <a href="/support/new">tell HQ</a>.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>
