@@ -55,6 +55,11 @@ const SETTINGS = [
   { key: 'slotsMaxBet', group: 'casino', label: 'Slot machine maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can bet on one spin. The slot machine pays back about 95% of bets over time, so it takes cash out of the game.' },
   { key: 'rouletteMaxBet', group: 'casino', label: 'Roulette table limit', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can have on the table in one spin (all their bets added up). Roulette pays back 97.3% of bets over time.' },
   { key: 'blackjackMaxBet', group: 'casino', label: 'Blackjack maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 25000, help: 'The most a player can bet on one blackjack hand at the War Room table (the other tables have lower limits of their own). Doubling and splitting can add the same again.' },
+  // Armory
+  { key: 'gearWearMult', group: 'armory', label: 'Gear wear', type: 'mult', min: 0, max: 5, step: 0.1, default: 1, help: 'How fast gear wears with use. At 1 a weapon drops about half a point a mission and a point a fight; below 50% condition gear starts losing power. 0 turns wear off.' },
+  { key: 'gearRepairShare', group: 'armory', label: 'Repair cost', type: 'number', unit: '× price', min: 0, max: 2, step: 0.05, default: 0.3, help: 'A full repair from 0% costs this share of the item’s price (pro rata: from 50% it costs half that). Repairs take cash out of the game.' },
+  { key: 'gearSellShare', group: 'armory', label: 'Sale price', type: 'number', unit: '× price', min: 0, max: 0.9, step: 0.05, default: 0.4, help: 'What the Armory pays for gear in perfect condition, as a share of its price. Worn gear fetches less: half as much at 0%. Keep it well under 1 so buying and selling never makes money.' },
+
   // Living world
   { key: 'reserveSoldiers', group: 'world', label: 'Reserve soldiers', type: 'int', unit: 'soldiers', min: 0, max: 200, step: 1, default: 30, help: 'Soldiers run by the game, marked “Reserve”, so new players have targets, rivals on the leaderboards and starter units to join. One stands down for every real player active in the last week; 0 stands them all down.' },
   { key: 'reserveMaxLevel', group: 'world', label: 'Reserve soldiers’ top level', type: 'int', unit: 'level', min: 5, max: 100, step: 1, default: 30, help: 'Reserve soldiers stop levelling up here, so real players overtake them.' },
@@ -76,6 +81,7 @@ const GROUPS = [
   { id: 'avatars', name: 'Avatars', blurb: 'Who can upload their own picture.' },
   { id: 'access', name: 'Access', blurb: 'Who can join.' },
   { id: 'casino', name: 'Casino', blurb: 'Games played with in-game cash.' },
+  { id: 'armory', name: 'Armory', blurb: 'Gear wear, repairs and selling.' },
   { id: 'world', name: 'Living world', blurb: 'Keeps a young game from feeling empty.' },
   { id: 'recruit', name: 'Recruit a friend', blurb: 'Rewards for bringing new players in.' },
 ];

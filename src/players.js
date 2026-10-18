@@ -68,6 +68,10 @@ function createPlayerRepo(db) {
       LIMIT ?`),
     owned: db.prepare('SELECT item_id FROM inventory WHERE user_id = ?'),
     addItem: db.prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, acquired_at) VALUES (?, ?, ?)'),
+    conditions: db.prepare('SELECT item_id, condition FROM inventory WHERE user_id = ?'),
+    setCondition: db.prepare('UPDATE inventory SET condition = ? WHERE user_id = ? AND item_id = ?'),
+    removeItem: db.prepare('DELETE FROM inventory WHERE user_id = ? AND item_id = ?'),
+    unequipItem: db.prepare('DELETE FROM equipment WHERE user_id = ? AND item_id = ?'),
     equipped: db.prepare('SELECT slot, item_id FROM equipment WHERE user_id = ?'),
     equip: db.prepare(`INSERT INTO equipment (user_id, slot, item_id) VALUES (?, ?, ?)
                        ON CONFLICT(user_id, slot) DO UPDATE SET item_id = excluded.item_id`),
@@ -208,6 +212,14 @@ function createPlayerRepo(db) {
     listOnline: (since, limit = 200) => stmts.online.all(since, limit),
     ownedItemIds: (id) => new Set(stmts.owned.all(id).map((r) => r.item_id)),
     addItem: (id, itemId) => stmts.addItem.run(id, itemId, Date.now()),
+    /** Condition (0–100) of each item the player owns: Map of item id → condition. */
+    conditions: (id) => new Map(stmts.conditions.all(id).map((r) => [r.item_id, r.condition])),
+    setCondition: (id, itemId, condition) => stmts.setCondition.run(condition, id, itemId),
+    /** Takes an item out of the inventory (and off the player, if worn). */
+    removeItem(id, itemId) {
+      stmts.unequipItem.run(id, itemId);
+      return stmts.removeItem.run(id, itemId).changes > 0;
+    },
     /** { weapon: 'carbine', body: 'flak-vest', ... } for filled slots only. */
     equipment: (id) => Object.fromEntries(stmts.equipped.all(id).map((r) => [r.slot, r.item_id])),
     equip: (id, slot, itemId) => stmts.equip.run(id, slot, itemId),

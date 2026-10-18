@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const admin = require('../admin');
 const game = require('../game');
 const presence = require('../presence');
-const { loadoutView } = require('../armory');
+const { loadoutOf } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
 const bbcode = require('../bbcode');
 const support = require('../support');
@@ -101,7 +101,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       t,
       view: game.playerView(req.target, now),
       rank: game.rankFor(t.level),
-      rating: loadoutView(t.level, players.equipment(t.id), t).rating,
+      rating: loadoutOf(players, t).rating,
       trainingPoints: require('../training').pointsOf(t),
       maxLevel: admin.MAX_LEVEL,
       bioHtml: bbcode.render(t.bio || ''),

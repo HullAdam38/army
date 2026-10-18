@@ -1025,6 +1025,20 @@ The markup is in `views/partials/tabbar.ejs`.
 - `/online`: every player active in the last 5 minutes, sorted by level. Signing out removes you from the list straight away.
 - `/profile/:username`: a player's public service record, showing rank, level, online status or last seen, enlistment date, mission stats and recent operations. Email, cash, energy, health and hospital visits stay private.
 - `/armory`: your combat profile, loadout and inventory: everything you own, grouped by slot, with Equip and Stow. Other players can see your loadout on your profile.
+- **Gear condition:** every owned item has a condition from 0 to 100%. Equipped gear wears as you fight (inventory gear never does):
+
+  | Action | Weapon | Kit | Body armour | Helmet |
+  |---|---|---|---|---|
+  | Mission (won) | 0.5 | 0.25 | – | – |
+  | Mission (failed) | 0.5 | 0.25 | 1 | 1 |
+  | PvP attack | 1 | 0.5 | 1 | 1 |
+  | Defending in PvP | 0.5 | – | 1 | 1 |
+  | Raid strike | 1 | 0.5 | 0.5 | 0.5 |
+
+  Above 50% gear works at full power; below that its bonuses shrink, to half at 0%, so worn gear is weaker but never useless. Players are told when an item drops below 50% and 15%, and the loadout flags worn gear. Reserve soldiers' gear doesn't wear.
+- **Repairs** bring an item back to 100% for 30% of its price × the condition lost (a rifle at 50% costs 15% of its price), one at a time or everything at once (ledger reason `armory-repair`). They're a cash sink: `npm run balance` puts them at about 3–15% of a player's income, depending on how much they play.
+- **Selling:** the Armory buys gear back for 40% of its price in perfect condition, less when worn (half that at 0%); equipped gear can be sold too (ledger reason `armory-sale`). Sold gear can be bought again, good as new.
+- Game settings › Armory has *Gear wear* (0 turns it off), *Repair cost* and *Sale price*. Rules: `src/gear.js`.
 - `/armory/shop/weapons`, `/armory/shop/armour`, `/armory/shop/helmets`, `/armory/shop/kit` and `/armory/shop/supplies`: the shops, one per gear slot plus supplies. A menu across the top of every Armory page switches between the inventory and the shops. Buying an item equips it and brings you back to the same shop; new-gear notifications link straight to the right shop.
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report

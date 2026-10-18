@@ -9,6 +9,7 @@
         <span class="loadout__label"><%= s.label %></span>
         <span class="loadout__name"><%= s.item ? s.item.name : 'Empty' %></span>
         <% if (s.item) { %><span class="loadout__mods"><%= s.mods.join(' · ') %></span><% } %>
+        <% if (s.item && s.worn) { %><span class="loadout__worn">Worn: <%= Math.floor(s.condition) %>% condition</span><% } %>
       </span>
       <% if (typeof editable !== 'undefined' && editable && s.item) { %>
         <form method="post" action="/armory/unequip/<%= s.id %>">

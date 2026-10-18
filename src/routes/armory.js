@@ -4,7 +4,8 @@ const express = require('express');
 const supplies = require('../supplies');
 const game = require('../game');
 const { ITEMS_BY_ID, SLOTS } = require('../items');
-const { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryView, loadoutView, shopForSlot } = require('../armory');
+const { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryView, loadoutOf, shopForSlot } = require('../armory');
+const gear = require('../gear');
 const { createRequireAuth } = require('../require-auth');
 
 /**
@@ -20,13 +21,17 @@ function armoryRoutes(players) {
   router.get('/armory', requireAuth, (req, res) => {
     const owned = players.ownedItemIds(req.player.id);
     const equipment = players.equipment(req.player.id);
+    const inventory = inventoryView(owned, equipment, players.conditions(req.player.id));
+    const all = inventory.flatMap((s) => s.items);
     res.render('armory', {
       title: 'Armory',
       nav: 'armory',
       shops: SHOPS,
       active: 'inventory',
-      loadout: loadoutView(req.player.level, equipment, req.player),
-      inventory: inventoryView(owned, equipment),
+      loadout: loadoutOf(players, req.player),
+      inventory,
+      repairAll: all.reduce((n, i) => n + i.repairCost, 0),
+      fullPowerAt: gear.FULL_POWER_AT,
       stimLoaded: Boolean(req.player.stim_loaded),
     });
   });
@@ -88,6 +93,49 @@ function armoryRoutes(players) {
     const shop = item && shopForSlot(item.slot);
     if (!shop) return toInventory(res);
     res.redirect(shopUrl(shop, `#item-${item.id}`));
+  });
+
+  // Repairs: back to 100% for a share of the price (Game settings › Armory). `all` repairs everything owned.
+  router.post('/armory/repair/:id', requireAuth, (req, res) => {
+    const all = req.params.id === 'all';
+    const outcome = players.transaction(() => {
+      const fresh = players.findById(req.player.id);
+      const conditions = players.conditions(fresh.id);
+      const jobs = [...conditions].map(([id, condition]) => ({ item: ITEMS_BY_ID.get(id), condition }))
+        .filter((j) => j.item && (all || j.item.id === req.params.id) && j.condition < 100)
+        .map((j) => ({ ...j, cost: gear.repairCost(j.item, j.condition) }));
+      if (!all && !conditions.has(req.params.id)) return { error: 'You don’t own that.' };
+      if (!jobs.length) return { error: all ? 'Everything you own is in perfect condition.' : 'That’s already in perfect condition.' };
+      const cost = jobs.reduce((n, j) => n + j.cost, 0);
+      if (fresh.cash < cost) return { error: `That repair costs $${cost.toLocaleString('en-US')}. You have $${fresh.cash.toLocaleString('en-US')} in cash.` };
+      fresh.cash -= cost;
+      players.save(fresh, { reason: 'armory-repair', ref: all ? 'all' : jobs[0].item.id });
+      for (const j of jobs) players.setCondition(fresh.id, j.item.id, 100);
+      return { cost, jobs };
+    });
+    if (outcome.error) req.flash('error', outcome.error);
+    else req.flash('success', `${outcome.jobs.length === 1 ? outcome.jobs[0].item.name : `${outcome.jobs.length} items`} repaired to 100% for $${outcome.cost.toLocaleString('en-US')}.`);
+    const one = !all && ITEMS_BY_ID.get(String(req.params.id));
+    toInventory(res, one ? one.slot : null);
+  });
+
+  // Selling: the Armory buys gear back for a share of its price, less for worn gear.
+  router.post('/armory/sell/:id', requireAuth, (req, res) => {
+    const outcome = players.transaction(() => {
+      const fresh = players.findById(req.player.id);
+      const item = ITEMS_BY_ID.get(String(req.params.id));
+      const conditions = players.conditions(fresh.id);
+      if (!item || !conditions.has(item.id)) return { error: 'You don’t own that.' };
+      const value = gear.saleValue(item, conditions.get(item.id));
+      if (!players.removeItem(fresh.id, item.id)) return { error: 'You don’t own that.' };
+      fresh.cash += value;
+      players.save(fresh, { reason: 'armory-sale', ref: item.id });
+      players.log(fresh.id, 'system', `Sold the ${item.name} for $${value.toLocaleString('en-US')}.`);
+      return { item, value };
+    });
+    if (outcome.error) req.flash('error', outcome.error);
+    else req.flash('success', `${outcome.item.name} sold for $${outcome.value.toLocaleString('en-US')}.`);
+    toInventory(res, outcome.item && outcome.item.slot);
   });
 
   router.post('/armory/equip/:id', requireAuth, (req, res) => {

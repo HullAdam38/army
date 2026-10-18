@@ -3,7 +3,7 @@
 const express = require('express');
 const training = require('../training');
 const game = require('../game');
-const { loadoutView } = require('../armory');
+const { loadoutOf } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
 
 function trainingRoutes(players, daily) {
@@ -16,7 +16,7 @@ function trainingRoutes(players, daily) {
       title: 'Training',
       nav: 'training',
       stats: Object.keys(training.STATS).map((key) => training.statView(me, key)),
-      loadout: loadoutView(me.level, players.equipment(me.id), me),
+      loadout: loadoutOf(players, me),
       energyPerSession: training.ENERGY_PER_SESSION,
       perLevel: training.POINTS_PER_LEVEL,
       missions: game.MISSIONS.map((m) => ({ name: m.name, favours: training.STATS[m.favours].label, minLevel: m.minLevel })),

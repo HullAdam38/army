@@ -5,6 +5,7 @@ const tuning = require('./tuning');
 const units = require('./units');
 const game = require('./game');
 const { statsOf } = require('./armory');
+const gear = require('./gear');
 const { announceLevels } = require('./notify');
 
 const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
@@ -138,6 +139,7 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
       if (player.health >= player.max_health) player.health_updated_at = now;
       player.health = Math.max(1, player.health - hit.hurt);
       players.save(player, { reason: 'raid-strike', ref: `raid:${raid.id}` });
+      gear.wear(players, userId, 'strike', now);
       const dealt = Math.min(hit.damage, raid.hp);
       stmts.damage.run(dealt, raid.id);
       stmts.hit.run(raid.id, userId, dealt, now);

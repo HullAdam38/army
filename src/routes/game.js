@@ -5,7 +5,8 @@ const game = require('../game');
 const { wantsJson } = require('../middleware');
 const presence = require('../presence');
 const armory = require('../armory');
-const { loadoutView } = armory;
+const gear = require('../gear');
+const { loadoutOf } = armory;
 const pvp = require('../pvp');
 const { createRequireAuth } = require('../require-auth');
 const { PLAYER_SORTS } = require('../players');
@@ -70,7 +71,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         return s ? { number: s.number, placement: seasonRules.placementFights(), ...seasonService.standing(s, req.player.id) } : null;
       })(),
       upcomingEvents: eventService.upcoming(Date.now(), 3).filter((e) => e.starts_at - Date.now() < 7 * 24 * 3600 * 1000),
-      loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
+      loadout: loadoutOf(players, req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
       target: targetService && req.player.level >= pvp.MIN_PVP_LEVEL ? targetService.view(req.player) : null,
       // No unit yet: invitations waiting, and a few units recruiting players like them.
@@ -135,6 +136,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       if (out.error) return out;
       players.save(out.player, { reason: 'mission', ref: req.params.id });
       const r = out.result;
+      gear.wear(players, fresh.id, r.success ? 'mission' : 'missionFailed');
       players.log(
         fresh.id,
         r.success ? 'success' : 'failure',
@@ -187,7 +189,9 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
   router.post('/operations/:id', requireAuth, (req, res) => {
     const outcome = players.transaction(() => {
       const fresh = players.findById(req.player.id);
-      return operationService.run(fresh.id, String(req.params.id), { stats: statsOf(fresh), ...bonusesFor(fresh) });
+      const out = operationService.run(fresh.id, String(req.params.id), { stats: statsOf(fresh), ...bonusesFor(fresh) });
+      if (!out.error) gear.wear(players, fresh.id, out.result.success ? 'mission' : 'missionFailed');
+      return out;
     });
     if (outcome.error) {
       req.flash('error', outcome.error);
@@ -259,7 +263,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         level: u.level,
         rank: rank.name,
         grade: rank.grade,
-        rating: loadoutView(u.level, players.equipment(u.id)).rating,
+        rating: loadoutOf(players, u, { trained: false }).rating,
         wins: u.pvp_wins,
         losses: u.pvp_losses,
         hospitalized: game.isHospitalized(u, now),
@@ -291,7 +295,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       sorts: [['level', 'Level'], ['wins', 'PvP wins'], ['newest', 'Newest'], ['name', 'Name']],
       urlFor,
       selfBlocker,
-      myRating: loadoutView(me.level, players.equipment(me.id), me).rating,
+      myRating: loadoutOf(players, me).rating,
       attackEnergy: pvp.ATTACK_ENERGY,
       backUrl: req.originalUrl,
       target: targetService ? targetService.view(me) : null,
@@ -310,7 +314,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     const attack = isYou ? null : {
       blocker: pvp.attackBlocker(me, them, { now, lastAttackAt: players.lastAttackAt(me.id, them.id) }),
       energy: pvp.ATTACK_ENERGY,
-      yourRating: loadoutView(me.level, players.equipment(me.id), me).rating,
+      yourRating: loadoutOf(players, me).rating,
     };
     res.render('profile', {
       title: user.username,
@@ -374,7 +378,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         rules: { min: bounties.MIN_BOUNTY, feePct: Math.round(bounties.FEE_RATE * 100) },
       },
       battles: players.battlesFor(user.id, 6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at, now) })),
-      loadout: loadoutView(user.level, players.equipment(user.id)),
+      loadout: loadoutOf(players, user, { trained: false }),
       activity: players.publicActivity(user.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
     });
   });

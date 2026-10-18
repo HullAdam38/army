@@ -845,6 +845,7 @@ const ADDED_COLUMNS = [
   ['users', 'casino_blackjacks', 'INTEGER NOT NULL DEFAULT 0'],
   ['chat_messages', 'kind', 'TEXT'], // null for players' messages; 'casino' for big-win shouts
   ['users', 'lfu_at', 'INTEGER'], // looking for a unit since (shown to unit officers)
+  ['inventory', 'condition', 'REAL NOT NULL DEFAULT 100'], // gear condition, 0–100% (src/gear.js)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
   ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
   ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players

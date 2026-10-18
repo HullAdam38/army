@@ -107,8 +107,10 @@ test('casino lobby and slot machine through the app', async () => {
     assert.equal(s.player.cash, 1000 + s.net);
     assert.deepEqual(s.today, { plays: 1, wagered: 100, won: s.payout, best: s.payout - 100, net: s.net });
     if (s.net) assert.equal(db.prepare("SELECT delta_cash FROM ledger WHERE user_id = ? AND reason = 'casino-slots'").get(ace.id).delta_cash, s.net);
-    // Spinning again straight away is too fast.
+    // Spinning again straight away is too fast. (The last spin is pinned to "just now" so a slow test machine can't outrun the cooldown.)
+    db.prepare('UPDATE casino_plays SET created_at = ? WHERE user_id = ?').run(Date.now() + 60_000, ace.id);
     assert.match((await ace.spin(100)).error, /still turning/);
+    db.prepare('UPDATE casino_plays SET created_at = ? WHERE user_id = ?').run(Date.now(), ace.id);
 
     // Without JavaScript: the form posts, and the page shows the result once.
     age();

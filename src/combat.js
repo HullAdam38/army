@@ -137,7 +137,7 @@ function describeModifier(m) {
   const abs = Math.abs(m.value);
   if (m.kind === 'more') return `×${(1 + m.value).toFixed(2)} ${noun}`;
   if (m.kind === 'increased' || PERCENT_STATS.has(m.stat)) return `${sign}${Math.round(abs * 100)}% ${noun}`;
-  return `${sign}${abs} ${noun}`;
+  return `${sign}${Number(abs.toFixed(1))} ${noun}`; // worn gear scales values, so keep them short
 }
 
 module.exports = {

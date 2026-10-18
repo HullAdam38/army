@@ -2,11 +2,12 @@
 
 const { ITEMS, ITEMS_BY_ID, SLOTS } = require('./items');
 const combat = require('./combat');
+const gear = require('./gear');
 const { statsFor, gearBonus } = require('./game');
 
 /** A player's real combat stats: equipped gear plus training. */
 function statsOf(players, user) {
-  return statsFor(user.level, Object.values(players.equipment(user.id)), user);
+  return statsFor(user.level, Object.values(players.equipment(user.id)), user, players.conditions(user.id));
 }
 
 /** Checks a purchase. Returns { error } or { item, cost }. */
@@ -32,9 +33,9 @@ function checkEquip(itemId, player, owned) {
  * the player row as `trained` for their true stats (own pages, scouting);
  * without it you get the gear-only view everyone else sees.
  */
-function loadoutView(level, equipment, trained = null) {
+function loadoutView(level, equipment, trained = null, conditions = null) {
   const itemIds = Object.values(equipment);
-  const stats = statsFor(level, itemIds, trained);
+  const stats = statsFor(level, itemIds, trained, conditions);
   return {
     stats,
     rating: combat.combatRating(stats),
@@ -43,7 +44,8 @@ function loadoutView(level, equipment, trained = null) {
     gearBonusPct: Math.round(gearBonus(level, stats) * 100),
     slots: SLOTS.map((slot) => {
       const item = ITEMS_BY_ID.get(equipment[slot.id]) || null;
-      return { ...slot, item, mods: item ? item.mods.map(combat.describeModifier) : [] };
+      const condition = item && conditions && conditions.has(item.id) ? conditions.get(item.id) : 100;
+      return { ...slot, item, condition, worn: condition < gear.FULL_POWER_AT, mods: item ? gear.scaledMods(item, condition).map(combat.describeModifier) : [] };
     }),
   };
 }
@@ -60,14 +62,29 @@ const SHOPS_BY_ID = new Map(SHOPS.map((s) => [s.id, s]));
 /** The shop that sells gear for `slotId`. */
 const shopForSlot = (slotId) => SHOPS.find((s) => s.slot === slotId) || null;
 
-/** Owned gear grouped by slot, best first, for the inventory. */
-function inventoryView(owned, equipment) {
+/** A player's loadout, with their training and their gear's condition. `trained: false` for the view others see. */
+const loadoutOf = (players, user, { trained = true } = {}) => loadoutView(user.level, players.equipment(user.id), trained ? user : null, players.conditions(user.id));
+
+/** Owned gear grouped by slot, best first, for the inventory: condition, repair cost and sale value included. */
+function inventoryView(owned, equipment, conditions = new Map()) {
   return SLOTS.map((slot) => ({
     ...slot,
     shop: shopForSlot(slot.id),
     items: ITEMS.filter((i) => i.slot === slot.id && owned.has(i.id))
       .sort((a, b) => b.minLevel - a.minLevel)
-      .map((item) => ({ ...item, equipped: equipment[slot.id] === item.id, modText: item.mods.map(combat.describeModifier) })),
+      .map((item) => {
+        const condition = conditions.has(item.id) ? conditions.get(item.id) : 100;
+        return {
+          ...item,
+          equipped: equipment[slot.id] === item.id,
+          condition,
+          conditionLabel: gear.conditionLabel(condition),
+          power: Math.round(gear.effectiveness(condition) * 100),
+          repairCost: gear.repairCost(item, condition),
+          saleValue: gear.saleValue(item, condition),
+          modText: gear.scaledMods(item, condition).map(combat.describeModifier),
+        };
+      }),
   }));
 }
 
@@ -86,4 +103,4 @@ function catalogueView(player, owned, equipment) {
   }));
 }
 
-module.exports = { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryView, loadoutView, shopForSlot, statsOf };
+module.exports = { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryView, loadoutOf, loadoutView, shopForSlot, statsOf };

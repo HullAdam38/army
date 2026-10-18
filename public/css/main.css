@@ -3554,6 +3554,15 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .inventory__item.is-equipped .inventory__name::after { content: ' · Equipped'; font-weight: 600; font-size: 0.78rem; color: var(--health); }
 .inventory__mods { font-size: 0.85rem; color: var(--text-muted); }
 .inventory__empty { margin: 0; }
+.inventory__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.inventory__head .section-title { margin-bottom: 0; }
+.inventory__note { margin: 6px 0 14px; max-width: 46rem; }
+.inventory__item { grid-template-columns: minmax(0, 1fr); }
+.inventory__condition { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 4px; font-family: var(--font-ui); font-size: 0.78rem; color: var(--text-muted); }
+.inventory__meter { flex: 0 1 8rem; min-width: 5rem; }
+.inventory__item.is-worn .inventory__condition { color: var(--energy); }
+.inventory__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.loadout__worn { display: block; font-family: var(--font-ui); font-size: 0.75rem; color: var(--energy); }
 .launch-summary { margin-bottom: 16px; }
 .launch-list { display: grid; gap: 12px; margin: 0 0 20px; padding: 0; list-style: none; }
 .launch-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; }

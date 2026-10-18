@@ -32,7 +32,16 @@
   </section>
 
   <section class="reveal" style="--i:2" aria-labelledby="inventory-title">
-    <h2 id="inventory-title" class="section-title">Inventory</h2>
+    <div class="inventory__head">
+      <h2 id="inventory-title" class="section-title">Inventory</h2>
+      <% if (repairAll) { %>
+        <form method="post" action="/armory/repair/all">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Repair everything · $<%= repairAll.toLocaleString('en-US') %></button>
+        </form>
+      <% } %>
+    </div>
+    <p class="muted small inventory__note">Gear wears as you fight: weapons when you strike, armour and helmets when you take hits. Below <%= fullPowerAt %>% it starts losing power (half power at 0%). Repair it here, or sell what you’ve outgrown.</p>
     <div class="inventory">
       <% inventory.forEach(function (slot) { %>
         <section class="card inventory__slot" id="inv-<%= slot.id %>" aria-labelledby="inv-<%= slot.id %>-title">
@@ -40,22 +49,38 @@
           <% if (slot.items.length) { %>
             <ul class="inventory__list">
               <% slot.items.forEach(function (item) { %>
-                <li class="inventory__item<%= item.equipped ? ' is-equipped' : '' %>">
+                <li class="inventory__item<%= item.equipped ? ' is-equipped' : '' %><%= item.power < 100 ? ' is-worn' : '' %>">
                   <span class="inventory__body">
                     <span class="inventory__name"><%= item.name %></span>
                     <span class="inventory__mods"><%= item.modText.join(' · ') %></span>
+                    <span class="inventory__condition">
+                      <span class="meter <%= item.condition >= 50 ? 'meter--health' : 'meter--energy' %> inventory__meter" role="meter" aria-label="Condition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.floor(item.condition) %>"><span class="meter__fill" style="width:<%= Math.max(2, item.condition) %>%"></span></span>
+                      <span><%= item.conditionLabel %> · <%= Math.floor(item.condition) %>%<%= item.power < 100 ? ` · ${item.power}% power` : '' %></span>
+                    </span>
                   </span>
-                  <% if (item.equipped) { %>
-                    <form method="post" action="/armory/unequip/<%= slot.id %>">
+                  <span class="inventory__actions">
+                    <% if (item.equipped) { %>
+                      <form method="post" action="/armory/unequip/<%= slot.id %>">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn--ghost btn--sm" type="submit" aria-label="Stow <%= item.name %>">Stow</button>
+                      </form>
+                    <% } else { %>
+                      <form method="post" action="/armory/equip/<%= item.id %>">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn--primary btn--sm" type="submit" aria-label="Equip <%= item.name %>">Equip</button>
+                      </form>
+                    <% } %>
+                    <% if (item.repairCost) { %>
+                      <form method="post" action="/armory/repair/<%= item.id %>">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn--ghost btn--sm" type="submit" aria-label="Repair <%= item.name %> for $<%= item.repairCost.toLocaleString('en-US') %>">Repair $<%= item.repairCost.toLocaleString('en-US') %></button>
+                      </form>
+                    <% } %>
+                    <form method="post" action="/armory/sell/<%= item.id %>" data-confirm="Sell the <%= item.name %> for $<%= item.saleValue.toLocaleString('en-US') %>?<%= item.equipped ? ' It’s equipped, so that slot will be empty.' : '' %>">
                       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                      <button class="btn btn--ghost btn--sm" type="submit" aria-label="Stow <%= item.name %>">Stow</button>
+                      <button class="btn btn--ghost btn--danger btn--sm" type="submit" aria-label="Sell <%= item.name %> for $<%= item.saleValue.toLocaleString('en-US') %>">Sell $<%= item.saleValue.toLocaleString('en-US') %></button>
                     </form>
-                  <% } else { %>
-                    <form method="post" action="/armory/equip/<%= item.id %>">
-                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                      <button class="btn btn--primary btn--sm" type="submit" aria-label="Equip <%= item.name %>">Equip</button>
-                    </form>
-                  <% } %>
+                  </span>
                 </li>
               <% }) %>
             </ul>

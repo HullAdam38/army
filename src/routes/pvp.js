@@ -5,6 +5,7 @@ const game = require('../game');
 const pvp = require('../pvp');
 const presence = require('../presence');
 const { statsOf } = require('../armory');
+const gear = require('../gear');
 const scouting = require('../scouting');
 const supplies = require('../supplies');
 const { createRequireAuth } = require('../require-auth');
@@ -46,6 +47,8 @@ function pvpRoutes(players, anti, daily, warService, bountyService, seasonServic
       const id = players.recordBattle(attacker.id, defender.id, r, now);
       players.save(out.attacker, { reason: 'pvp', ref: `battle:${id}` });
       players.save(out.defender, { reason: 'pvp', ref: `battle:${id}` });
+      gear.wear(players, attacker.id, 'attack', now);
+      gear.wear(players, defender.id, 'defend', now);
       const link = `/battles/${id}`;
       // Season rating: only full-reward fights are ranked (see seasons.isRanked).
       const linked = anti.linked(attacker.id, defender.id, now); // same device or network

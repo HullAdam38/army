@@ -480,10 +480,11 @@ function regenTo(player, now) {
 /**
  * Combat stats for a player at `level` wearing the given item ids. Pass the
  * player row as `trained` to include their (secret) training; leave it out
- * for the gear-only view other players see.
+ * for the gear-only view other players see. `conditions` (item id → 0–100)
+ * weakens worn gear.
  */
-function statsFor(level, itemIds = [], trained = null) {
-  return combat.buildStats(level, [...modifiersFor(itemIds), ...training.modifiersFor(trained)]);
+function statsFor(level, itemIds = [], trained = null, conditions = null) {
+  return combat.buildStats(level, [...modifiersFor(itemIds, conditions), ...training.modifiersFor(trained)]);
 }
 
 /**

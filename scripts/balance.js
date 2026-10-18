@@ -91,7 +91,7 @@ function run(profile, days = 30) {
     }
     levelAt[d + 1] = p.level;
   }
-  return { profile: profile.name, levelAt, income, xpFrom, gearSpend, cash: p.cash, gear: Object.values(gear).map((g) => g.name), missionCount, energySpent };
+  return { profile: profile.name, levelAt, income, xpFrom, gearSpend, cash: p.cash, gear: Object.values(gear).map((g) => g.name), gearItems: Object.values(gear), missionCount, missionsFailed: p.missions_failed, energySpent };
 }
 
 const profiles = [
@@ -173,3 +173,19 @@ for (const [name, edge] of Object.entries(houseEdge)) {
   console.log(`${name}: house edge ${(edge * 100).toFixed(2)}% → keeps ${fmt(edge * 100000)} of every $100,000 bet; a Regular player betting their whole month's income (${fmt(monthly)}) once loses about ${fmt(edge * monthly)}`);
 }
 console.log('Casino play is optional, so it is a cash sink for those who choose it and never adds money to the game on average.');
+
+// ---- Gear upkeep: repairs as a cash sink, and what selling outgrown gear gives back ----
+const gearRules = require(path + 'gear');
+const tuningRules = require(path + 'tuning');
+console.log('\n== Gear upkeep over 30 days (missions only; PvP and raids wear gear faster)');
+for (const pr of profiles) {
+  const r = run(pr);
+  const income = r.income.missions + r.income.deployments + r.income.daily;
+  const mult = tuningRules.get('gearWearMult');
+  const fails = r.missionsFailed || Math.round(r.missionCount * 0.15);
+  const points = { weapon: (r.missionCount * gearRules.WEAR.mission.weapon) * mult, kit: (r.missionCount * gearRules.WEAR.mission.kit) * mult, body: fails * gearRules.WEAR.missionFailed.body * mult, helmet: fails * gearRules.WEAR.missionFailed.helmet * mult };
+  // Priced at the gear they end the month with, so an upper bound.
+  const repairs = r.gearItems.reduce((n, item) => n + (item.price * tuningRules.get('gearRepairShare') * (points[item.slot] || 0)) / 100, 0);
+  const resale = Math.max(0, r.gearSpend - r.gearItems.reduce((n, i) => n + i.price, 0)) * tuningRules.get('gearSellShare') * 0.75;
+  console.log(`${r.profile}: weapon wear ${Math.round(points.weapon)} points (${(points.weapon / 100).toFixed(1)} full repairs) · repairs about ${fmt(repairs)} (${(100 * repairs / income).toFixed(1)}% of income) · selling outgrown gear returns about ${fmt(resale)}`);
+}

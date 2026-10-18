@@ -210,12 +210,15 @@ const ITEMS = [
 const ITEMS_BY_ID = new Map(ITEMS.map((i) => [i.id, i]));
 
 /** Modifiers from a set of equipped item ids, tagged with their source. */
-function modifiersFor(itemIds) {
+/** Modifiers from the given items. `conditions` (item id → 0–100) weakens worn gear (see src/gear.js). */
+function modifiersFor(itemIds, conditions = null) {
+  const { scaledMods } = require('./gear'); // required here: gear.js reads this module's catalogue
   const mods = [];
   for (const id of itemIds) {
     const item = ITEMS_BY_ID.get(id);
     if (!item) continue;
-    for (const m of item.mods) mods.push({ ...m, source: item.name });
+    const condition = conditions && conditions.has(id) ? conditions.get(id) : 100;
+    for (const m of scaledMods(item, condition)) mods.push({ ...m, source: item.name });
   }
   return mods;
 }
