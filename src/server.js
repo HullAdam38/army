@@ -54,6 +54,7 @@ const { createTheatreService } = require('./theatre-service');
 const { createSupportService } = require('./support-service');
 const { createCasinoService } = require('./casino-service');
 const { createBlackjackService } = require('./blackjack-service');
+const { createCasinoPlayer } = require('./casino-player');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
@@ -126,10 +127,11 @@ function createApp({
   const supportService = createSupportService(db, players, { alertStaff: (adminId, message, link) => pushService.staff(adminId, message, link) });
   supportService.schedule();
   app.support = supportService; // exposed for tests
-  const casinoService = createCasinoService(db, players);
+  const casinoPlayer = createCasinoPlayer(db);
+  const casinoService = createCasinoService(db, players, casinoPlayer);
   casinoService.schedule();
   app.casino = casinoService; // exposed for tests
-  const blackjackService = createBlackjackService(db, players);
+  const blackjackService = createBlackjackService(db, players, { casinoPlayer });
   blackjackService.schedule();
   app.blackjack = blackjackService; // exposed for tests
   const eventService = createEventService(db, {

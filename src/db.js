@@ -210,6 +210,16 @@ const SCHEMA = `
     UNIQUE (unit_id, user_id)
   );
   CREATE INDEX IF NOT EXISTS idx_unit_apps_user ON unit_applications(user_id);
+  -- Invitations an officer sent to a player who is looking for a unit.
+  CREATE TABLE IF NOT EXISTS unit_invites (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    unit_id     INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    invited_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at  INTEGER NOT NULL,
+    UNIQUE (unit_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_unit_invites_user ON unit_invites(user_id);
 
   CREATE TABLE IF NOT EXISTS unit_posts (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -815,6 +825,15 @@ const ADDED_COLUMNS = [
   ['raids', 'supply_cost', 'INTEGER'], // what the unit paid, so HQ can refund a cancelled raid
   ['users', 'support_alerts', 'INTEGER NOT NULL DEFAULT 1'], // admins: push alerts for new support tickets
   ['casino_plays', 'variance', 'REAL'], // the play's statistical variance, for spotting unusual luck (Admin › Casino)
+  ['users', 'casino_loss_limit', 'INTEGER'], // the player's own daily loss limit (src/casino-player.js); null for none
+  ['users', 'casino_limit_next', 'INTEGER'], // a looser limit waiting to apply (0 = remove it)…
+  ['users', 'casino_limit_next_at', 'INTEGER'], // …from this time
+  ['users', 'casino_break_until', 'INTEGER'], // a break the player took from the casino
+  ['users', 'casino_wagered', 'INTEGER NOT NULL DEFAULT 0'], // career totals for the casino medals
+  ['users', 'casino_big_wins', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'casino_blackjacks', 'INTEGER NOT NULL DEFAULT 0'],
+  ['chat_messages', 'kind', 'TEXT'], // null for players' messages; 'casino' for big-win shouts
+  ['users', 'lfu_at', 'INTEGER'], // looking for a unit since (shown to unit officers)
 ];
 
 function migrate(db) {
@@ -829,6 +848,8 @@ function migrate(db) {
   db.exec('CREATE INDEX IF NOT EXISTS idx_chat_deleted ON chat_messages(channel, deleted_at) WHERE deleted_at IS NOT NULL');
   // Lets the anti-cheat ledger audit add up each player's history from the index alone.
   db.exec('CREATE INDEX IF NOT EXISTS idx_ledger_sums ON ledger(user_id, delta_cash, delta_bank)');
+  // A player's casino losses over the last 24 hours, for their loss limit, from the index alone.
+  db.exec('CREATE INDEX IF NOT EXISTS idx_casino_user_time ON casino_plays(user_id, created_at, bet, payout)');
   // First run with player_days: rebuild active days from the history the game already keeps.
   if (!db.prepare('SELECT 1 FROM player_days LIMIT 1').get() && db.prepare('SELECT 1 FROM users LIMIT 1').get()) {
     const day = (col) => `strftime('%Y-%m-%d', ${col} / 1000, 'unixepoch')`;

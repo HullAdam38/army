@@ -5,6 +5,7 @@ const slots = require('./slots');
 const roulette = require('./roulette');
 const game = require('./game');
 const tuning = require('./tuning');
+const { createCasinoPlayer } = require('./casino-player');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const KEEP_MS = 30 * DAY_MS;
@@ -15,7 +16,7 @@ const SLOTS_VARIANCE = slots.returnToPlayer().variance; // per $1 bet
  * the net result (reason `casino-<game>`), and a row in casino_plays for the
  * player's history and the big-wins board.
  */
-function createCasinoService(db, players) {
+function createCasinoService(db, players, casinoPlayer = createCasinoPlayer(db)) {
   const stmts = {
     insert: db.prepare('INSERT INTO casino_plays (user_id, game, bet, payout, mult, result, created_at, variance) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'),
     lastAt: db.prepare('SELECT MAX(created_at) AS at FROM casino_plays WHERE user_id = ?'),
@@ -32,11 +33,12 @@ function createCasinoService(db, players) {
     if (!tuning.get('casinoOpen')) return 'The casino is closed for now. Check back later.';
     const min = tuning.get('casinoMinLevel');
     if (player.level < min) return `The casino opens at level ${min}.`;
-    return null;
+    return casinoPlayer.breakBlocker(player);
   }
 
   return {
     blocker,
+    player: casinoPlayer,
     limits: () => ({ minBet: slots.MIN_BET, maxBet: tuning.get('slotsMaxBet') }),
     rouletteLimits: () => ({ minChip: roulette.MIN_CHIP, maxBet: tuning.get('rouletteMaxBet'), maxSpots: roulette.MAX_SPOTS }),
 
@@ -51,10 +53,13 @@ function createCasinoService(db, players) {
       const b = slots.checkBet(rawBet, { cash: player.cash, maxBet: tuning.get('slotsMaxBet') });
       if (b.error) return b;
       if (now - (stmts.lastAt.get(userId).at || 0) < slots.SPIN_COOLDOWN_MS) return { error: 'The reels are still turning. Give it a moment.' };
+      const limited = casinoPlayer.stakeBlocker(userId, b.bet, now);
+      if (limited) return { error: limited };
       const result = slots.spin(b.bet, randomInt);
       const id = Number(stmts.insert.run(userId, 'slots', b.bet, result.payout, result.mult, JSON.stringify({ line: result.line, kind: result.kind }), now, b.bet * b.bet * SLOTS_VARIANCE).lastInsertRowid);
       player.cash += result.payout - b.bet;
       players.save(player, { reason: 'casino-slots', ref: `casino:${id}` });
+      casinoPlayer.record({ userId, username: player.username, game: 'slots', bet: b.bet, payout: result.payout, detail: result.mult >= slots.BIG_WIN ? `a ${result.mult}× ${result.kind === 'three' && result.line[0] === 'star' ? 'jackpot' : 'line'}` : null, now });
       return { ...result, bet: b.bet, net: result.payout - b.bet, text: slots.describe(result), cash: player.cash, playId: id, player };
     },
 
@@ -69,12 +74,15 @@ function createCasinoService(db, players) {
       const b = roulette.checkBets(rawBets, { cash: player.cash, maxBet: tuning.get('rouletteMaxBet') });
       if (b.error) return b;
       if (now - (stmts.lastAt.get(userId).at || 0) < slots.SPIN_COOLDOWN_MS) return { error: 'The wheel is still turning. Give it a moment.' };
+      const limited = casinoPlayer.stakeBlocker(userId, b.total, now);
+      if (limited) return { error: limited };
       const wheel = roulette.spin(randomInt);
       const { payout, winners } = roulette.settle(b.bets, wheel.number);
       const mult = Math.round((payout / b.total) * 100) / 100;
       const id = Number(stmts.insert.run(userId, 'roulette', b.total, payout, mult, JSON.stringify({ number: wheel.number, bets: b.bets }), now, roulette.varianceOf(b.bets)).lastInsertRowid);
       player.cash += payout - b.total;
       players.save(player, { reason: 'casino-roulette', ref: `casino:${id}` });
+      casinoPlayer.record({ userId, username: player.username, game: 'roulette', bet: b.total, payout, detail: payout > b.total ? `the ball on ${wheel.number}` : null, now });
       return { ...wheel, bets: b.bets, total: b.total, payout, mult, net: payout - b.total, winners, cash: player.cash, playId: id, player };
     },
 

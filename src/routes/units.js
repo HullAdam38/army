@@ -89,6 +89,13 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
       total: unitRepo.count(),
       mine,
       applications: unitRepo.pendingForUser(req.player.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
+      // Help for players without a unit: invitations, units they could join now, and the "looking" flag.
+      invites: mine ? [] : unitRepo.invitesFor(req.player.id, now).map((i) => ({ ...i, ago: presence.timeAgo(i.created_at, now), full: i.members >= units.capacity(i) })),
+      recommended: mine || q ? [] : (() => {
+        const applied = new Set(unitRepo.pendingForUser(req.player.id).map((a) => a.unit_id));
+        return unitRepo.recommended(req.player, { limit: 3, now }).map((u) => ({ ...u, capacity: units.capacity(u), applied: applied.has(u.id), requirements: units.requirementList(u) }));
+      })(),
+      looking: Boolean(req.player.lfu_at),
       foundBlocker: units.foundBlocker(req.player, now),
       createCost: units.CREATE_COST,
       createLevel: units.CREATE_LEVEL,
@@ -184,6 +191,7 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
       upgrades: Object.entries(units.UPGRADES).map(([key, def]) => ({
         key, ...def, level: unit[key] || 0, max: def.costs.length, next: units.nextUpgrade(unit, key), now: def.effect(unit[key] || 0),
       })),
+      lookingCount: units.can.review(role) ? unitRepo.lookingCount(now) : 0,
       applications: units.can.review(role) ? unitRepo.pendingForUnit(unit.id).map((a) => ({ ...a, html: bbcode.render(a.message), ago: presence.timeAgo(a.created_at, now) })) : [],
       objectives: objectiveService ? objectiveService.view(unit.id, now) : null,
       rally: (() => {
@@ -415,6 +423,94 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
     unitRepo.deletePost(post.id);
     return { ok: 'Post deleted.' };
   }, `${urlOf(req.unit)}#board`));
+
+  // ---- Finding recruits: players flag that they're looking, officers invite them ----
+  router.post('/units/looking', requireAuth, (req, res) => {
+    const on = req.body.looking === 'on';
+    const out = players.transaction(() => {
+      const me = players.findById(req.player.id);
+      if (me.unit_id) return { error: 'You’re already in a unit.' };
+      unitRepo.setLooking(me.id, on);
+      return { ok: on ? 'You’re on the list of soldiers looking for a unit. Officers can now invite you.' : 'You’re off the list. Officers won’t see you as looking any more.' };
+    });
+    req.flash(out.error ? 'error' : 'success', out.error || out.ok);
+    res.redirect('/units#looking');
+  });
+
+  router.post('/units/invites/:inviteId/:decision', requireAuth, oneOf('decision', ['accept', 'decline']), (req, res) => {
+    const out = players.transaction(() => {
+      const me = players.findById(req.player.id);
+      const invite = unitRepo.invitation(Number(req.params.inviteId), me.id);
+      if (!invite) return { error: 'That invitation has expired.' };
+      const unit = unitRepo.findById(invite.unit_id);
+      if (!unit) { unitRepo.deleteInvite(invite.id); return { error: 'That unit has been disbanded.' }; }
+      if (req.params.decision === 'decline') {
+        unitRepo.deleteInvite(invite.id);
+        return { ok: `You turned down the invitation from ${unit.name}.` };
+      }
+      if (me.unit_id) return { error: 'You’re already in a unit. Leave it first.' };
+      const blocker = units.cooldownBlocker(me);
+      if (blocker) return { error: blocker };
+      if (unitRepo.memberCount(unit.id) >= units.capacity(unit)) return { error: `${unit.name} is full now. Ask their officers to make room.` };
+      if (!unitRepo.join(unit.id, me.id)) return { error: 'You’re already in a unit.' };
+      const by = invite.invited_by ? players.findById(invite.invited_by) : null;
+      unitRepo.log(unit.id, 'join', `${me.username} joined, invited by ${by ? by.username : 'an officer'}.`);
+      players.log(me.id, 'unit', `Joined ${unit.name} [${unit.tag}].`, `/units/${unit.id}`);
+      const told = new Set([...unitRepo.officerIds(unit.id), ...(by && by.unit_id === unit.id ? [by.id] : [])]);
+      notifyAll(told, `${me.username} accepted ${by ? `${by.username}’s` : 'your'} invitation and joined ${unit.name}.`, `/units/${unit.id}#roster`, me.id);
+      return { ok: `Welcome to ${unit.name}.`, redirect: `/units/${unit.id}` };
+    });
+    req.flash(out.error ? 'error' : 'success', out.error || out.ok);
+    res.redirect(out.redirect || '/units#invites');
+  });
+
+  router.get('/units/:id/recruits', requireAuth, loadUnit, (req, res) => {
+    const { unit, role } = req;
+    if (!units.can.review(role)) {
+      req.flash('error', 'Only Sergeants and above can invite recruits.');
+      return res.redirect(urlOf(unit));
+    }
+    const now = Date.now();
+    const members = unitRepo.memberCount(unit.id);
+    res.render('unit-recruits', {
+      title: `Recruits · ${unit.name}`,
+      nav: 'unit',
+      unit: { ...unit, capacity: units.capacity(unit) },
+      members,
+      sentToday: unitRepo.invitesSentToday(unit.id, now),
+      maxInvites: units.MAX_INVITES_PER_DAY,
+      requirements: units.requirementList(unit),
+      recruits: unitRepo.looking(unit.id, { now }).map((r) => {
+        const rank = game.rankFor(r.level);
+        return {
+          ...r,
+          avatarUrl: `/avatars/${r.id}?v=${r.avatar_v || 0}`,
+          rank: rank.name,
+          grade: rank.grade,
+          online: presence.isOnline(r, now),
+          lastSeen: presence.timeAgo(r.last_seen_at, now),
+          since: presence.timeAgo(r.lfu_at, now),
+          unmet: units.unmetRequirement(r, unit),
+        };
+      }),
+    });
+  });
+
+  router.post('/units/:id/invite', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
+    const target = players.findById(Number(req.body.user));
+    const now = Date.now();
+    const blocker = units.inviteBlocker(role, unit, target, {
+      members: unitRepo.memberCount(unit.id),
+      sentToday: unitRepo.invitesSentToday(unit.id, now),
+      invited: target ? unitRepo.invitedRecently(unit.id, target.id, now) : false,
+    });
+    if (blocker) return { error: blocker, redirect: units.can.review(role) ? undefined : urlOf(unit) };
+    unitRepo.pruneInvites(now);
+    unitRepo.invite(unit.id, target.id, me.id, now);
+    unitRepo.log(unit.id, 'invite', `${me.username} invited ${target.username} to join.`);
+    players.notify(target.id, 'unit', `${units.roleLabel(role)} ${me.username} invited you to join ${unit.name} [${unit.tag}]. Accept it on the Units page.`, '/units#invites');
+    return { ok: `Invitation sent to ${target.username}. It lasts a week.` };
+  }, `${urlOf(req.unit)}/recruits`));
 
   router.post('/units/:id/war', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit: target }) => {
     if (me.unit_role !== 'leader') return { error: 'Only a unit Commander can declare war.' };

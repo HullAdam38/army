@@ -1,0 +1,67 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<%
+  const money = (n) => '$' + Math.round(Number(n)).toLocaleString('en-US');
+  const when = (ms) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+%>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow"><a href="/casino">Casino</a></p>
+      <h1 class="page-head__title">Your limits</h1>
+      <p class="page-head__sub">Decide how much you’re happy to lose, or step away for a while. Only you can set these, and HQ won’t lift them early.</p>
+    </div>
+  </div>
+
+  <div class="casino-limits">
+    <section class="card reveal" style="--i:1" aria-labelledby="limit-title">
+      <h2 id="limit-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-cash"/></svg>Daily loss limit</h2>
+      <p class="muted">The most you can lose at the casino in any 24 hours, across every game. Winnings in that time count against your losses, and bets on a blackjack table count until the hand is paid.</p>
+      <dl class="casino-limits__now">
+        <div><dt>Your limit</dt><dd><%= s.limit === null ? 'None' : money(s.limit) %></dd></div>
+        <div><dt>Lost in the last 24 hours</dt><dd><%= money(s.lost) %></dd></div>
+        <% if (s.limit !== null) { %><div><dt>Left to stake</dt><dd class="<%= s.room ? '' : 'is-down' %>"><%= money(s.room) %></dd></div><% } %>
+      </dl>
+      <% if (s.next !== undefined) { %>
+        <div class="notice casino-limits__pending">
+          <p><%= s.next === null ? 'Your limit will be removed' : `Your limit goes up to ${money(s.next)}` %> at <time datetime="<%= new Date(s.nextAt).toISOString() %>"><%= when(s.nextAt) %></time>.</p>
+          <form method="post" action="/casino/limits/cancel">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn--ghost btn--sm" type="submit">Keep my current limit</button>
+          </form>
+        </div>
+      <% } %>
+      <form method="post" action="/casino/limits" class="form casino-limits__form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="limit">New daily loss limit</label>
+          <input id="limit" name="limit" inputmode="numeric" placeholder="e.g. 5,000" value="<%= s.limit === null ? '' : s.limit %>" autocomplete="off" aria-describedby="limit-hint">
+          <span class="field__hint" id="limit-hint">$100 or more. Leave blank for no limit. Lowering it works at once; raising or removing it takes 24 hours.</span>
+        </div>
+        <button class="btn btn--primary" type="submit">Save limit</button>
+      </form>
+    </section>
+
+    <section class="card reveal" style="--i:2" aria-labelledby="break-title">
+      <h2 id="break-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg>Take a break</h2>
+      <% if (s.breakUntil) { %>
+        <p class="notice notice--warn">You’re on a break until <time datetime="<%= new Date(s.breakUntil).toISOString() %>"><%= when(s.breakUntil) %></time>. You can make it longer, but not shorter.</p>
+      <% } %>
+      <p class="muted">Close the casino to yourself. Every game stays shut for you until the break ends, and it can’t be ended early, even by HQ. The rest of the game carries on as normal.</p>
+      <form method="post" action="/casino/break" class="form casino-limits__form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <fieldset class="casino-limits__lengths">
+          <legend>How long?</legend>
+          <% Object.entries(breaks).forEach(function ([key, b], i) { %>
+            <label class="casino-limits__len"><input type="radio" name="length" value="<%= key %>" <%= i === 0 ? 'checked' : '' %>> <%= b.label %></label>
+          <% }) %>
+        </fieldset>
+        <label class="check"><input type="checkbox" name="confirm" required> <span>I understand the break can’t be ended early.</span></label>
+        <button class="btn btn--danger" type="submit">Start my break</button>
+      </form>
+    </section>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

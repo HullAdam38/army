@@ -127,6 +127,7 @@
       </section>
     <% }) %>
   </div>
+  <p class="muted small"><strong><%= c.care.withLimit.toLocaleString('en-US') %></strong> <%= c.care.withLimit === 1 ? 'player has' : 'players have' %> set a daily loss limit and <strong><%= c.care.onBreak.toLocaleString('en-US') %></strong> <%= c.care.onBreak === 1 ? 'is' : 'are' %> on a break from the casino. Players set these themselves on <a href="/casino/limits">Casino › Your limits</a>; they can’t be lifted early, even by HQ.</p>
   <p class="muted small">Limits and on/off are in <a href="/admin/settings#g-casino">Game settings › Casino</a>. Every bet and win is also in the ledger (reasons <code>casino-slots</code>, <code>casino-roulette</code>, <code>casino-blackjack</code>) and on <a href="/admin/economy">Economy</a>.</p>
 </main>
 

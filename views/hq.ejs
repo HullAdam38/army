@@ -57,6 +57,27 @@
         </div>
       </section>
     <% } %>
+    <% if (unitHelp) { %>
+      <section class="card hq-card hq-card--units reveal" style="--i:2" aria-labelledby="hq-units-title">
+        <h2 id="hq-units-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-flag"/></svg>Join a unit</h2>
+        <% if (unitHelp.invites) { %>
+          <p><strong>You have <%= unitHelp.invites === 1 ? 'an invitation' : `${unitHelp.invites} invitations` %> to join a unit.</strong></p>
+          <a class="btn btn--primary btn--block" href="/units#invites">See invitations</a>
+        <% } else { %>
+          <p class="muted small">Soldiers in a unit can’t be attacked by each other, and share rally orders, raids and the theatre of war. These units are recruiting players like you:</p>
+          <ul class="unit-rec">
+            <% unitHelp.recommended.forEach(function (u) { %>
+              <li class="unit-rec__item">
+                <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
+                <span class="unit-rec__body"><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><span class="muted small"><%= u.members %> / <%= u.capacity %> members · <%= u.active %> active</span></span>
+                <a class="btn btn--ghost btn--sm" href="/units/<%= u.id %>#apply">Apply</a>
+              </li>
+            <% }) %>
+          </ul>
+          <a class="btn btn--ghost btn--block" href="/units<%= unitHelp.looking ? '' : '#looking' %>"><%= unitHelp.looking ? 'Browse all units' : 'Or let units invite you' %></a>
+        <% } %>
+      </section>
+    <% } %>
     <section class="card hq-card hq-card--dossier reveal" style="--i:1" aria-labelledby="dossier-title">
       <h2 id="dossier-title" class="card__title">Service record</h2>
       <div class="dossier__who">

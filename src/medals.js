@@ -30,6 +30,9 @@ const MEDALS = [
   { id: 'contender', name: 'Contender', icon: 'i-podium', metric: 'seasonsGold', unit: 'seasons finished Gold or higher', thresholds: [1, 3, 10], blurb: 'Finish a PvP season in the Gold or Elite division.' },
   { id: 'architect', name: 'Architect', icon: 'i-crest', metric: 'base', unit: 'base rating', thresholds: [5, 15, 28], blurb: 'Upgrade the facilities of your forward base.' },
   { id: 'victory', name: 'Victory Medal', icon: 'i-helmet', metric: 'warsWon', unit: 'wars won', thresholds: [1, 5, 20], blurb: 'Win unit wars. You must be in the unit when the war begins.' },
+  { id: 'highroller', name: 'High Roller', icon: 'i-cash', metric: 'casinoWagered', unit: 'dollars bet at the casino', thresholds: [100000, 2500000, 50000000], blurb: 'Bet at the casino. Every game counts, win or lose.' },
+  { id: 'bigwinner', name: 'Big Winner', icon: 'i-star', metric: 'casinoBigWins', unit: 'wins of 20× or more', thresholds: [1, 10, 50], blurb: 'Win at least 20 times your bet on one slot spin or roulette spin.' },
+  { id: 'cardsharp', name: 'Card Sharp', icon: 'i-crest', metric: 'casinoBlackjacks', unit: 'blackjacks', thresholds: [5, 50, 250], blurb: 'Get dealt blackjack at the casino’s blackjack tables.' },
 ];
 
 const MEDALS_BY_ID = new Map(MEDALS.map((m) => [m.id, m]));

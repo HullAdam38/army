@@ -57,7 +57,7 @@ function createStatsService(db) {
     objectives: db.prepare('SELECT COUNT(*) AS total, SUM(completed_at IS NOT NULL) AS done FROM unit_objectives WHERE week = ?'),
     battles: db.prepare('SELECT strftime(\'%Y-%m-%d\', created_at / 1000, \'unixepoch\') AS day, COUNT(*) AS n FROM battles WHERE created_at >= ? GROUP BY day'),
     targets: db.prepare('SELECT COUNT(*) AS days, COALESCE(SUM(beaten), 0) AS beaten, COALESCE(SUM(defenses), 0) AS defenses FROM daily_targets WHERE day >= ?'),
-    chat: db.prepare('SELECT COUNT(*) AS messages, COUNT(DISTINCT user_id) AS chatters FROM chat_messages WHERE created_at >= ?'),
+    chat: db.prepare('SELECT COUNT(*) AS messages, COUNT(DISTINCT user_id) AS chatters FROM chat_messages WHERE created_at >= ? AND kind IS NULL'),
     avatars: db.prepare("SELECT SUM(avatar_kind = 'badge') AS badge, SUM(avatar_kind = 'upload') AS upload FROM users WHERE banned_at IS NULL"),
     tutorialSteps: db.prepare('SELECT step, COUNT(*) AS n FROM tutorial_progress t JOIN users u ON u.id = t.user_id WHERE u.created_at >= ? GROUP BY step'),
   };

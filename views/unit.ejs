@@ -50,7 +50,7 @@
         <p class="unit-hero__role muted"><%= apply.blocker %></p>
       <% } else { %>
         <p class="unit-hero__role">You meet their requirements.</p>
-        <form method="post" action="/units/<%= unit.id %>/apply" class="unit-apply">
+        <form method="post" action="/units/<%= unit.id %>/apply" class="unit-apply" id="apply">
           <%- csrf %>
           <%- include('partials/bb-editor', { id: 'apply-msg', name: 'message', label: 'Message to the officers', max: limits.message, rows: 3, required: false, compact: true, placeholder: 'Why should they take you? (optional)' }) %>
           <button class="btn btn--primary btn--block" type="submit"><svg class="btn__icon" aria-hidden="true"><use href="#i-flag"/></svg>Apply to join</button>
@@ -274,6 +274,10 @@
           <% } else { %>
             <p class="muted">No applications waiting.</p>
           <% } %>
+          <p class="unit-recruits-link">
+            <a class="btn btn--ghost btn--sm" href="/units/<%= unit.id %>/recruits"><svg class="btn__icon" aria-hidden="true"><use href="#i-radio"/></svg>Find recruits</a>
+            <span class="muted small"><%= lookingCount === 1 ? '1 soldier is' : `${lookingCount} soldiers are` %> looking for a unit. Invite them yourselves.</span>
+          </p>
         </section>
       <% } %>
 

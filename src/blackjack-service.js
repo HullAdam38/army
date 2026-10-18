@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const bj = require('./blackjack');
 const game = require('./game');
 const tuning = require('./tuning');
+const { createCasinoPlayer } = require('./casino-player');
 
 const SEATS = 5;
 const BET_MS = 15 * 1000; // the betting window once someone bets
@@ -30,7 +31,7 @@ const TABLES_BY_ID = new Map(TABLES.map((t) => [t.id, t]));
  * casino-blackjack); winnings are paid at the end of the round. Players only
  * ever play against the house, so no value can pass between them.
  */
-function createBlackjackService(db, players, { randomInt = crypto.randomInt } = {}) {
+function createBlackjackService(db, players, { randomInt = crypto.randomInt, casinoPlayer = createCasinoPlayer(db) } = {}) {
   const stmts = {
     load: db.prepare('SELECT state FROM blackjack_tables WHERE id = ?'),
     save: db.prepare(`INSERT INTO blackjack_tables (id, state, updated_at) VALUES (?, ?, ?)
@@ -76,8 +77,18 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
     if (!tuning.get('casinoOpen')) return 'The casino is closed for now. Check back later.';
     const min = tuning.get('casinoMinLevel');
     if (player.level < min) return `The casino opens at level ${min}.`;
-    return null;
+    return casinoPlayer.breakBlocker(player);
   }
+
+  // Bets on the table count towards the player's loss limit until the round is settled.
+  casinoPlayer.trackInPlay((userId) => {
+    const s = tableOf(userId);
+    if (!s || s.phase === 'done') return 0;
+    const seat = s.seats[seatOf(s, userId)];
+    return s.phase === 'playing' ? (seat.hands || []).reduce((n, h) => n + h.bet, 0) : seat.bet;
+  });
+  /** Cash the player can put on a double or split: what they carry, within their loss limit. */
+  const stakeable = (player, now) => Math.min(player.cash, casinoPlayer.room(player.id, now));
 
   // ---- The round ----
 
@@ -153,6 +164,8 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
       const result = { table: s.id, round: s.round, dealer: s.dealer, hands: seat.hands.map((h) => ({ cards: h.cards, bet: h.bet, result: h.result })) };
       const variance = seat.hands.reduce((n, h) => n + h.bet * h.bet * bj.VARIANCE, 0);
       stmts.play.run(seat.userId, 'blackjack', staked, paid, Math.round((paid / staked) * 100) / 100, JSON.stringify(result), now, variance);
+      const naturals = seat.hands.filter((h) => h.result === 'blackjack').length;
+      casinoPlayer.record({ userId: seat.userId, username: seat.username, game: 'blackjack', bet: staked, payout: paid, blackjacks: naturals, detail: naturals ? 'a blackjack' : null, now });
       const net = paid - staked;
       log(s, `${seat.username}: ${seat.hands.map((h) => bj.RESULT_LABEL[h.result]).join(' / ')} (${net >= 0 ? '+' : '−'}${money(Math.abs(net))}).`);
     }
@@ -303,6 +316,8 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
         if (!Number.isInteger(bet) || bet <= 0) return { error: 'Enter a whole-dollar bet.' };
         if (bet < min || bet > max) return { error: `Bets at this table are ${money(min)} to ${money(max)}.` };
         if (bet > player.cash) return { error: `You only have ${money(player.cash)} in cash. Bets come from cash, not the bank.` };
+        const limited = casinoPlayer.stakeBlocker(userId, bet, now);
+        if (limited) return { error: limited };
         payCash(userId, -bet, s, now);
         seat.bet = bet;
         seat.lastSeen = now;
@@ -328,8 +343,13 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
         const seat = s.seats[i];
         const hand = seat.hands[s.turn.hand];
         const player = game.applyRegen(players.findById(userId), now);
-        const allowed = bj.actionsFor(hand, { handsInSeat: seat.hands.length, cash: player.cash });
-        if (!allowed.includes(action)) return { error: action === 'double' || action === 'split' ? `You can’t ${action} this hand${player.cash < hand.bet ? ' (not enough cash)' : ''}.` : 'You can’t do that now.' };
+        const cash = stakeable(player, now);
+        const allowed = bj.actionsFor(hand, { handsInSeat: seat.hands.length, cash });
+        if (!allowed.includes(action)) {
+          if (action !== 'double' && action !== 'split') return { error: 'You can’t do that now.' };
+          const why = player.cash < hand.bet ? ' (not enough cash)' : cash < hand.bet ? ' (it would pass your daily loss limit)' : '';
+          return { error: `You can’t ${action} this hand${why}.` };
+        }
         seat.lastSeen = now;
         if (action === 'hit') {
           hand.cards.push(draw(s));
@@ -401,7 +421,7 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
           seat: mine,
           cash: player.cash,
           canBet: (s.phase === 'idle' || s.phase === 'betting') && !s.seats[mine].bet,
-          actions: s.turn && s.turn.seat === mine ? bj.actionsFor(s.seats[mine].hands[s.turn.hand], { handsInSeat: s.seats[mine].hands.length, cash: player.cash }) : [],
+          actions: s.turn && s.turn.seat === mine ? bj.actionsFor(s.seats[mine].hands[s.turn.hand], { handsInSeat: s.seats[mine].hands.length, cash: stakeable(player, now) }) : [],
         } : null,
         atOtherTable: mine < 0 && tableOf(userId) ? TABLES_BY_ID.get(tableOf(userId).id).name : null,
         log: [...s.log].reverse(),

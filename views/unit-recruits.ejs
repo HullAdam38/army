@@ -1,0 +1,46 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow"><a href="/units/<%= unit.id %>">[<%= unit.tag %>] <%= unit.name %></a></p>
+      <h1 class="page-head__title">Find recruits</h1>
+      <p class="page-head__sub">Soldiers who have said they’re looking for a unit and were seen in the last week. An invitation lets them join straight away, even if they don’t meet your requirements, and lasts a week.</p>
+    </div>
+  </div>
+
+  <p class="unit-recruits__status muted small reveal" style="--i:1">
+    <span><%= members %> / <%= unit.capacity %> members<%= members >= unit.capacity ? ' (full: upgrade the Barracks to take more)' : '' %></span>
+    <span><%= sentToday %> of <%= maxInvites %> invitations sent today</span>
+    <% if (requirements.length) { %><span>Your requirements: <%= requirements.map((r) => r.text).join(' · ') %></span><% } %>
+  </p>
+
+  <% if (recruits.length) { %>
+    <ul class="unit-rec unit-recruits reveal" style="--i:2">
+      <% recruits.forEach(function (r) { %>
+        <li class="unit-rec__item">
+          <%- include('partials/avatar', { url: r.avatarUrl, size: 'sm' }) %>
+          <span class="unit-rec__body">
+            <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(r.username) %>"><%= r.username %></a></span>
+            <span class="muted small">Lv <%= r.level %> <%= r.rank %> · <%= r.missions_completed.toLocaleString('en-US') %> missions · <%= r.pvp_wins.toLocaleString('en-US') %> PvP wins</span>
+            <span class="muted small"><% if (r.online) { %><span class="status status--online"><span class="status-dot" aria-hidden="true"></span>Online</span><% } else { %>Seen <%= r.lastSeen %><% } %> · looking since <%= r.since %><%= r.unmet ? ' · below your requirements' : '' %></span>
+          </span>
+          <% if (r.invited) { %>
+            <span class="tag">Invited</span>
+          <% } else { %>
+            <form method="post" action="/units/<%= unit.id %>/invite">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="user" value="<%= r.id %>">
+              <button class="btn btn--primary btn--sm" type="submit" <%- members >= unit.capacity || sentToday >= maxInvites ? 'disabled' : '' %>>Invite</button>
+            </form>
+          <% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } else { %>
+    <p class="card muted reveal" style="--i:2">Nobody is looking for a unit right now. Check back later, or keep applications open so soldiers can apply.</p>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

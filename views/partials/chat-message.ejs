@@ -1,5 +1,26 @@
 <%# One chat message. Used by the chat page and by live updates (rendered server-side). %>
 <% const at = new Date(m.created_at); %>
+<% if (m.kind === 'casino') { %>
+<li class="chat-msg chat-msg--shout" id="m-<%= m.id %>" data-id="<%= m.id %>">
+  <div class="chat-shout">
+    <svg class="chat-shout__icon" aria-hidden="true"><use href="#i-star"/></svg>
+    <span class="chat-shout__text bb-content"><%- m.html %></span>
+    <a class="chat-shout__go" href="/casino">Casino</a>
+    <time class="chat-msg__time" datetime="<%= at.toISOString() %>" data-local-time title="<%= at.toISOString().slice(0, 16).replace('T', ' ') %> UTC"><%= at.toISOString().slice(11, 16) %></time>
+  </div>
+  <% if (m.mine || isAdmin) { %>
+    <details class="chat-msg__menu">
+      <summary aria-label="Message options"><span aria-hidden="true">⋯</span></summary>
+      <div class="chat-menu">
+        <form method="post" action="/chat/messages/<%= m.id %>/delete" data-chat-delete>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="chat-menu__item" type="submit">Delete announcement</button>
+        </form>
+      </div>
+    </details>
+  <% } %>
+</li>
+<% } else { %>
 <li class="chat-msg<%= m.mine ? ' chat-msg--mine' : '' %><%= m.mentionsMe ? ' chat-msg--mention' : '' %><%= m.is_admin ? ' chat-msg--admin' : '' %>" id="m-<%= m.id %>" data-id="<%= m.id %>">
   <a class="chat-msg__avatar" href="/profile/<%= encodeURIComponent(m.username) %>" tabindex="-1" aria-hidden="true"><%- include('avatar', { url: m.avatarUrl, size: 'xs' }) %></a>
   <div class="chat-msg__head">
@@ -43,3 +64,4 @@
   </div>
   <div class="chat-msg__body bb-content"><%- m.html %></div>
 </li>
+<% } %>

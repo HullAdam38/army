@@ -500,6 +500,11 @@ Rules live in `src/daily.js` and `src/daily-service.js`.
 
 - **Founding** costs $2,500 and needs level 5. Names are 3–24 characters and tags 2–4 (shown as `[TAG]`); both are unique.
 - **Joining:** players apply from a unit's page with an optional message (up to 3 open applications). The Commander and officers accept or reject them.
+- **Finding a unit:** players without one get help to join:
+  - **Recruiting now** on `/units`: up to three units they could join straight away (taking applications, room to spare, requirements met) with members seen in the last 3 days, busiest first.
+  - From level 3, a **Join a unit** card at HQ with two of those units, or their invitations if they have any. At level 5 a notification points them to the Units page.
+  - **Looking for a unit:** a switch on `/units` puts them on a list officers can see (it drops anyone not seen for a week, and joining a unit takes them off).
+- **Invitations:** Sergeants and above open **Find recruits** (`/units/:id/recruits`) from the Applications card. It lists players who are looking, with level, record and when they were last seen. An invitation lets the player join straight away, even below the unit's requirements, and lasts a week. A unit can send 20 a day and only to players who are looking. The player accepts or declines it on `/units`; the 12-hour wait after leaving a unit still applies. Whoever sent it and the unit's officers are told when it's accepted.
 - **Application settings (Commander):** turn applications on or off, and set minimum **level**, **PvP wins** and **missions won** to apply. Requirements show on the unit profile and in the unit list, and players who fall short are told exactly what's missing.
 - **Unit profile** (`/units/:id`) is public:
   - founding date and Commander
@@ -632,7 +637,7 @@ The parts are in `src/avatars.js`, the picture checks in `src/images.js`, and st
 
 ## Medals
 
-Fourteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Seventeen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -650,8 +655,12 @@ Fourteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays onc
 | Ranger Tab | deployments completed (not recalled) | 10 / 50 / 200 |
 | Contender | PvP seasons finished in Gold or Elite | 1 / 3 / 10 |
 | Victory Medal | unit wars won (as a member from the start of the war) | 1 / 5 / 20 |
+| High Roller | dollars bet at the casino (any game, win or lose) | $100,000 / $2.5M / $50M |
+| Big Winner | casino wins of 20× the bet or more | 1 / 10 / 50 |
+| Card Sharp | blackjacks dealt at the casino | 5 / 50 / 250 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
+- **Casino medals** use career totals kept on the player (`casino_wagered`, `casino_big_wins`, `casino_blackjacks`), since plays are only kept 30 days. Every game has a house edge, so betting to earn High Roller always costs more than it pays.
 - **Farming protection:** PvP medals only count fights that paid XP and weren't reversed by an admin, so wins against linked alt accounts earn nothing.
 - **Where they show:** `/medals` is your medal case, with progress to the next tier and the share of players holding each tier. Pin up to 3 medals to feature them at the top of your profile. Profiles show every medal a soldier holds.
 
@@ -806,6 +815,19 @@ The **Casino** (`/casino`, in the main menu and under More on phones) is a lobby
 - **Restarts:** each table's state is saved after every change (`blackjack_tables`), so a restart picks up mid-round and deadlines that passed while it was down are applied.
 - Admins: **Game settings › Casino › Blackjack maximum bet** sets the War Room limit; the casino's open switch and minimum level apply too.
 - Rules: `src/blackjack.js`. Tables: `src/blackjack-service.js`. The table markup is one partial, `views/partials/bj-table.ejs`, used for the page, each poll and each action.
+
+### Limits and breaks
+
+`/casino/limits` (linked from the lobby): limits players set for themselves. HQ can't lift them early.
+
+- **Daily loss limit:** the most a player can lose in any 24 hours, across every game. Wins in that time count against losses, and blackjack bets count until the hand is paid. A bet, double or split that would go past the limit is refused, and blackjack doesn't offer a double or split it would block. Lowering a limit works at once; raising or removing it takes 24 hours (and can be called off meanwhile).
+- **Take a break:** 24 hours, 7 days or 30 days with every game closed to them. It can be made longer but not shorter. Taking one stands them up from a blackjack table (a hand already dealt plays out and is paid).
+- Admin › Casino shows how many players have a limit and how many are on a break.
+- Code: `src/casino-player.js`, shared by every game.
+
+### Big wins in chat
+
+A casino win of at least $10,000 after the bet is announced in **Global** chat ("Viper won $99,000 at the slot machine with a 100× jackpot!"). Announcements look different from messages, don't count as unread, and don't use up the winner's chat cooldown. The winner and admins can delete them. **Game settings › Casino › Big-win shout in chat** sets the amount; 0 turns them off.
 
 ## Help & support
 

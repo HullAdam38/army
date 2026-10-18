@@ -72,6 +72,12 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       loadout: loadoutView(req.player.level, players.equipment(req.player.id), req.player),
       feed: players.recentBattles(6).map((b) => ({ ...b, ago: presence.timeAgo(b.created_at) })),
       target: targetService && req.player.level >= pvp.MIN_PVP_LEVEL ? targetService.view(req.player) : null,
+      // No unit yet: invitations waiting, and a few units recruiting players like them.
+      unitHelp: !req.player.unit_id && req.player.level >= pvp.MIN_PVP_LEVEL ? (() => {
+        const invites = unitRepo.invitesFor(req.player.id).length;
+        const recommended = unitRepo.recommended(req.player, { limit: 2 }).map((u) => ({ ...u, capacity: units.capacity(u) }));
+        return invites || recommended.length ? { invites, recommended, looking: Boolean(req.player.lfu_at) } : null;
+      })() : null,
     });
   });
 

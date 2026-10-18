@@ -5,6 +5,14 @@
  * so every player read already knows their unit. Multi-step changes should be
  * wrapped in players.transaction().
  */
+
+const { BASE_CAPACITY } = require('./units');
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const ACTIVE_MS = 3 * DAY_MS; // a recommended unit has members seen this recently
+const LOOKING_SEEN_MS = 7 * DAY_MS; // players looking for a unit drop off the list after a quiet week
+const INVITE_MS = 7 * DAY_MS; // invitations last this long
+
 /**
  * `rankCacheMs`: how long the unit rankings (by strength) are reused. Working
  * them out sums every member of every unit, so the game caches them briefly.
@@ -38,7 +46,7 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
     memberCount: db.prepare('SELECT COUNT(*) AS n FROM users WHERE unit_id = ?'),
     officers: db.prepare("SELECT id FROM users WHERE unit_id = ? AND unit_role IN ('leader', 'officer')"),
     memberIds: db.prepare('SELECT id FROM users WHERE unit_id = ?'),
-    join: db.prepare('UPDATE users SET unit_id = ?, unit_role = ?, unit_joined_at = ?, unit_donated = 0 WHERE id = ? AND unit_id IS NULL'),
+    join: db.prepare('UPDATE users SET unit_id = ?, unit_role = ?, unit_joined_at = ?, unit_donated = 0, lfu_at = NULL WHERE id = ? AND unit_id IS NULL'),
     leave: db.prepare('UPDATE users SET unit_id = NULL, unit_role = NULL, unit_joined_at = NULL, unit_donated = 0, unit_left_at = ? WHERE id = ? AND unit_id = ?'),
     kick: db.prepare('UPDATE users SET unit_id = NULL, unit_role = NULL, unit_joined_at = NULL, unit_donated = 0 WHERE id = ? AND unit_id = ?'),
     disbandMembers: db.prepare('UPDATE users SET unit_id = NULL, unit_role = NULL, unit_joined_at = NULL, unit_donated = 0 WHERE unit_id = ?'),
@@ -70,6 +78,35 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
     withdraw: db.prepare('DELETE FROM unit_applications WHERE unit_id = ? AND user_id = ?'),
     clearApplications: db.prepare('DELETE FROM unit_applications WHERE user_id = ?'),
 
+    // Recruiting units a player could join right now (open, room to spare, requirements met), busiest first.
+    recommended: db.prepare(`
+      SELECT u.*, COUNT(m.id) AS members, COALESCE(SUM(m.level), 0) AS strength, COALESCE(SUM(m.last_seen_at >= @since), 0) AS active,
+             (SELECT username FROM users l WHERE l.unit_id = u.id AND l.unit_role = 'leader') AS leader_name
+      FROM units u JOIN users m ON m.unit_id = u.id AND m.banned_at IS NULL
+      WHERE u.recruiting = 1 AND u.min_level <= @level AND u.min_pvp_wins <= @pvp AND u.min_missions <= @missions
+      GROUP BY u.id HAVING members < ${BASE_CAPACITY} + 5 * u.barracks AND active > 0
+      ORDER BY active DESC, strength DESC, u.id ASC LIMIT @limit`),
+    setLooking: db.prepare('UPDATE users SET lfu_at = ? WHERE id = ? AND unit_id IS NULL'),
+    looking: db.prepare(`
+      SELECT u.id, u.username, u.level, u.pvp_wins, u.missions_completed, u.last_seen_at, u.signed_out_at, u.lfu_at, u.avatar_v,
+             EXISTS (SELECT 1 FROM unit_invites i WHERE i.unit_id = ?1 AND i.user_id = u.id AND i.created_at >= ?2) AS invited
+      FROM users u WHERE u.lfu_at IS NOT NULL AND u.unit_id IS NULL AND u.banned_at IS NULL AND u.last_seen_at >= ?3
+      ORDER BY u.last_seen_at DESC LIMIT ?4`),
+    lookingCount: db.prepare('SELECT COUNT(*) AS n FROM users WHERE lfu_at IS NOT NULL AND unit_id IS NULL AND banned_at IS NULL AND last_seen_at >= ?'),
+    invite: db.prepare(`INSERT INTO unit_invites (unit_id, user_id, invited_by, created_at) VALUES (?, ?, ?, ?)
+                        ON CONFLICT(unit_id, user_id) DO UPDATE SET invited_by = excluded.invited_by, created_at = excluded.created_at`),
+    inviteById: db.prepare('SELECT * FROM unit_invites WHERE id = ? AND user_id = ? AND created_at >= ?'),
+    invitesSent: db.prepare('SELECT COUNT(*) AS n FROM unit_invites WHERE unit_id = ? AND created_at >= ?'),
+    invitedRecently: db.prepare('SELECT 1 FROM unit_invites WHERE unit_id = ? AND user_id = ? AND created_at >= ?'),
+    invitesForUser: db.prepare(`
+      SELECT i.id, i.created_at, n.id AS unit_id, n.name, n.tag, n.barracks, b.username AS invited_by,
+             (SELECT COUNT(*) FROM users m WHERE m.unit_id = n.id AND m.banned_at IS NULL) AS members
+      FROM unit_invites i JOIN units n ON n.id = i.unit_id LEFT JOIN users b ON b.id = i.invited_by
+      WHERE i.user_id = ? AND i.created_at >= ? ORDER BY i.id DESC`),
+    deleteInvite: db.prepare('DELETE FROM unit_invites WHERE id = ?'),
+    clearInvites: db.prepare('DELETE FROM unit_invites WHERE user_id = ?'),
+    pruneInvites: db.prepare('DELETE FROM unit_invites WHERE created_at < ?'),
+
     post: db.prepare('INSERT INTO unit_posts (unit_id, user_id, body, created_at) VALUES (?, ?, ?, ?)'),
     posts: db.prepare(`
       SELECT p.id, p.user_id, p.body, p.created_at, u.username, u.avatar_v, u.unit_id = p.unit_id AS still_member
@@ -89,6 +126,7 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
       const id = Number(stmts.insert.run(name, tag, description, leaderId, now).lastInsertRowid);
       stmts.join.run(id, 'leader', now, leaderId);
       stmts.clearApplications.run(leaderId);
+      stmts.clearInvites.run(leaderId);
       return id;
     },
     findById: (id) => stmts.byId.get(id) || null,
@@ -116,6 +154,7 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
     join(unitId, userId, now = Date.now()) {
       if (!stmts.join.run(unitId, 'member', now, userId).changes) return false;
       stmts.clearApplications.run(userId);
+      stmts.clearInvites.run(userId);
       return true;
     },
     leave: (unitId, userId, now = Date.now()) => stmts.leave.run(now, userId, unitId).changes > 0,
@@ -159,6 +198,24 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
     deleteApplication: (id) => stmts.deleteApplication.run(id),
     withdraw: (unitId, userId) => stmts.withdraw.run(unitId, userId).changes > 0,
 
+    /** Up to `limit` recruiting units `player` could join now, with members active in the last 3 days. */
+    recommended(player, { limit = 3, now = Date.now() } = {}) {
+      return stmts.recommended.all({ since: now - ACTIVE_MS, level: player.level, pvp: player.pvp_wins || 0, missions: player.missions_completed || 0, limit });
+    },
+    /** Puts the player on (or takes them off) the list of soldiers looking for a unit. */
+    setLooking: (userId, on, now = Date.now()) => stmts.setLooking.run(on ? now : null, userId).changes > 0,
+    /** Players looking for a unit, seen in the last week, flagged when `unitId` already invited them. */
+    looking: (unitId, { limit = 50, now = Date.now() } = {}) => stmts.looking.all(unitId, now - INVITE_MS, now - LOOKING_SEEN_MS, limit),
+    lookingCount: (now = Date.now()) => stmts.lookingCount.get(now - LOOKING_SEEN_MS).n,
+    invite: (unitId, userId, byId, now = Date.now()) => stmts.invite.run(unitId, userId, byId, now),
+    invitedRecently: (unitId, userId, now = Date.now()) => Boolean(stmts.invitedRecently.get(unitId, userId, now - INVITE_MS)),
+    /** Invitations the unit sent in the last day (there's a daily cap). */
+    invitesSentToday: (unitId, now = Date.now()) => stmts.invitesSent.get(unitId, now - 24 * 60 * 60 * 1000).n,
+    invitation: (id, userId, now = Date.now()) => stmts.inviteById.get(id, userId, now - INVITE_MS) || null,
+    invitesFor: (userId, now = Date.now()) => stmts.invitesForUser.all(userId, now - INVITE_MS),
+    deleteInvite: (id) => stmts.deleteInvite.run(id),
+    pruneInvites: (now = Date.now()) => stmts.pruneInvites.run(now - INVITE_MS).changes,
+
     post(unitId, userId, body, now = Date.now()) {
       stmts.post.run(unitId, userId, body, now);
       stmts.prunePosts.run(unitId);
@@ -173,4 +230,4 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
   };
 }
 
-module.exports = { createUnitRepo };
+module.exports = { INVITE_MS, createUnitRepo };

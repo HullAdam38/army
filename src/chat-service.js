@@ -11,7 +11,7 @@ const bbcode = require('./bbcode');
  */
 function createChatService(db, players) {
   const MESSAGE_COLUMNS = `
-    m.id, m.channel, m.user_id, m.body, m.created_at,
+    m.id, m.channel, m.user_id, m.body, m.created_at, m.kind,
     u.username, u.level, u.is_admin, u.title, u.avatar_v, un.tag AS unit_tag`;
   const FROM = `
     FROM chat_messages m JOIN users u ON u.id = m.user_id LEFT JOIN units un ON un.id = u.unit_id
@@ -25,7 +25,7 @@ function createChatService(db, players) {
     before: db.prepare(`SELECT ${MESSAGE_COLUMNS} ${FROM} AND m.id < ?3 ORDER BY m.id DESC LIMIT ?4`),
     one: db.prepare(`SELECT ${MESSAGE_COLUMNS} FROM chat_messages m JOIN users u ON u.id = m.user_id LEFT JOIN units un ON un.id = u.unit_id WHERE m.id = ?`),
     deletedSince: db.prepare('SELECT id FROM chat_messages WHERE channel = ? AND deleted_at >= ?'),
-    lastBy: db.prepare('SELECT body, created_at FROM chat_messages WHERE user_id = ? ORDER BY id DESC LIMIT 1'),
+    lastBy: db.prepare('SELECT body, created_at FROM chat_messages WHERE user_id = ? AND kind IS NULL ORDER BY id DESC LIMIT 1'), // casino shouts aren't the player's own words
     remove: db.prepare('UPDATE chat_messages SET deleted_at = ?, deleted_by = ? WHERE id = ? AND deleted_at IS NULL'),
     prune: db.prepare('DELETE FROM chat_messages WHERE created_at < ?'),
     usersNamed: (n) => db.prepare(`SELECT id, username, unit_id, banned_at FROM users WHERE username COLLATE NOCASE IN (${Array(n).fill('?').join(',')})`),

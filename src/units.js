@@ -16,6 +16,7 @@ const POST_COOLDOWN_MS = 10 * 1000;
 const MAX_POST = 2000; // BBCode tags count towards these limits
 const MAX_APPLY_MESSAGE = 500;
 const MAX_DESCRIPTION = 1000;
+const MAX_INVITES_PER_DAY = 20; // per unit, so officers can't spam everyone looking
 
 // The chain of command, top to bottom. ('officer' is stored for Lieutenants.)
 const ROLES = {
@@ -159,6 +160,18 @@ function applyBlocker(player, unit, { members, pending, alreadyApplied }, now = 
   return cooldownBlocker(player, now);
 }
 
+/** Why an officer with `role` in `unit` can't invite `target`, or null. */
+function inviteBlocker(role, unit, target, { members, sentToday, invited }) {
+  if (!can.review(role)) return 'Only Sergeants and above can invite recruits.';
+  if (!target || target.banned_at) return 'That soldier can’t be found.';
+  if (target.unit_id) return `${target.username} has already joined a unit.`;
+  if (!target.lfu_at) return `${target.username} isn’t looking for a unit.`;
+  if (members >= capacity(unit)) return `${unit.name} is full. Upgrade the Barracks to take more members.`;
+  if (invited) return `You’ve already invited ${target.username}.`;
+  if (sentToday >= MAX_INVITES_PER_DAY) return `Your unit has sent ${MAX_INVITES_PER_DAY} invitations today. Try again tomorrow.`;
+  return null;
+}
+
 /** The next upgrade level and its cost, or null when maxed. */
 function nextUpgrade(unit, key) {
   const def = UPGRADES[key];
@@ -184,6 +197,7 @@ module.exports = {
   LEAVE_COOLDOWN_MS,
   MAX_APPLY_MESSAGE,
   MAX_DESCRIPTION,
+  MAX_INVITES_PER_DAY,
   MAX_PENDING_APPLICATIONS,
   MAX_POST,
   MIN_DONATION,
@@ -198,6 +212,7 @@ module.exports = {
   capacity,
   cooldownBlocker,
   foundBlocker,
+  inviteBlocker,
   nextUpgrade,
   parseDonation,
   parseRequirements,

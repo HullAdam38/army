@@ -36,6 +36,66 @@
     </section>
   <% } %>
 
+  <% if (invites.length) { %>
+    <section id="invites" class="card reveal unit-apps unit-invites" style="--i:1" aria-labelledby="invites-title">
+      <h2 id="invites-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-mail"/></svg>Invitations <span class="tag"><%= invites.length %></span></h2>
+      <ul class="unit-apps__list">
+        <% invites.forEach(function (i) { %>
+          <li>
+            <a href="/units/<%= i.unit_id %>"><span class="unit-tag">[<%= i.tag %>]</span> <%= i.name %></a>
+            <span class="muted"><%= i.invited_by ? `from ${i.invited_by}, ` : '' %><%= i.ago %> · <%= i.members %> members<%= i.full ? ' (full)' : '' %></span>
+            <span class="unit-invites__actions">
+              <form method="post" action="/units/invites/<%= i.id %>/accept">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn--primary btn--sm" type="submit" <%- i.full ? 'disabled' : '' %>>Join</button>
+              </form>
+              <form method="post" action="/units/invites/<%= i.id %>/decline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn--ghost btn--sm" type="submit">Decline</button>
+              </form>
+            </span>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
+
+  <% if (!mine) { %>
+    <div class="unit-help reveal" style="--i:1">
+      <% if (recommended.length) { %>
+        <section id="recommended" class="card unit-help__card" aria-labelledby="rec-title">
+          <h2 id="rec-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-star"/></svg>Recruiting now</h2>
+          <p class="muted small">Active units with room for you, whose requirements you meet. Units share rally orders, raids, wars and the theatre of war.</p>
+          <ul class="unit-rec">
+            <% recommended.forEach(function (u) { %>
+              <li class="unit-rec__item">
+                <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
+                <span class="unit-rec__body">
+                  <a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a>
+                  <span class="muted small"><%= u.members %> / <%= u.capacity %> members · <%= u.active %> active this week<%= u.requirements.length ? ` · ${u.requirements.map((r) => r.text).join(' · ')}` : '' %></span>
+                </span>
+                <% if (u.applied) { %><span class="tag">Applied</span><% } else { %><a class="btn btn--ghost btn--sm" href="/units/<%= u.id %>#apply">Apply</a><% } %>
+              </li>
+            <% }) %>
+          </ul>
+        </section>
+      <% } %>
+      <section id="looking" class="card unit-help__card" aria-labelledby="looking-title">
+        <h2 id="looking-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-radio"/></svg>Looking for a unit?</h2>
+        <% if (looking) { %>
+          <p class="muted">You’re on the list. Unit officers can see your level and record and invite you; invitations show up here and in your notifications.</p>
+        <% } else { %>
+          <p class="muted">Put yourself on the list and let units come to you. Officers see your callsign, level and record, and can send you an invitation.</p>
+        <% } %>
+        <form method="post" action="/units/looking">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% if (!looking) { %><input type="hidden" name="looking" value="on"><% } %>
+          <button class="btn <%= looking ? 'btn--ghost' : 'btn--primary' %> btn--sm" type="submit"><%= looking ? 'Take me off the list' : 'I’m looking for a unit' %></button>
+        </form>
+      </section>
+    </div>
+  <% } %>
+
   <div class="directory-tools reveal" style="--i:2">
     <p class="directory-count"><%= total %> <%= total === 1 ? 'unit' : 'units' %><%= q ? ` · matching “${q}”` : '' %></p>
     <form class="directory-search" method="get" action="/units" role="search">

@@ -12,6 +12,10 @@
   </div>
 
   <% if (blocker) { %><p class="notice notice--warn reveal" style="--i:1"><%= blocker %></p><% } %>
+  <p class="casino-limits-line muted small reveal" style="--i:1">
+    <span><%= limits.limit === null ? 'No daily loss limit set.' : `Daily loss limit ${money(limits.limit)}: ${money(limits.room)} left to stake.` %></span>
+    <a href="/casino/limits">Set limits or take a break</a>
+  </p>
 
   <section class="reveal" style="--i:1" aria-labelledby="games-title">
     <h2 id="games-title" class="section-title">Choose a game</h2>
@@ -35,7 +39,7 @@
 
   <section class="card casino-note reveal" style="--i:2" aria-labelledby="note-title">
     <h2 id="note-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg>Play smart</h2>
-    <p class="muted">Casino games pay back a little less than you bet over time, so over many plays the house wins. Bets come from the cash you carry, never your bank. Bank what you want to keep before you play.</p>
+    <p class="muted">Casino games pay back a little less than you bet over time, so over many plays the house wins. Bets come from the cash you carry, never your bank. Bank what you want to keep before you play. If it stops being fun, <a href="/casino/limits">set a loss limit or take a break</a>.</p>
   </section>
 </main>
 

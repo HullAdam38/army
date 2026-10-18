@@ -40,6 +40,11 @@ function announceLevels(players, userId, levels) {
     const rank = game.rankFor(level);
     players.notify(userId, 'promotion', `Promoted to level ${level}: ${rank.name} (${rank.grade}).`, null);
     for (const u of unlocksAt(level)) players.notify(userId, u.kind, u.message, u.link);
+    // A nudge for soldiers still on their own: units are where raids, rallies and the theatre of war happen.
+    if (level === units.CREATE_LEVEL) {
+      const p = players.findById(userId);
+      if (p && !p.unit_id) players.notify(userId, 'unit', 'Still on your own? Units share rally orders, raids and the theatre of war. See who’s recruiting, or put yourself on the list so officers can invite you.', '/units#recommended');
+    }
   }
 }
 

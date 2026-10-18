@@ -39,6 +39,8 @@ function createCasinoStats(db) {
     luck: db.prepare(`SELECT p.user_id, u.username, u.banned_at, p.game, COUNT(*) AS plays, SUM(p.bet) AS wagered, SUM(p.payout) AS paid, SUM(${varianceSql}) AS variance
                       FROM casino_plays p JOIN users u ON u.id = p.user_id WHERE p.created_at >= ?
                       GROUP BY p.user_id, p.game HAVING plays >= ?`),
+    // Players looking after themselves: on a break, or with a daily loss limit.
+    care: db.prepare('SELECT COALESCE(SUM(casino_break_until > ?), 0) AS onBreak, COALESCE(SUM(casino_loss_limit IS NOT NULL), 0) AS withLimit FROM users WHERE banned_at IS NULL'),
     // Everything players earned outside the casino, to put the casino's take in proportion.
     earned: db.prepare(`SELECT COALESCE(SUM(delta_cash), 0) AS n FROM ledger
                         WHERE created_at >= ? AND delta_cash > 0 AND reason NOT LIKE 'casino-%' AND reason NOT IN ('opening-balance', 'test')`),
@@ -91,6 +93,7 @@ function createCasinoStats(db) {
       return {
         days, since, games, total, daily, lucky, earned,
         takeShare: earned ? total.take / earned : null,
+        care: stmts.care.get(now),
         winners: stmts.winners.all(since),
         losers: stmts.losers.all(since),
       };

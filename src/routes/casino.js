@@ -28,8 +28,37 @@ function casinoRoutes(players, casino, blackjack = null) {
       nav: 'casino',
       games: GAMES.map((g) => ({ ...g, today: casino.today(req.player.id, g.id, now) })),
       blocker: casino.blocker(req.player),
+      limits: casino.player.status(req.player.id, now),
     });
   });
+
+  // ---- Limits players set for themselves ----
+  router.get('/casino/limits', requireAuth, (req, res) => {
+    res.render('casino-limits', {
+      title: 'Casino limits',
+      nav: 'casino',
+      s: casino.player.status(req.player.id),
+      breaks: casino.player.BREAKS,
+    });
+  });
+
+  const limitsAction = (fn) => [requireAuth, (req, res) => {
+    const out = players.transaction(() => fn(req));
+    req.flash(out.error ? 'error' : 'success', out.error || out.ok);
+    res.redirect('/casino/limits');
+  }];
+  router.post('/casino/limits', ...limitsAction((req) => casino.player.setLimit(req.player.id, req.body.limit)));
+  router.post('/casino/limits/cancel', ...limitsAction((req) => casino.player.cancelPending(req.player.id)));
+  router.post('/casino/break', ...limitsAction((req) => {
+    if (req.body.confirm !== 'on') return { error: 'Tick the box to confirm. A break can’t be ended early.' };
+    const out = casino.player.takeBreak(req.player.id, String(req.body.length || ''));
+    // Stand up from a blackjack table (a hand already dealt plays out and is paid as normal).
+    if (!out.error && blackjack) {
+      const tableId = blackjack.tableOf(req.player.id);
+      if (tableId) blackjack.leave({ tableId, userId: req.player.id });
+    }
+    return out;
+  }));
 
   router.get('/casino/slots', requireAuth, (req, res) => {
     const now = Date.now();

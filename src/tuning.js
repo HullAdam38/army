@@ -54,6 +54,7 @@ const SETTINGS = [
   { key: 'slotsMaxBet', group: 'casino', label: 'Slot machine maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can bet on one spin. The slot machine pays back about 95% of bets over time, so it takes cash out of the game.' },
   { key: 'rouletteMaxBet', group: 'casino', label: 'Roulette table limit', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 10000, help: 'The most a player can have on the table in one spin (all their bets added up). Roulette pays back 97.3% of bets over time.' },
   { key: 'blackjackMaxBet', group: 'casino', label: 'Blackjack maximum bet', type: 'int', unit: '$', min: 100, max: 1000000, step: 100, default: 25000, help: 'The most a player can bet on one blackjack hand at the War Room table (the other tables have lower limits of their own). Doubling and splitting can add the same again.' },
+  { key: 'casinoShoutMin', group: 'casino', label: 'Big-win shout in chat', type: 'int', unit: '$', min: 0, max: 10000000, step: 100, default: 10000, help: 'A casino win of at least this much (after the bet) is announced in global chat. 0 turns the announcements off.' },
 ];
 
 const GROUPS = [
