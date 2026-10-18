@@ -59,8 +59,10 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
     if (!stmts.settle.run('won', now, raid.id).changes) return;
     const unit = unitRepo.findById(raid.unit_id);
     const s = strongholdOf(raid);
-    // Only people still in the unit (and not banned) share the loot; the rest split what leavers would have had.
-    const hits = stmts.hits.all(raid.id).filter((h) => h.current_unit === raid.unit_id && !h.banned_at);
+    // Everyone who struck shares the loot, even if they've since left or been
+    // removed, so removing top strikers before the final blow gains nothing.
+    // Suspended players get nothing.
+    const hits = stmts.hits.all(raid.id).filter((h) => !h.banned_at);
     const loot = raids.splitLoot({ cash: raid.cash_pool, xp: raid.xp_pool }, hits);
     if (unit && loot.treasury) unitRepo.addTreasury(unit.id, loot.treasury);
     const link = `/units/${raid.unit_id}#raid`;

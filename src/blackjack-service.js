@@ -63,7 +63,9 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
   const seatOf = (s, userId) => s.seats.findIndex((seat) => seat && seat.userId === userId);
   const tableOf = (userId) => [...states.values()].find((s) => seatOf(s, userId) >= 0) || null;
   const payCash = (userId, delta, s, now) => {
-    const p = game.applyRegen(players.findById(userId), now);
+    const found = players.findById(userId);
+    if (!found) return null; // the account is gone; nothing to pay
+    const p = game.applyRegen(found, now);
     p.cash += delta;
     players.save(p, { reason: 'casino-blackjack', ref: `bj:${s.id}:${s.round}` });
     return p;
@@ -206,10 +208,28 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
   function withTable(tableId, now, fn) {
     const s = states.get(Number(tableId));
     if (!s) return { error: 'That table doesn’t exist.' };
-    if (advance(s, now)) save(s, now);
-    const out = fn(s) || {};
-    if (!out.error) save(s, now);
-    return out;
+    return guarded(s, () => {
+      if (advance(s, now)) save(s, now);
+      const out = fn(s) || {};
+      if (!out.error) save(s, now);
+      return out;
+    });
+  }
+
+  /**
+   * Runs a change to table `s`. The state lives in memory, but money and the
+   * saved copy are in the database: if anything throws, the caller's
+   * transaction rolls those back, so the in-memory table goes back to what was
+   * last saved too. Otherwise a failed payout could leave a round marked paid.
+   */
+  function guarded(s, fn) {
+    const before = JSON.stringify(s);
+    try {
+      return fn();
+    } catch (err) {
+      states.set(s.id, JSON.parse(before));
+      throw err;
+    }
   }
 
   return {
@@ -391,7 +411,7 @@ function createBlackjackService(db, players, { randomInt = crypto.randomInt } = 
     tick(now = Date.now()) {
       for (const s of states.values()) {
         if (!s.deadline && !(s.phase === 'idle' && s.seats.some(Boolean))) continue;
-        players.transaction(() => { if (advance(s, now)) save(s, now); });
+        players.transaction(() => guarded(s, () => { if (advance(s, now)) save(s, now); }));
       }
     },
 

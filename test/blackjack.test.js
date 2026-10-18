@@ -45,7 +45,7 @@ test('blackjack rules: hand values, the dealer and settling', () => {
   assert.equal(shoe.length, 312);
   assert.equal(new Set(shoe).size, 52);
   assert.equal(shoe.filter((c) => c === 'AS').length, 6);
-  assert.ok(!bj.needsShuffle(shoe) && bj.needsShuffle(shoe.slice(0, 70)));
+  assert.ok(!bj.needsShuffle(shoe) && !bj.needsShuffle(shoe.slice(0, 160)) && bj.needsShuffle(shoe.slice(0, 150)), 'reshuffles at half the shoe');
 });
 
 /** A service with two seated players and a stacked shoe. */
@@ -63,7 +63,7 @@ function setup() {
   const bea = make('Bea');
   const cash = (id) => db.prepare('SELECT cash FROM users WHERE id = ?').get(id).cash;
   // Cards are drawn from the end of the shoe; filler keeps it from reshuffling.
-  const stack = (order) => { svc._state(1).shoe = [...Array(120).fill('2C'), ...[...order].reverse()]; };
+  const stack = (order) => { svc._state(1).shoe = [...Array(200).fill('2C'), ...[...order].reverse()]; };
   const tx = (fn) => players.transaction(fn);
   return { db, players, svc, ace, bea, cash, stack, tx };
 }
@@ -194,7 +194,7 @@ test('blackjack table: timeouts, dealer blackjack, leaving, idle players and res
   assert.equal(again._state(1).phase, 'idle', 'no bets left: betting closes');
   players.transaction(() => again.sit({ tableId: 1, userId: ace, now }));
   // Seats are kept in order: Ace took seat 0 again, Bea is in seat 1.
-  again._state(1).shoe = [...Array(120).fill('2C'), ...['10S', '10H', '9C', '7S', '9D', '8C'].reverse()]; // Ace 17, Bea 19, dealer 9 8 = 17
+  again._state(1).shoe = [...Array(200).fill('2C'), ...['10S', '10H', '9C', '7S', '9D', '8C'].reverse()]; // Ace 17, Bea 19, dealer 9 8 = 17
   players.transaction(() => again.bet({ tableId: 1, userId: ace, amount: '10', now }));
   players.transaction(() => again.bet({ tableId: 1, userId: bea, amount: '10', now }));
   assert.deepEqual(again._state(1).turn, { seat: 0, hand: 0 });

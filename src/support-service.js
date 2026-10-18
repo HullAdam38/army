@@ -3,6 +3,8 @@
 const support = require('./support');
 const bbcode = require('./bbcode');
 
+const STAFF_REALERT_MS = 15 * 60 * 1000;
+
 /**
  * Support tickets backed by the database. Admins hear about new tickets and
  * player replies in-game (notification kind 'support-staff') and, if they
@@ -86,10 +88,12 @@ function createSupportService(db, players, { alertStaff = () => {} } = {}) {
       const last = stmts.lastByUser.get(me.id).at || 0;
       if (now - last < support.REPLY_COOLDOWN_MS) return { error: 'You’re sending messages too quickly. Wait a few seconds.' };
       const reopened = ticket.status === 'closed';
+      // Admins already know an open ticket is waiting; more replies within 15 minutes don't alert again.
+      const alert = ticket.status !== 'open' || now - (ticket.last_player_at || 0) > STAFF_REALERT_MS;
       if (reopened && stmts.openCount.get(me.id).n >= support.MAX_OPEN) return { error: `You already have ${support.MAX_OPEN} tickets open. Close one before reopening this.` };
       stmts.message.run(ticket.id, me.id, 0, 0, b.body, now);
       stmts.playerReplied.run(now, ticket.id);
-      tellStaff(ticket, `${me.username} ${reopened ? 'reopened' : 'replied on'} ticket #${ticket.id}: ${bbcode.toPlain(b.body).slice(0, 120)}`);
+      if (alert) tellStaff(ticket, `${me.username} ${reopened ? 'reopened' : 'replied on'} ticket #${ticket.id}: ${bbcode.toPlain(b.body).slice(0, 120)}`);
       return { ticket: shape(stmts.byId.get(ticket.id)), reopened };
     },
 

@@ -84,6 +84,24 @@ Looked at and fine as it is:
 - **New payouts** use their own ledger reasons (`target-bonus`, `unit-objective`), so the existing payout checks still apply. Claims are single database writes guarded by keys or conditions, so double clicks or parallel requests can't pay twice.
 - **Spam:** mentions notify at most once per sender every 10 minutes, and push alerts are capped at 30 per player per hour.
 
+### Third review (player stats, chain of command, raids, theatre of war, admin raid and map tools, support tickets, notifications, casino)
+
+Checked: every new route's sign-in, admin and CSRF protection; who may act on what (unit ranks, tickets, blackjack turns); every new money path (rally and raid supplies, raid loot, theatre income, the three casino games); what the casino sends to browsers; the support alerts; and template escaping. Each fix has a test in `test/review3.test.js` that fails without it.
+
+12. **A blackjack table could be marked paid when the payment failed** (medium). Each table's state lives in memory and is saved to the database with the money. If anything failed partway through a change (a payout, say), the database rolled back but the in-memory table kept the change, so the round could show as settled with nobody paid. A failed change now puts the table back to its last saved state, and a retry pays exactly once.
+13. **Card counting at the War Room** (medium, economy). The shoe was dealt down to a quarter before reshuffling. Across six decks, that's deep enough for a player tracking cards to get an edge over the house at $25,000 a hand. The shoe is now reshuffled at the halfway point, which leaves almost no edge.
+14. **Raid loot could be taken by removing strikers** (low). Only strikers still in the unit shared the loot, and the rest split what the others would have had. A Commander could remove the top strikers just before the final blow. Everyone who struck now shares, unless they're suspended.
+15. **Support replies could spam admins** (low). A player could reply every 10 seconds, and every reply alerted every admin (in-game and by push). More replies on a ticket already waiting for HQ now alert again only after 15 minutes. A ticket HQ has answered still alerts on the player's next reply.
+
+Looked at and fine as it is:
+- **Casino results are decided on the server** with a cryptographic RNG. The blackjack shoe and the dealer's face-down card are never sent to browsers until the dealer plays. Browsers only animate the result they're given. The return to player is fixed and tested: slots 94.9%, roulette 97.3%, blackjack about 99.5% with perfect play.
+- **No value can pass between players at the casino.** Everyone plays the house, never each other, so linked accounts gain nothing by sitting together. Every bet and win goes through the ledger (`casino-slots`, `casino-roulette`, `casino-blackjack`), so the balance audit still adds up. Spins and hands run in a transaction with a cooldown, so parallel requests can't double-spend.
+- **Bet input** is whole dollars within table limits and the player's cash. Roulette place names come from the form, so they're read into prototype-less objects and checked against the list of real places (`__proto__` is refused).
+- **Unit permissions** (promote, demote, remove, rally, raid, front) read the player's rank fresh from the database inside the transaction. Rally and raid supplies only spend what the treasury has. The treasury still never pays out to players. Raid loot and theatre income are new money sized by the game, not by what was spent.
+- **Support tickets** are visible only to their player and admins. Internal notes are filtered out in the query for players. Assigning only accepts admins. Subjects and messages are escaped (messages go through the BBCode renderer).
+- **Admin raid and map tools and the support queue** are under `/admin`, so non-admins get a 404. Each change needs a reason (support replies are their own record) and goes in the audit log.
+- **Template output:** every unescaped `<%- %>` added since the last review is either fixed markup, server-generated card markup or BBCode-rendered text.
+
 ## Known limits (fine for launch, worth revisiting)
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.
@@ -93,6 +111,8 @@ Looked at and fine as it is:
 - **Upload, report and push limits live in memory** like the other rate limits, so a restart resets them.
 - **Battle reports are visible to any signed-in player** by design (they show the cash taken in that fight).
 - **SQLite** suits one server comfortably. Back up `data/` regularly (see below).
+- **Page loads and polls aren't rate limited per player** (actions are: 120 a minute). An open blackjack table polls once a second; Cloudflare's rate limiting is the place to cap abusive clients.
+- **Blackjack tables live in one game process.** Running several processes would need the tables moved to a single owner first (see README › Performance).
 
 ## Production checklist
 

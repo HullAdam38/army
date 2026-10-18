@@ -13,7 +13,9 @@ const crypto = require('node:crypto');
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const SUITS = ['S', 'H', 'D', 'C'];
 const DECKS = 6;
-const RESHUFFLE_AT = 0.25; // a new shoe when a quarter of it is left
+// A new shoe when half of it is left. Dealing deeper lets card counters get an
+// edge over the house at the high-stakes table.
+const RESHUFFLE_AT = 0.5;
 const SUIT_SYMBOL = { S: '♠', H: '♥', D: '♦', C: '♣' };
 
 const rankOf = (card) => card.slice(0, -1);
