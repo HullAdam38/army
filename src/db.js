@@ -583,6 +583,13 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_casino_user ON casino_plays(user_id, id DESC);
   CREATE INDEX IF NOT EXISTS idx_casino_time ON casino_plays(created_at);
 
+  -- Blackjack tables (src/blackjack-service.js): each table's whole state as JSON, saved after every change.
+  CREATE TABLE IF NOT EXISTS blackjack_tables (
+    id         INTEGER PRIMARY KEY,
+    state      TEXT    NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
   -- Support tickets (src/support.js): a player's ticket and its messages (player, HQ replies and internal notes).
   CREATE TABLE IF NOT EXISTS support_tickets (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,

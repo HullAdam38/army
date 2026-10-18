@@ -1183,4 +1183,71 @@
     });
     render();
   }
+
+  // ---- Casino: multiplayer blackjack ----
+  // The table is server-rendered HTML. Every second (while the tab is visible)
+  // the page asks for the table's state and swaps in the new HTML when it has
+  // changed; buttons post in the background and swap in the answer.
+  const bjBox = document.querySelector('[data-bj-table]');
+  if (bjBox) {
+    const id = bjBox.dataset.bjTable;
+    let version = Number((bjBox.querySelector('[data-bj-state]') || {}).dataset?.version || 0);
+    let endsAt = null;
+    let busy = false;
+    const readDeadline = () => {
+      const st = bjBox.querySelector('[data-bj-state]');
+      const ms = st && st.dataset.deadlineIn !== '' ? Number(st.dataset.deadlineIn) : null;
+      endsAt = ms === null ? null : Date.now() + ms;
+    };
+    const swap = (data) => {
+      if (data.html) {
+        const myTurnBefore = Boolean(bjBox.querySelector('.bj__actions'));
+        bjBox.innerHTML = data.html;
+        version = data.version;
+        readDeadline();
+        // Bring the controls into view when it becomes your turn.
+        const actions = bjBox.querySelector('.bj__actions');
+        if (actions && !myTurnBefore) bringIntoView(bjBox.querySelector('.bj-seat.is-you') || actions);
+      } else if (data.deadlineIn !== undefined && data.deadlineIn !== null) endsAt = Date.now() + data.deadlineIn;
+      if (data.player) renderPlayer(data.player);
+    };
+    const poll = async () => {
+      if (busy || document.hidden) return;
+      try {
+        const res = await fetch(`/casino/blackjack/${id}/state?v=${version}`, { headers: { Accept: 'application/json' } });
+        if (res.ok) swap(await res.json());
+      } catch { /* offline: try again next tick */ }
+    };
+    bjBox.addEventListener('submit', async (e) => {
+      const form = e.target.closest('form');
+      if (!form) return;
+      e.preventDefault();
+      if (busy) return;
+      busy = true;
+      const body = new URLSearchParams(new FormData(form));
+      if (e.submitter && e.submitter.name) body.set(e.submitter.name, e.submitter.value);
+      form.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      try {
+        // getAttribute: the action buttons are named "action", which hides form.action.
+        const res = await fetch(form.getAttribute('action'), { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const data = await res.json();
+        swap(data);
+        if (data.error) {
+          const status = bjBox.querySelector('.bj__status');
+          if (status) { status.classList.add('is-error'); status.textContent = data.error; }
+        }
+      } catch {
+        form.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+      } finally {
+        busy = false;
+      }
+    });
+    readDeadline();
+    setInterval(() => {
+      const el = bjBox.querySelector('[data-bj-countdown]');
+      if (el && endsAt) el.textContent = `${Math.max(0, Math.ceil((endsAt - Date.now()) / 1000))}s`;
+    }, 250);
+    setInterval(poll, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+  }
 })();

@@ -1,0 +1,109 @@
+<%#
+  One blackjack table, from the viewer's side. Rendered into the page, and
+  again for every poll and action (app.js swaps it in), so it works the same
+  with or without JavaScript. `v` is blackjack.view().
+%>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+<% const card = (c) => c ? `<span class="pcard${c.red ? ' pcard--red' : ''}" aria-label="${c.label}"><span class="pcard__rank">${c.rank}</span><span class="pcard__suit" aria-hidden="true">${c.suit}</span></span>` : '<span class="pcard pcard--back" aria-label="Face-down card"></span>'; %>
+<% const status = {
+     idle: v.you ? (v.you.canBet ? 'Place your bet to start the next round.' : 'Waiting for the next round.') : 'Waiting for players to bet.',
+     betting: 'Betting is open',
+     playing: (() => { const s = v.seats.find((x) => x.turn); return s ? (s.you ? 'Your turn' : `${s.username}’s turn`) : 'The dealer plays'; })(),
+     done: 'Round over',
+   }[v.phase]; %>
+<div class="bj" data-bj-state data-version="<%= v.version %>" data-phase="<%= v.phase %>" data-deadline-in="<%= v.deadlineIn === null ? '' : v.deadlineIn %>">
+  <p class="bj__status<%= v.you && v.you.actions.length ? ' is-you' : '' %>" aria-live="polite">
+    <strong><%= status %></strong><% if (v.deadlineIn !== null && v.phase !== 'idle') { %> · <span data-bj-countdown><%= Math.ceil(v.deadlineIn / 1000) %>s</span><% } %>
+  </p>
+
+  <div class="bj__dealer">
+    <span class="bj__label">Dealer<% if (v.dealer.total !== null) { %> <span class="bj__total"><%= v.dealer.total %></span><% } %></span>
+    <div class="bj__cards"><% if (v.dealer.cards.length) { %><%- v.dealer.cards.map(card).join('') %><% } else { %><span class="muted small">Dealer stands on 17. Blackjack pays 3 to 2.</span><% } %></div>
+  </div>
+
+  <ol class="bj__seats">
+    <% v.seats.forEach(function (s) { %>
+      <li class="bj-seat<%= s.empty ? ' is-empty' : '' %><%= s.you ? ' is-you' : '' %><%= s.turn ? ' is-turn' : '' %>">
+        <% if (s.empty) { %>
+          <span class="bj-seat__empty">Seat <%= s.index + 1 %></span>
+          <% if (!v.you && !v.atOtherTable) { %>
+            <form method="post" action="/casino/blackjack/<%= v.table.id %>/sit">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="seat" value="<%= s.index %>">
+              <button class="btn btn--ghost btn--sm" type="submit">Sit here</button>
+            </form>
+          <% } %>
+        <% } else { %>
+          <div class="bj-seat__who">
+            <%- include('avatar', { url: avatarUrl(s.userId, s.avatarV), size: 'xs' }) %>
+            <span class="bj-seat__name"><%= s.username %></span>
+            <% if (s.you) { %><span class="tag">You</span><% } %>
+            <% if (s.leaving) { %><span class="muted small">leaving</span><% } %>
+          </div>
+          <% if (s.hands.length) { %>
+            <% s.hands.forEach(function (h) { %>
+              <div class="bj-hand<%= h.active ? ' is-active' : '' %><%= h.result ? ` is-${h.result}` : '' %>">
+                <div class="bj__cards"><%- h.cards.map(card).join('') %></div>
+                <div class="bj-hand__meta">
+                  <span class="bj__total"><%= h.blackjack ? 'BJ' : (h.soft && h.total < 21 ? `${h.total - 10}/${h.total}` : h.total) %></span>
+                  <span class="bj-hand__bet"><%= money(h.bet) %><%= h.doubled ? ' ×2' : '' %></span>
+                  <% if (h.result) { %><span class="bj-hand__result"><%= h.resultLabel %><%= h.payout > h.bet ? ` +${money(h.payout - h.bet)}` : '' %></span><% } %>
+                </div>
+              </div>
+            <% }) %>
+          <% } else if (s.bet) { %>
+            <span class="bj-hand__bet">Bet <%= money(s.bet) %></span>
+          <% } else { %>
+            <span class="muted small"><%= v.phase === 'playing' || v.phase === 'done' ? 'Sitting out' : 'No bet yet' %></span>
+          <% } %>
+        <% } %>
+      </li>
+    <% }) %>
+  </ol>
+
+  <% if (v.you) { %>
+    <div class="bj__controls">
+      <% if (v.you.actions.length) { %>
+        <form method="post" action="/casino/blackjack/<%= v.table.id %>/act" class="bj__actions">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="round" value="<%= v.round %>">
+          <% [['hit', 'Hit'], ['stand', 'Stand'], ['double', 'Double'], ['split', 'Split']].forEach(function ([a, label]) { %>
+            <% if (v.you.actions.includes(a)) { %><button class="btn <%= a === 'hit' || a === 'stand' ? 'btn--primary' : 'btn--ghost' %>" type="submit" name="action" value="<%= a %>"><%= label %></button><% } %>
+          <% }) %>
+        </form>
+      <% } else if (v.you.canBet) { %>
+        <form method="post" action="/casino/blackjack/<%= v.table.id %>/bet" class="bj__bet">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="slots__chips" role="group" aria-label="Quick bets">
+            <% [v.table.min, v.table.min * 5, v.table.min * 10, v.table.min * 50].filter(function (c) { return c <= v.table.max; }).forEach(function (c) { %>
+              <button type="submit" class="bet-chip" name="amount" value="<%= c %>"><%= money(c) %></button>
+            <% }) %>
+          </div>
+          <div class="bj__bet-custom">
+            <label class="visually-hidden" for="bj-amount">Bet amount</label>
+            <span class="slots__bet-input">$<input id="bj-amount" name="amount" type="number" inputmode="numeric" min="<%= v.table.min %>" max="<%= v.table.max %>" step="1" placeholder="<%= v.table.min %>–<%= v.table.max %>"></span>
+            <button class="btn btn--primary" type="submit">Bet</button>
+          </div>
+        </form>
+      <% } %>
+      <div class="bj__you">
+        <span class="muted small">Your cash: <%= money(v.you.cash) %> · bets <%= money(v.table.min) %> to <%= money(v.table.max) %></span>
+        <form method="post" action="/casino/blackjack/<%= v.table.id %>/leave">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Leave table</button>
+        </form>
+      </div>
+    </div>
+  <% } else if (v.atOtherTable) { %>
+    <p class="notice">You’re sitting at the <%= v.atOtherTable %>. Leave it to play here; you can still watch.</p>
+  <% } else { %>
+    <p class="muted small">You’re watching. Take an empty seat to play.</p>
+  <% } %>
+
+  <% if (v.log.length) { %>
+    <details class="bj__log" open>
+      <summary>Table log</summary>
+      <ol><% v.log.forEach(function (l) { %><li><%= l %></li><% }) %></ol>
+    </details>
+  <% } %>
+</div>

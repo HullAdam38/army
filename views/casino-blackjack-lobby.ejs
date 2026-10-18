@@ -1,0 +1,38 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => (n < 0 ? '−$' : '$') + Math.abs(Number(n)).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/casino"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Casino</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Casino</p>
+      <h1 class="page-head__title">Blackjack</h1>
+      <p class="page-head__sub">Pick a table and sit down with other players. Everyone plays their own hand against the dealer, so you win or lose against the house, never each other.</p>
+    </div>
+  </div>
+
+  <% if (blocker) { %><p class="notice notice--warn"><%= blocker %></p><% } %>
+
+  <ul class="casino-games bj-lobby reveal" style="--i:1">
+    <% tables.forEach(function (t) { %>
+      <li>
+        <a class="card casino-game bj-lobby__table<%= mine === t.id ? ' is-mine' : '' %>" href="/casino/blackjack/<%= t.id %>">
+          <span class="casino-game__icon" aria-hidden="true"><svg><use href="#i-cash"/></svg></span>
+          <span class="casino-game__body">
+            <span class="casino-game__name"><%= t.name %></span>
+            <span class="casino-game__blurb"><%= money(t.min) %> to <%= money(t.max) %> a hand. <%= t.blurb %></span>
+            <span class="bj-lobby__seats" aria-label="<%= t.seated %> of <%= t.seats %> seats taken">
+              <% for (let i = 0; i < t.seats; i++) { %><i class="<%= i < t.seated ? 'is-taken' : '' %>"></i><% } %>
+              <span class="muted small"><%= t.seated ? t.names.join(', ') : 'Empty' %><%= mine === t.id ? ' · you’re here' : '' %></span>
+            </span>
+          </span>
+          <span class="casino-game__go"><%= mine === t.id ? 'Back' : t.seated >= t.seats ? 'Watch' : 'Join' %> <svg aria-hidden="true"><use href="#i-arrow"/></svg></span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+  <p class="muted small">Your last 24 hours at blackjack: <%= today.plays %> hand<%= today.plays === 1 ? '' : 's' %>, <%= money(today.net) %>.</p>
+</main>
+
+<%- include('partials/foot') %>

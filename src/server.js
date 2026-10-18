@@ -53,6 +53,7 @@ const { createRaidService } = require('./raid-service');
 const { createTheatreService } = require('./theatre-service');
 const { createSupportService } = require('./support-service');
 const { createCasinoService } = require('./casino-service');
+const { createBlackjackService } = require('./blackjack-service');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
 const { avatarRoutes } = require('./routes/avatars');
@@ -128,6 +129,9 @@ function createApp({
   const casinoService = createCasinoService(db, players);
   casinoService.schedule();
   app.casino = casinoService; // exposed for tests
+  const blackjackService = createBlackjackService(db, players);
+  blackjackService.schedule();
+  app.blackjack = blackjackService; // exposed for tests
   const eventService = createEventService(db, {
     onAnnounce: (message, link) => pushService.broadcast('news', message, link).catch((err) => console.error('[push] broadcast failed', err)),
   });
@@ -274,7 +278,7 @@ function createApp({
   app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService, raidService, theatreService));
   app.use(theatreRoutes(players, unitRepo, theatreService));
   app.use(supportRoutes(players, supportService));
-  app.use(casinoRoutes(players, casinoService));
+  app.use(casinoRoutes(players, casinoService, blackjackService));
   app.use(accountRoutes(players, medalService));
   app.use(eventRoutes(players, eventService, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService));

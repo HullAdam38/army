@@ -781,6 +781,25 @@ The **Casino** (`/casino`, in the main menu and under More on phones) is a lobby
 - Admins: **Game settings › Casino › Roulette table limit** (default $10,000 in total per spin). The casino's open switch and minimum level apply too.
 - Rules: `src/roulette.js`. Spins: `spinRoulette` in `src/casino-service.js`.
 
+### Blackjack (multiplayer)
+
+`/casino/blackjack`: three tables, each with five seats, where players sit together and each play their own hand against a shared dealer.
+
+| Table | Bets per hand |
+|---|---|
+| Mess Hall | $10 to $500 |
+| Officers’ Lounge | $100 to $5,000 |
+| War Room | $1,000 to the casino's blackjack limit (default $25,000) |
+
+- **A round:** sit in a free seat and bet. The first bet opens a 15-second betting window (it closes early once everyone seated has bet). Cards are dealt, and players act in seat order with 20 seconds each: Hit, Stand, Double (any first two cards), or Split a pair once. Run out of time and the hand stands. The dealer then plays and everyone is paid. Results stay up for 6 seconds before the next round.
+- **House rules:** six decks reshuffled at a quarter left; the dealer checks for blackjack under an ace or ten, draws to 16 and stands on all 17s; blackjack pays 3 to 2; split aces get one card each, and 21 after a split isn't blackjack.
+- **Live table:** everyone sees each other's cards, bets, turns and results. With JavaScript the page checks for changes every second and actions happen in place; without it, every button is a normal form and you refresh to see others' moves.
+- **Seats:** one table at a time. Leaving before the deal refunds your bet; leaving mid-round stands your hands and still pays what they win. Players who stop looking at the table for 2 minutes, or sit out 5 rounds in a row, are stood up between rounds.
+- **Money and fairness:** the shoe lives only on the server (cryptographic shuffle) and the dealer's hole card isn't sent until the dealer plays. Bets, doubles and splits take cash at once and wins are paid at the end, all through the ledger as `casino-blackjack`. Each player's round is a row in `casino_plays`. Everyone plays the house, never each other, so tables can't be used to pass money between accounts.
+- **Restarts:** each table's state is saved after every change (`blackjack_tables`), so a restart picks up mid-round and deadlines that passed while it was down are applied.
+- Admins: **Game settings › Casino › Blackjack maximum bet** sets the War Room limit; the casino's open switch and minimum level apply too.
+- Rules: `src/blackjack.js`. Tables: `src/blackjack-service.js`. The table markup is one partial, `views/partials/bj-table.ejs`, used for the page, each poll and each action.
+
 ## Help & support
 
 Players open tickets with HQ Support at `/support` (in the phone menu under More, and in every page footer).

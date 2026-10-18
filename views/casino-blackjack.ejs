@@ -1,0 +1,34 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/casino/blackjack"><svg aria-hidden="true"><use href="#i-arrow"/></svg>Blackjack tables</a>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Blackjack · <%= money(v.table.min) %> to <%= money(v.table.max) %></p>
+      <h1 class="page-head__title"><%= v.table.name %></h1>
+      <p class="page-head__sub">Up to five players against the dealer. Bets close 15 seconds after the first one (sooner if everyone has bet), and each player gets 20 seconds a turn.</p>
+    </div>
+  </div>
+
+  <% if (blocker) { %><p class="notice notice--warn"><%= blocker %></p><% } %>
+
+  <section id="table" class="card bj-table reveal" style="--i:1" aria-label="The table" data-bj-table="<%= v.table.id %>">
+    <%- include('partials/bj-table', { v }) %>
+  </section>
+  <noscript><p class="muted small"><a href="/casino/blackjack/<%= v.table.id %>">Refresh the table</a> to see other players’ moves.</p></noscript>
+
+  <section class="card bj-rules reveal" style="--i:2" aria-labelledby="rules-title">
+    <h2 id="rules-title" class="card__title">House rules</h2>
+    <ul class="bj-rules__list">
+      <li>Six decks, shuffled when a quarter is left. The dealer checks for blackjack under an ace or a ten.</li>
+      <li>Blackjack pays 3 to 2; other wins pay 1 to 1; a tie is a push and your bet comes back.</li>
+      <li>The dealer draws to 16 and stands on all 17s.</li>
+      <li><strong>Double</strong> on any first two cards (one more card, bet doubled). <strong>Split</strong> a pair once; split aces get one card each.</li>
+      <li>Run out of time and your hand stands. Leave mid-round and your hands stand; you’re still paid what they win.</li>
+    </ul>
+  </section>
+</main>
+
+<%- include('partials/foot') %>
