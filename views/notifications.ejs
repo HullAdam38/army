@@ -9,6 +9,14 @@
       <h1 class="page-head__title">Notifications</h1>
       <p class="page-head__sub">Attacks on you, chat mentions, promotions, new unlocks and completed daily orders. While the game is open you'll also get a pop-up as they happen.</p>
     </div>
+    <% if (items.length) { %>
+      <div class="page-head__actions">
+        <form method="post" action="/notifications/clear" data-confirm="Clear all your notifications? This can’t be undone.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Clear all</button>
+        </form>
+      </div>
+    <% } %>
   </div>
 
   <a class="card alerts-link reveal" style="--i:1" href="/account/alerts">

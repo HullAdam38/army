@@ -705,6 +705,8 @@ Tuning constants live at the top of `src/pvp.js` and `src/game.js`.
 
 `src/notify.js` builds promotion and unlock messages. To add a new type, call `players.notify(userId, kind, message, link)` and give the kind an icon and colour in `views/notifications.ejs` and `main.css`. If it should reach players' phones, map the kind to a push category in `KIND_CATEGORY` in `src/push.js`.
 
+- **Clear all** on the notifications page deletes every notification you have (after a confirm). Other players' notifications aren't touched.
+
 ## Installable app and push alerts
 
 **Profile › Alerts** (`/account/alerts`, also linked from the Notifications page) is where players set this up.

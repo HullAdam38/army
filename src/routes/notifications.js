@@ -18,6 +18,12 @@ function notificationRoutes(players, push = null) {
     res.render('notifications', { title: 'Notifications', nav: 'notifications', items });
   });
 
+  router.post('/notifications/clear', requireAuth, (req, res) => {
+    const n = players.clearNotifications(req.player.id);
+    req.flash('success', n ? `Cleared ${n} notification${n === 1 ? '' : 's'}.` : 'There was nothing to clear.');
+    res.redirect('/notifications');
+  });
+
   /** Polled by the browser: new notifications since `after`, plus fresh stats for the stat bar. */
   router.get('/notifications/poll', requireAuth, (req, res) => {
     const after = Math.max(0, Math.floor(Number(req.query.after)) || 0);

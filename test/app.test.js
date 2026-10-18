@@ -447,3 +447,30 @@ test('bank: deposit, withdraw, history, privacy, and PvP only takes cash on hand
   await alpha.request('/attack/Bravo', { method: 'POST', form: { _csrf: at } });
   assert.deepEqual({ ...bravoRow() }, { cash: 190, bank_balance: 780 });
 });
+
+test('notifications: clear all removes only your own', async (t) => {
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const alpha = client(base);
+  const bravo = client(base);
+  await register(alpha, 'Alpha');
+  await register(bravo, 'Bravo');
+  const db = server.db;
+  const count = (name) => db.prepare('SELECT COUNT(*) AS n FROM notifications n JOIN users u ON u.id = n.user_id WHERE u.username = ?').get(name).n;
+  assert.ok(count('Alpha') > 0 && count('Bravo') > 0);
+
+  let { text } = await alpha.request('/notifications');
+  assert.match(text, /action="\/notifications\/clear"/);
+  const token = text.match(/name="_csrf" value="([^"]+)"/)[1];
+  const res = (await alpha.request('/notifications/clear', { method: 'POST', form: { _csrf: token } })).res;
+  assert.equal(res.headers.get('location'), '/notifications');
+  ({ text } = await alpha.request('/notifications'));
+  assert.match(text, /Cleared \d+ notification/);
+  assert.match(text, /Nothing yet/);
+  assert.doesNotMatch(text, /action="\/notifications\/clear"/, 'no button with nothing to clear');
+  assert.equal(count('Alpha'), 0);
+  assert.ok(count('Bravo') > 0, 'other players keep theirs');
+  // Without the form token it's refused.
+  assert.equal((await bravo.request('/notifications/clear', { method: 'POST', form: {} })).res.status, 403);
+  assert.ok(count('Bravo') > 0);
+});

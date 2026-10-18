@@ -101,6 +101,7 @@ function createPlayerRepo(db) {
       WHERE user_id = ? AND id > ? ORDER BY id ASC LIMIT 10`),
     latestNotificationId: db.prepare('SELECT MAX(id) AS id FROM notifications WHERE user_id = ?'),
     markRead: db.prepare('UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL'),
+    clearNotifications: db.prepare('DELETE FROM notifications WHERE user_id = ?'),
     pruneNotifications: db.prepare(`
       DELETE FROM notifications WHERE user_id = ?1 AND id NOT IN (
         SELECT id FROM notifications WHERE user_id = ?1 ORDER BY id DESC LIMIT ?2)`),
@@ -272,6 +273,8 @@ function createPlayerRepo(db) {
     notificationsAfter: (userId, afterId) => stmts.notificationsAfter.all(userId, afterId),
     latestNotificationId: (userId) => stmts.latestNotificationId.get(userId).id || 0,
     markNotificationsRead: (userId) => stmts.markRead.run(Date.now(), userId),
+    /** Deletes all of a player's notifications. Returns how many went. */
+    clearNotifications: (userId) => Number(stmts.clearNotifications.run(userId).changes),
     /** Latest fights across the whole game, for the HQ combat feed. */
     recentBattles: (limit = 6) => stmts.recentBattles.all(limit),
 
