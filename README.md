@@ -143,7 +143,7 @@ A brand-new game has nobody in it, so the game keeps the world busy until real p
 
 ## Cosmetics
 
-Looks that never change how the game plays (`src/cosmetics.js`). They can't be traded or turned into cash, so they never touch the economy or the casino, and they're ready to sell later.
+Looks that never change how the game plays (`src/cosmetics.js`). They can't be traded or turned into cash, so they never touch the economy or the casino. Supporter members wear the Supporter ones (see below).
 
 | Kind | Earned | Supporter items |
 |---|---|---|
@@ -152,10 +152,27 @@ Looks that never change how the game plays (`src/cosmetics.js`). They can't be t
 | **Badge packs**: extra parts in the avatar badge builder | – | Special Forces (tiger stripe, gold braid trim, gunmetal, oxblood), Arctic Warfare (snow and splinter camo, glacier, frost) |
 | **Unit crest**: how a unit's tag crest looks everywhere; owned by the unit, picked by its Commander | Veteran (5 wars won) | Gunmetal, Gold, Camo, Crimson, Navy |
 
-- **Wardrobe** (`/account/wardrobe`, under More on phones and linked from your profile): wear what you've earned or been given; Supporter items you don't have show as “coming soon” (Game settings › Cosmetics can hide them).
+- **Wardrobe** (`/account/wardrobe`, under More on phones and linked from your profile): wear what you've earned or been given; Supporter items you don't have link to the Supporter page (Game settings › Cosmetics can hide them).
 - **Unit crests:** the Commander picks on the unit page (Unit crest card).
 - **Admins** give or take back any cosmetic: on a player's admin page (Cosmetics) and, for crests, in the Admin box on a unit's page. Each needs a reason, goes in the audit log, and the player (or the unit's officers) is told. Taking an item back takes it off too.
-- Ownership is stored in `user_cosmetics` / `unit_cosmetics` with a `source` (`admin` now, `purchase` once the store exists), so a store only has to add rows.
+- Ownership is stored in `user_cosmetics` / `unit_cosmetics` with a `source`. Supporters wear every Supporter callsign colour, banner and badge pack without owning them, for as long as the membership lasts; unit crests are never part of it.
+
+## Supporter membership
+
+An optional monthly membership (`/supporter`, linked from the wardrobe, the footer and under More on phones). It only ever gives looks and convenience, never cash, gear, XP or anything the casino can see:
+
+- a **Supporter tag** next to the callsign in chat, on profiles and in the players list;
+- **every Supporter look**: callsign colours, profile banners and badge packs (not unit crests);
+- **six pinned medals** instead of three.
+
+It's sold by **Lemon Squeezy** as merchant of record (they handle VAT, receipts, refunds and chargebacks); the game only links to their checkout with the player's id and email filled in, and learns about payments from a signed webhook (`POST /webhooks/lemonsqueezy`). Membership is `users.supporter_until`: renewals set it to the next renewal date plus 3 days' grace, a cancellation to the end of the paid period, an expiry to now. When it ends, Supporter-only looks are taken off (at once on the webhook, and by an hourly sweep for memberships that simply run out). Players are told when it starts, is cancelled, a payment fails and when it ends.
+
+- **Admin › Supporters** (`/admin/supporters`): how many are active, gifts, cancelled-and-ending, everyone who ever supported, payments in the last 30 days, the member list and the latest provider events. While it isn't set up, it shows the setup steps.
+- **Gifts:** on a player's admin page › Supporter membership, give 1–3,660 days (added to any time they have) or end a gift. Both need a reason and are audit-logged. A gift that runs longer than a paid period isn't cut short by the next renewal.
+- **Setup:** DEPLOY.md › Supporter membership. The checkout link and price are on Admin › Server settings; the webhook secret (`LEMONSQUEEZY_WEBHOOK_SECRET`) only on the server. The launch checklist shows whether both are set.
+- Terms of Service section 7 covers it (merchant of record, a licence not property, renewal and cancelling, refunds, what happens on suspension).
+
+Code: `src/supporter.js` (rules, webhook parsing), `src/supporter-service.js`, `src/routes/supporter.js`.
 
 ## Recruit a friend
 
@@ -178,9 +195,10 @@ Admin › **Server settings** (`/admin/server`) edits the settings from the serv
 
 - **Terms of Service:** who runs the game, contact email and governing law (`LEGAL_OPERATOR`, `LEGAL_CONTACT_EMAIL`, `LEGAL_JURISDICTION`);
 - **Site:** the main address for shared links (`SITE_URL`) and the push alert contact (`PUSH_CONTACT`);
+- **Supporter membership:** the Lemon Squeezy checkout link and the price as shown (`SUPPORTER_CHECKOUT_URL`, `SUPPORTER_PRICE`);
 - **Backups:** the off-site destination and how long copies are kept (`BACKUP_REMOTE`, `BACKUP_REMOTE_KEEP_DAYS`), used from the next nightly backup.
 
-Saved values go in `admin-settings.env` next to the database and override the same names in `/etc/eliteforces/eliteforces.env`. Clear a field to use the file's value again. Saving needs your password, every value is checked against a strict pattern, and each change goes in the audit log. `SESSION_SECRET`, `NODE_ENV`, `DB_FILE`, `PORT`, `TRUST_PROXY` and `ANTICHEAT_SCAN_HOURS` are shown (the secret hidden) but can only be changed on the server, because a hijacked admin session could use them to lock everyone out or take over the server. Code: `src/server-settings.js`.
+Saved values go in `admin-settings.env` next to the database and override the same names in `/etc/eliteforces/eliteforces.env`. Clear a field to use the file's value again. Saving needs your password, every value is checked against a strict pattern, and each change goes in the audit log. `SESSION_SECRET`, `LEMONSQUEEZY_WEBHOOK_SECRET`, `NODE_ENV`, `DB_FILE`, `PORT`, `TRUST_PROXY` and `ANTICHEAT_SCAN_HOURS` are shown (the secret hidden) but can only be changed on the server, because a hijacked admin session could use them to lock everyone out or take over the server. Code: `src/server-settings.js`.
 
 ## Launch checklist
 
@@ -193,7 +211,8 @@ Admin › **Launch checklist** (`/admin/launch`) checks, every time it's opened:
 - **server errors** in the last 24 hours, with the latest 20 (message, page, stack trace). Admins get an in-game notification and a push alert (category *Server errors*), at most one per half hour;
 - outside uptime monitoring: point UptimeRobot or similar at **`/healthz`**, which answers `ok` while the game and database work;
 - sign-ups: at most **3 new accounts per network a day** (Game settings › Access), and a hidden form field that turns away simple bots;
-- how many reserve soldiers are on duty.
+- how many reserve soldiers are on duty;
+- whether Supporter payments are set up (optional).
 
 ## Game loop
 

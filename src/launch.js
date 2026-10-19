@@ -12,7 +12,8 @@ const money = (n) => Number(n).toLocaleString('en-US');
 const ago = (ms) => (ms < HOUR ? `${Math.max(1, Math.round(ms / 60000))} min ago` : `${Math.round(ms / HOUR)} h ago`);
 
 /**
- * `facts`: { legal, production, host, backup, errors24h, signupsOpen, signupsPerIp, reserve, now }.
+ * `facts`: { legal, production, host, backup, errors24h, signupsOpen, signupsPerIp, reserve, store, now },
+ * where `store` is { checkout, webhook } (whether each is set up).
  * Returns a list of { id, label, state, detail, fix }.
  */
 function checklist(facts) {
@@ -61,6 +62,13 @@ function checklist(facts) {
 
   add('reserve', 'Reserve soldiers', 'info',
     facts.reserve ? `${facts.reserve} on duty. They stand down one for one as real players become active (Game settings › Living world).` : 'None on duty.');
+
+  const store = facts.store || {};
+  add('supporter', 'Supporter membership payments', store.checkout && store.webhook ? 'ok' : 'info',
+    store.checkout && store.webhook ? 'Checkout link and webhook secret are set. Make a test purchase in Lemon Squeezy’s test mode to check it reaches Admin › Supporters.'
+      : store.checkout ? 'The checkout link is set but LEMONSQUEEZY_WEBHOOK_SECRET isn’t, so payments wouldn’t reach the game.'
+        : 'Not set up yet (optional). The Supporter page says “opens soon” until it is.',
+    store.checkout && store.webhook ? null : 'Follow “Supporter membership” in DEPLOY.md, or the steps on Admin › Supporters.');
 
   return items;
 }

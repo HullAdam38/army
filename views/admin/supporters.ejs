@@ -1,0 +1,72 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+<% const money = (amount, currency) => `${(amount / 100).toLocaleString('en-GB', { style: 'currency', currency: currency || 'GBP' })}`; %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'supporters' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Supporters</h1>
+      <p class="page-head__sub">Who supports the game, and what the payment provider has reported. Memberships only give looks and convenience. Paid ones are managed (and refunded) in Lemon Squeezy; gifts from HQ are given on a player’s admin page.</p>
+    </div>
+  </div>
+
+  <% if (!open || !webhookReady) { %>
+    <div class="notice notice--warn" style="margin-bottom: 16px">
+      <p><strong>Supporter membership isn’t open yet.</strong></p>
+      <ol class="setup-steps">
+        <li>In Lemon Squeezy, create a store and a <em>subscription</em> product (e.g. <%= price || '£4 a month' %>).</li>
+        <li><%= open ? '✓ ' : '' %>Copy the product’s checkout link into <a href="/admin/server#sv-SUPPORTER_CHECKOUT_URL">Server settings › Supporter checkout link</a>, with the price as you want it shown.</li>
+        <li><%= webhookReady ? '✓ ' : '' %>In Lemon Squeezy › Settings › Webhooks, add <code><%= siteUrl %>/webhooks/lemonsqueezy</code> with the subscription and payment events, and a signing secret. Put that secret on the server as <code>LEMONSQUEEZY_WEBHOOK_SECRET</code> in <code>/etc/eliteforces/eliteforces.env</code>, then restart.</li>
+      </ol>
+      <p class="muted small">Full steps are in DEPLOY.md › Supporter membership.</p>
+    </div>
+  <% } %>
+
+  <dl class="admin-stats stats-kpis">
+    <div><dt>Supporters now</dt><dd><%= o.counts.active %></dd></div>
+    <div><dt>Of those, gifts</dt><dd><%= o.counts.gifted %></dd></div>
+    <div><dt>Cancelled, ending</dt><dd><%= o.counts.ending %></dd></div>
+    <div><dt>Ever supported</dt><dd><%= o.counts.ever %></dd></div>
+    <div title="Successful subscription payments reported in the last 30 days, before the provider’s fees"><dt>Payments, 30 days</dt><dd class="small"><%= o.revenue.length ? o.revenue.map((r) => `${money(r.total, r.currency)} (${r.payments})`).join(' · ') : '—' %></dd></div>
+  </dl>
+
+  <section class="card" aria-labelledby="members-title">
+    <h2 id="members-title" class="card__title">Members</h2>
+    <% if (o.members.length) { %>
+      <div class="admin-table-wrap">
+        <table class="admin-flow">
+          <thead><tr><th scope="col">Player</th><th scope="col">Status</th><th scope="col">Until</th><th scope="col">Since</th><th scope="col">How</th></tr></thead>
+          <tbody>
+            <% o.members.forEach(function (m) { %>
+              <tr>
+                <th scope="row"><a href="/admin/players/<%= m.id %>#supporter"><%= m.username %></a></th>
+                <td><%= m.active ? (m.supporter_status || 'active') : 'ended' %></td>
+                <td><%= m.supporter_until ? new Date(m.supporter_until).toISOString().slice(0, 10) : '—' %></td>
+                <td><%= m.supporter_since ? new Date(m.supporter_since).toISOString().slice(0, 10) : '—' %></td>
+                <td><%= m.supporter_source === 'admin' ? 'Gift' : 'Paid' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <p class="muted">No Supporters yet.</p>
+    <% } %>
+  </section>
+
+  <section class="card" aria-labelledby="events-title">
+    <h2 id="events-title" class="card__title">Latest from the payment provider</h2>
+    <% if (o.events.length) { %>
+      <ul class="launch-errors">
+        <% o.events.forEach(function (e) { %>
+          <li><p><strong><%= e.event %></strong> <span class="muted small">· <%= e.username || 'unknown player' %><%= e.status ? ` · ${e.status}` : '' %><%= e.amount ? ` · ${money(e.amount, e.currency)}` : '' %> · <%= ago(e.created_at) %></span></p></li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">Nothing received yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

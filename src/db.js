@@ -239,6 +239,20 @@ const SCHEMA = `
     granted_at   INTEGER NOT NULL,
     PRIMARY KEY (unit_id, cosmetic_id)
   );
+  -- Supporter membership payments, as the payment provider reported them (src/supporter-service.js).
+  -- id is a hash of the webhook body, so a repeated delivery is only counted once.
+  CREATE TABLE IF NOT EXISTS payment_events (
+    id               TEXT    PRIMARY KEY,
+    provider         TEXT    NOT NULL,
+    event            TEXT    NOT NULL,
+    user_id          INTEGER,
+    subscription_id  TEXT,
+    status           TEXT,
+    amount           INTEGER, -- smallest currency unit (pence, cents)
+    currency         TEXT,
+    created_at       INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_payment_events_time ON payment_events(created_at);
   -- Invitations an officer sent to a player who is looking for a unit.
   CREATE TABLE IF NOT EXISTS unit_invites (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -864,6 +878,13 @@ const ADDED_COLUMNS = [
   ['chat_messages', 'kind', 'TEXT'], // null for players' messages; 'casino' for big-win shouts
   ['users', 'lfu_at', 'INTEGER'], // looking for a unit since (shown to unit officers)
   ['inventory', 'condition', 'REAL NOT NULL DEFAULT 100'],
+  ['users', 'supporter_until', 'INTEGER'], // Supporter perks last until then (src/supporter.js)
+  ['users', 'supporter_since', 'INTEGER'],
+  ['users', 'supporter_status', 'TEXT'], // the provider's status: active, cancelled, past_due…; 'gift' for one from HQ
+  ['users', 'supporter_source', 'TEXT'], // 'lemonsqueezy' or 'admin'
+  ['users', 'supporter_sub_id', 'TEXT'], // the provider's subscription id
+  ['users', 'supporter_portal', 'TEXT'], // link to manage or cancel the subscription
+  ['users', 'supporter_lapsed_at', 'INTEGER'], // when Supporter-only looks were taken off after it ended
   ['users', 'name_color', 'TEXT'], // cosmetic id of the callsign colour worn (src/cosmetics.js)
   ['users', 'profile_banner', 'TEXT'], // cosmetic id of the profile banner
   ['units', 'crest', 'TEXT'], // cosmetic id of the unit's crest style // gear condition, 0–100% (src/gear.js)

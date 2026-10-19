@@ -72,9 +72,9 @@ function medalView(medal, value, tier) {
 }
 
 /** Cleans a list of medal ids to pin: known, held, unique, at most MAX_PINNED. */
-function parsePins(ids, owned) {
+function parsePins(ids, owned, max = MAX_PINNED) {
   const list = (Array.isArray(ids) ? ids : [ids]).map(String).filter((id) => MEDALS_BY_ID.has(id) && (owned.get(id) || 0) > 0);
-  return [...new Set(list)].slice(0, MAX_PINNED);
+  return [...new Set(list)].slice(0, max);
 }
 
 module.exports = { MAX_PINNED, MEDALS, MEDALS_BY_ID, TIERS, medalView, newTiers, parsePins, tierFor };

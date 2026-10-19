@@ -2,6 +2,10 @@
 
 const express = require('express');
 const medals = require('../medals');
+const supporter = require('../supporter');
+
+/** Supporters pin six medals; everyone else three. */
+const maxPins = (player) => (supporter.isActive(player) ? supporter.SUPPORTER_PINS : medals.MAX_PINNED);
 const presence = require('../presence');
 const { createRequireAuth } = require('../require-auth');
 
@@ -29,7 +33,7 @@ function medalRoutes(players, medalService) {
       list,
       earned,
       possible: medals.MEDALS.length * medals.TIERS.length,
-      maxPinned: medals.MAX_PINNED,
+      maxPinned: maxPins(req.player),
       tiers: medals.TIERS,
       recent: medalService.history(req.player.id, 6).map((h) => {
         const medal = medals.MEDALS_BY_ID.get(h.medal_id);
@@ -41,11 +45,12 @@ function medalRoutes(players, medalService) {
   router.post('/medals/pins', requireAuth, (req, res) => {
     const wanted = req.body.pin === undefined ? [] : req.body.pin;
     const asked = (Array.isArray(wanted) ? wanted : [wanted]).length;
-    const pins = medalService.setPins(req.player.id, wanted);
+    const max = maxPins(req.player);
+    const pins = medalService.setPins(req.player.id, wanted, max);
     req.flash(
-      asked > medals.MAX_PINNED ? 'error' : 'success',
-      asked > medals.MAX_PINNED
-        ? `You can pin up to ${medals.MAX_PINNED} medals. Kept the first ${pins.length}.`
+      asked > max ? 'error' : 'success',
+      asked > max
+        ? `You can pin up to ${max} medals${max === medals.MAX_PINNED ? ' (Supporters can pin six)' : ''}. Kept the first ${pins.length}.`
         : pins.length ? `Pinned ${pins.length} medal${pins.length === 1 ? '' : 's'} to your profile.` : 'No medals pinned. Your profile shows your highest medals.',
     );
     res.redirect('/medals');

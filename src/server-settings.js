@@ -24,12 +24,15 @@ const FIELDS = [
   { key: 'LEGAL_JURISDICTION', group: 'legal', label: 'Governing law', help: 'The country or state whose law the terms follow.', example: 'England and Wales', check: plain(100) },
   { key: 'SITE_URL', group: 'site', label: 'Site address', help: 'The main address, so links shared on Discord or Reddit always use it. No path or trailing slash.', example: 'https://generalforces.com', check: (v) => (/^https?:\/\/[A-Za-z0-9.-]+(:\d{1,5})?$/.test(v) ? null : 'Enter just the address, like https://generalforces.com.') },
   { key: 'PUSH_CONTACT', group: 'site', label: 'Push alert contact', help: 'Given to browsers’ push services in case they need to reach you. Leave empty to use the contact email.', example: 'mailto:support@generalforces.com', check: (v) => (/^(mailto:[^\s@]+@[^\s@]+|https:\/\/\S+)$/.test(v) && v.length <= 200 ? null : 'Start with mailto: or https://.') },
+  { key: 'SUPPORTER_CHECKOUT_URL', group: 'store', label: 'Supporter checkout link', help: 'The “Buy” link of your Supporter subscription product in Lemon Squeezy (Products › your product › Share). Players are sent here, with their account filled in. Leave empty to keep the Supporter page in “coming soon” mode.', example: 'https://generalforces.lemonsqueezy.com/checkout/buy/0a1b2c3d-…', check: (v) => (/^https:\/\/[a-z0-9-]{1,63}\.lemonsqueezy\.com\/checkout\/buy\/[A-Za-z0-9-]{8,80}$/.test(v) ? null : 'Paste the Lemon Squeezy checkout link, like https://yourstore.lemonsqueezy.com/checkout/buy/….') },
+  { key: 'SUPPORTER_PRICE', group: 'store', label: 'Supporter price (as shown)', help: 'How the price reads on the Supporter page. It must match what you set in Lemon Squeezy, which decides what’s charged.', example: '£4 a month', check: plain(40) },
   { key: 'BACKUP_REMOTE', group: 'backup', label: 'Off-site backup destination', help: 'An rclone remote and folder (set the remote up once on the server with “sudo rclone config”). Used from the next nightly backup.', example: 'b2:my-bucket/generalforces', check: (v) => (/^[A-Za-z0-9_][A-Za-z0-9_-]{0,40}:[A-Za-z0-9._\/-]{0,200}$/.test(v) ? null : 'Use remote:folder, like b2:my-bucket/generalforces (letters, numbers, - _ . / only).') },
   { key: 'BACKUP_REMOTE_KEEP_DAYS', group: 'backup', label: 'Keep off-site copies for', help: 'Days. Older copies are deleted from the off-site storage.', example: '30', unit: 'days', check: (v) => (/^\d{1,4}$/.test(v) && Number(v) >= 1 ? null : 'A whole number of days, 1 or more.') },
 ];
 const GROUPS = [
   { id: 'legal', name: 'Terms of Service' },
   { id: 'site', name: 'Site' },
+  { id: 'store', name: 'Supporter membership' },
   { id: 'backup', name: 'Backups' },
 ];
 // Shown, never editable here.
@@ -40,6 +43,7 @@ const SERVER_ONLY = [
   { key: 'TRUST_PROXY', secret: false },
   { key: 'ANTICHEAT_SCAN_HOURS', secret: false },
   { key: 'SESSION_SECRET', secret: true },
+  { key: 'LEMONSQUEEZY_WEBHOOK_SECRET', secret: true },
 ];
 const BY_KEY = new Map(FIELDS.map((f) => [f.key, f]));
 

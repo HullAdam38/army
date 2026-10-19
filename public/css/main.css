@@ -1852,6 +1852,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 }
 @media (max-width: 380px) {
   .site-header__actions .btn--ghost { display: none; }
+  .site-header__long { display: none; }
 }
 
 /* Daily orders and supply drops (HQ) */
@@ -3578,6 +3579,14 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .inventory__item.is-worn .inventory__condition { color: var(--energy); }
 .inventory__actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .loadout__worn { display: block; font-family: var(--font-ui); font-size: 0.75rem; color: var(--energy); }
+.supporter-status { margin-bottom: 20px; }
+.supporter-status__line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin: 8px 0; }
+.supporter-status__price { margin: 6px 0; font-family: var(--font-display); font-size: 1.8rem; color: var(--energy); }
+.supporter-status__fine { margin-top: 12px; max-width: 46rem; }
+.supporter-perks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.supporter-perk__icon { width: 26px; height: 26px; color: var(--energy); }
+.supporter-perk__title { margin: 8px 0 4px; font-family: var(--font-ui); font-size: 1.05rem; }
+.supporter-badge { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 4px 0 8px; }
 .wardrobe { margin-bottom: 16px; }
 .wardrobe__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: 10px; margin: 12px 0 0; padding: 0; list-style: none; }
 .wardrobe__item { display: grid; gap: 6px; align-content: start; padding: 12px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
@@ -3836,3 +3845,4 @@ section[id], li[id] { scroll-margin-top: 190px; }
 }
 .admin-casino__games .theatre__sub { margin: 14px 0 6px; }
 .admin-casino__luck .admin-table-wrap + p, .admin-casino__luck > p + p { margin-top: 8px; }
+.setup-steps { margin: 8px 0; padding-left: 1.4rem; display: grid; gap: 6px; overflow-wrap: anywhere; }

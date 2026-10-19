@@ -6,6 +6,7 @@ const { wantsJson } = require('../middleware');
 const presence = require('../presence');
 const armory = require('../armory');
 const gear = require('../gear');
+const supporter = require('../supporter');
 const { loadoutOf } = armory;
 const pvp = require('../pvp');
 const { createRequireAuth } = require('../require-auth');
@@ -274,6 +275,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         isYou,
         isBot: Boolean(u.is_bot),
         nameColor: u.name_color,
+        isSupporter: supporter.isActive(u, now),
         canAttack: !isYou && !selfBlocker && !targetBlocker,
         // Short reason for the row; the full sentence goes in the tooltip.
         blocker: targetBlocker,
@@ -349,6 +351,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         isBot: Boolean(user.is_bot),
         nameColor: user.name_color,
         banner: user.profile_banner,
+        isSupporter: supporter.isActive(user),
         unit: (() => {
           const u = user.unit_id ? unitRepo.findById(user.unit_id) : null;
           return u ? { id: u.id, name: u.name, tag: u.tag, role: units.roleLabel(user.unit_role) } : null;

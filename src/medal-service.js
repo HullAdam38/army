@@ -163,8 +163,8 @@ function createMedalService(db, players) {
     },
 
     /** Sets the pinned medals; ignores ones the player doesn't hold. */
-    setPins(userId, ids) {
-      const pins = medals.parsePins(ids, ownedMap(userId));
+    setPins(userId, ids, max = medals.MAX_PINNED) {
+      const pins = medals.parsePins(ids, ownedMap(userId), max);
       stmts.setPins.run(pins.join(','), userId);
       return pins;
     },

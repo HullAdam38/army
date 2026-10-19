@@ -1,6 +1,7 @@
 'use strict';
 
 const cosmetics = require('./cosmetics');
+const supporter = require('./supporter');
 
 /**
  * Cosmetics backed by the database: what each player and unit owns, what
@@ -8,7 +9,7 @@ const cosmetics = require('./cosmetics');
  */
 function createCosmeticService(db) {
   const stmts = {
-    user: db.prepare('SELECT id, level, name_color, profile_banner, unit_id, unit_role FROM users WHERE id = ?'),
+    user: db.prepare('SELECT id, level, name_color, profile_banner, unit_id, unit_role, supporter_until FROM users WHERE id = ?'),
     titles: db.prepare('SELECT title_id FROM user_titles WHERE user_id = ?'),
     owned: db.prepare('SELECT cosmetic_id, source, granted_at FROM user_cosmetics WHERE user_id = ?'),
     grant: db.prepare('INSERT OR IGNORE INTO user_cosmetics (user_id, cosmetic_id, source, granted_by, granted_at) VALUES (?, ?, ?, ?, ?)'),
@@ -22,7 +23,7 @@ function createCosmeticService(db) {
   };
 
   const ownedSet = (userId) => new Set(stmts.owned.all(userId).map((r) => r.cosmetic_id));
-  const contextFor = (user) => ({ level: user.level, titles: new Set(stmts.titles.all(user.id).map((r) => r.title_id)), owned: ownedSet(user.id) });
+  const contextFor = (user, now = Date.now()) => ({ level: user.level, titles: new Set(stmts.titles.all(user.id).map((r) => r.title_id)), owned: ownedSet(user.id), supporter: supporter.isActive(user, now) });
   const unitContext = (unit) => ({ owned: new Set(stmts.unitOwned.all(unit.id).map((r) => r.cosmetic_id)), unitWarWins: unit.war_wins || 0 });
   const WORN = { name: 'name_color', banner: 'profile_banner' };
 
@@ -107,6 +108,19 @@ function createCosmeticService(db) {
       const col = WORN[c.kind];
       if (col && user[col] === c.id && !cosmetics.isUnlocked(c, contextFor(user))) stmts.wear[c.kind].run(null, userId);
       return { cosmetic: c };
+    },
+
+    /** Takes off a callsign colour or banner the player can no longer wear (e.g. their membership ended). */
+    tidy(userId, now = Date.now()) {
+      const user = stmts.user.get(userId);
+      if (!user) return [];
+      const ctx = contextFor(user, now);
+      const removed = [];
+      for (const [kind, col] of Object.entries(WORN)) {
+        const c = user[col] && cosmetics.BY_ID.get(user[col]);
+        if (user[col] && (!c || !cosmetics.isUnlocked(c, ctx))) { stmts.wear[kind].run(null, userId); removed.push(user[col]); }
+      }
+      return removed;
     },
 
     /** Admin: what a player was given (not earned). */

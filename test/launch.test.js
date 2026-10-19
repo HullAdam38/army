@@ -28,6 +28,9 @@ test('launch checklist items', () => {
 
   let c = byId(launch.checklist({ ...base, backup: good }));
   assert.deepEqual(['legal', 'email', 'production', 'backup', 'offsite', 'errors'].map((k) => c[k].state), ['ok', 'ok', 'ok', 'ok', 'ok', 'ok']);
+  assert.equal(c.supporter.state, 'info', 'Supporter payments are optional');
+  assert.equal(byId(launch.checklist({ ...base, store: { checkout: true, webhook: true } })).supporter.state, 'ok');
+  assert.match(byId(launch.checklist({ ...base, store: { checkout: true, webhook: false } })).supporter.detail, /WEBHOOK_SECRET/);
   assert.match(c.backup.detail, /3 h ago.*120 players/);
   assert.match(c.uptime.detail, /https:\/\/generalforces\.com\/healthz/);
 

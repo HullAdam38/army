@@ -12,8 +12,8 @@
 
 const rules = require('./anticheat/rules');
 
-const TERMS_VERSION = '2026-10-18.1'; // recruit rewards (fair play) and reserve soldiers (the service)
-const EFFECTIVE_DATE = '18 October 2026';
+const TERMS_VERSION = '2026-10-19.1'; // Supporter membership (purchases)
+const EFFECTIVE_DATE = '19 October 2026';
 const MIN_AGE = 18;
 
 // The examples deploy/install.sh writes into the settings file. Left as they

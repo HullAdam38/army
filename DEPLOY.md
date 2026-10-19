@@ -155,13 +155,33 @@ Backups on the game server are lost with the server. Set up an off-site copy onc
 
 To restore from an off-site copy, download it first (`sudo rclone copy b2:your-bucket-name/generalforces/eliteforces-YYYY-MM-DD-HHMM.db.gz /tmp/`), then follow "Restoring a backup" above with that file.
 
+## Supporter membership
+
+Optional: a monthly membership that gives players looks (Supporter tag, all Supporter cosmetics, six pinned medals), never power or cash. It's sold through [Lemon Squeezy](https://www.lemonsqueezy.com), who act as *merchant of record*: they sell it for you, charge and pay the right VAT or sales tax worldwide, send receipts and handle refunds and chargebacks. They take about 5% + 50¢ per payment and pay out to your bank. No payment code runs on the site; players pay on Lemon Squeezy's page and the game hears about it by webhook.
+
+1. **Make a store.** Sign up at lemonsqueezy.com and create a store (its address will be something like `generalforces.lemonsqueezy.com`). Fill in your payout and tax details; you need to finish their store activation before you can take real payments.
+2. **Make the product.** Products › New product: name it "Supporter membership", choose **Subscription**, set the price (e.g. £4 a month) and save. Under *Confirmation modal*, set the button link to `https://generalforces.com/supporter`.
+3. **Copy the checkout link.** On the product, choose Share and copy the link (`https://yourstore.lemonsqueezy.com/checkout/buy/…`). Paste it into **Admin › Server settings › Supporter checkout link**, and the price as it should read (e.g. `£4 a month`) into *Supporter price*. The Supporter page now shows "Become a Supporter".
+4. **Add the webhook.** Settings › Webhooks › add: URL `https://generalforces.com/webhooks/lemonsqueezy`; a signing secret (any long random string: `openssl rand -hex 32`); and the events `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`, `subscription_expired`, `subscription_paused`, `subscription_unpaused`, `subscription_payment_success`, `subscription_payment_failed`.
+5. **Give the game the secret.** On the server:
+
+   ```bash
+   echo 'LEMONSQUEEZY_WEBHOOK_SECRET=the-secret-from-step-4' | sudo tee -a /etc/eliteforces/eliteforces.env
+   sudo systemctl restart eliteforces
+   ```
+
+   It's deliberately not editable from the website, so a stolen admin session can't forge payments.
+6. **Test it.** Turn on Lemon Squeezy's *Test mode* (the toggle at the bottom left), buy the membership on your own account with the test card `4242 4242 4242 4242`, and check that you get the Supporter tag and that it shows on **Admin › Supporters**. Then cancel it from the Billing link on the Supporter page and check that it shows as ending. Turn test mode off when you're done (test and live mode have separate products and webhooks, so repeat steps 2–4 in live mode).
+
+Paid memberships are managed and refunded in Lemon Squeezy. To give someone a free membership (a prize, a thank-you), open their admin page › Supporter membership. If Cloudflare is in front of the site, make sure no WAF rule or "Bot Fight Mode" challenges `POST /webhooks/lemonsqueezy`.
+
 ## Uptime monitoring
 
 The game answers `https://generalforces.com/healthz` with `ok` while it and its database are working. Point a free monitor at it, such as [UptimeRobot](https://uptimerobot.com) or [Better Stack](https://betterstack.com/uptime) (HTTP check, every 5 minutes), so you get an email when the site goes down. Server errors are already reported to admins inside the game.
 
 ## Before launch
 
-Admin › **Launch checklist** checks most of this for you: your details in the Terms of Service, a contact email on your domain, production mode, backups and their test restores, off-site copies, server errors and the sign-up limits. Fill in what it flags. Your Terms of Service details, the site address and the off-site backup destination can all be set on **Admin › Server settings**, without touching the server. Set the site address to `https://generalforces.com` so links shared on Discord or Reddit always use it.
+Admin › **Launch checklist** checks most of this for you: your details in the Terms of Service, a contact email on your domain, production mode, backups and their test restores, off-site copies, server errors, the sign-up limits and (optionally) Supporter payments. Fill in what it flags. Your Terms of Service details, the site address and the off-site backup destination can all be set on **Admin › Server settings**, without touching the server. Set the site address to `https://generalforces.com` so links shared on Discord or Reddit always use it.
 
 ## Using Cloudflare
 

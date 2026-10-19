@@ -137,6 +137,23 @@
       </form>
     </section>
 
+    <section class="card admin-grid__wide" id="supporter" aria-labelledby="sup-title">
+      <h2 id="sup-title" class="card__title">Supporter membership</h2>
+      <p><% if (supporterInfo.active) { %><span class="tag tag--supporter">Supporter</span> until <%= supporterInfo.until %> · <%= supporterInfo.source === 'admin' ? 'a gift from HQ' : `paid (${supporterInfo.status})` %><% } else { %><span class="muted">Not a Supporter<%= supporterInfo.until ? ` (last until ${supporterInfo.until})` : '' %>.</span><% } %></p>
+      <form method="post" action="/admin/players/<%= t.id %>/supporter" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field-row">
+          <div class="field"><label for="sup-days">Gift (days)</label><input id="sup-days" name="days" type="number" min="1" max="3660" value="30"></div>
+          <div class="field"><label for="sup-reason">Reason</label><input id="sup-reason" name="reason" maxlength="200" placeholder="Competition prize" required></div>
+        </div>
+        <div class="unit-command__actions">
+          <button class="btn btn--ghost btn--sm" type="submit" name="action" value="gift">Give membership</button>
+          <% if (supporterInfo.active && supporterInfo.source === 'admin') { %><button class="btn btn--ghost btn--sm btn--danger" type="submit" name="action" value="end">End gift</button><% } %>
+        </div>
+        <p class="muted small">Paid memberships are cancelled or refunded in Lemon Squeezy; the game hears about it automatically.</p>
+      </form>
+    </section>
+
     <section class="card admin-grid__wide" id="cosmetics" aria-labelledby="cos-title">
       <h2 id="cos-title" class="card__title">Cosmetics</h2>
       <% if (cosmeticGrants.length) { %>

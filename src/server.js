@@ -61,6 +61,8 @@ const { createReserveService } = require('./reserve-service');
 const { createHealthService } = require('./health-service');
 const { createReferralService } = require('./referral-service');
 const { createCosmeticService } = require('./cosmetic-service');
+const { createSupporterService } = require('./supporter-service');
+const { supporterRoutes, supporterWebhook } = require('./routes/supporter');
 const { createServerSettings, defaultFile: defaultSettingsFile } = require('./server-settings');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
@@ -206,6 +208,12 @@ function createApp({
   const chatService = createChatService(db, players);
   chatService.schedule();
   const avatarService = createAvatarService(db, players);
+  // Supporter membership: paid through Lemon Squeezy, or gifted by HQ. When one ends, Supporter-only looks come off.
+  const supporterService = createSupporterService(db, players, {
+    onLapse: (userId, now) => { cosmeticService.tidy(userId, now); avatarService.tidyBadge(userId, now); },
+  });
+  supporterService.schedule();
+  app.supporters = supporterService; // exposed for tests
   app.avatars = avatarService; // exposed for tests
   const adminRepo = createAdminRepo(db);
 
@@ -255,6 +263,8 @@ function createApp({
     const urls = ['/', '/register', '/login', '/terms'].map((p) => `  <url><loc>${res.locals.siteUrl}${p}</loc></url>`).join('\n');
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
   });
+  // The payment provider's webhook: raw body for its signature, no session or CSRF (see routes/supporter.js).
+  app.use(supporterWebhook(supporterService));
   // Uptime check for outside monitors: "ok" while the game and its database answer.
   app.get('/healthz', (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -345,11 +355,13 @@ function createApp({
   app.use(supportRoutes(players, supportService));
   app.use(casinoRoutes(players, casinoService, blackjackService));
   app.use(accountRoutes(players, medalService, referralService, cosmeticService));
+  app.use(supporterRoutes(players, supporterService));
   app.use(eventRoutes(players, eventService, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService, {
     health: healthService,
     reserve: reserveService,
     cosmetics: cosmeticService,
+    supporters: supporterService,
     production,
     serverSettings,
     onServerSettings: () => { app.locals.legal = legalSettings(); }, // the terms pick up new details at once

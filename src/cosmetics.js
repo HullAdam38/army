@@ -54,11 +54,14 @@ const KINDS = [
 
 /**
  * Whether `cosmetic` is available. `ctx`: { level, titles (Set), owned (Set of
- * cosmetic ids granted to this player or, for crests, the unit), unitWarWins }.
+ * cosmetic ids granted to this player or, for crests, the unit), unitWarWins,
+ * supporter (an active Supporter membership) }.
  */
-function isUnlocked(cosmetic, { level = 1, titles = new Set(), owned = new Set(), unitWarWins = 0 } = {}) {
+function isUnlocked(cosmetic, { level = 1, titles = new Set(), owned = new Set(), unitWarWins = 0, supporter = false } = {}) {
   if (owned.has(cosmetic.id)) return true;
   const u = cosmetic.unlock || {};
+  // Supporters wear every personal Supporter item while their membership lasts (crests belong to units).
+  if (u.premium && supporter && cosmetic.kind !== 'crest') return true;
   if (u.level) return level >= u.level;
   if (u.title) return titles.has(u.title);
   if (u.unitWars) return unitWarWins >= u.unitWars;

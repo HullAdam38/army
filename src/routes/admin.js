@@ -17,6 +17,7 @@ const { createCasinoStats } = require('../casino-stats');
 const tuning = require('../tuning');
 const launch = require('../launch');
 const cosmeticsCatalogue = require('../cosmetics');
+const supporterRules = require('../supporter');
 
 const PAGE_SIZE = 25;
 const timeLeft = (ms) => {
@@ -35,7 +36,7 @@ const REASON_LABELS = {
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null } = {}) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null, supporters = null } = {}) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -130,6 +131,12 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       inventory: ITEMS.filter((i) => owned.has(i.id)).map((i) => ({ ...i, equipped: equipped.has(i.id) })),
       grantable: SLOTS.map((s) => ({ ...s, items: ITEMS.filter((i) => i.slot === s.id && !owned.has(i.id)) })).filter((s) => s.items.length),
       cosmeticGrants: cosmetics ? cosmetics.grantsFor(t.id) : [],
+      supporterInfo: {
+        active: supporterRules.isActive(t),
+        until: t.supporter_until ? new Date(t.supporter_until).toISOString().slice(0, 10) : null,
+        source: t.supporter_source,
+        status: t.supporter_status,
+      },
       cosmeticOptions: cosmeticsCatalogue.COSMETICS.filter((c) => c.kind !== 'crest'),
       unit,
       titleName: t.title ? require('../titles').nameOf(t.title) : null,
@@ -211,6 +218,41 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       req.flash('success', `${item.name} given to ${req.target.username}.`);
     }
     res.redirect(`/admin/players/${req.target.id}#inventory`);
+  });
+
+  // Supporter membership: a gift from HQ (or ending one). Paid memberships are managed with the payment provider.
+  router.post('/admin/players/:id/supporter', loadTarget, (req, res) => {
+    const reason = admin.cleanReason(req.body.reason);
+    const days = Math.floor(Number(req.body.days));
+    if (!supporters) req.flash('error', 'Not available.');
+    else if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else if (req.body.action === 'end') {
+      const out = supporters.endGift(req.target.id);
+      if (out.error) req.flash('error', out.error);
+      else {
+        adminRepo.log(req.player.id, req.target.id, 'supporter-end', `Ended their gift Supporter membership. Reason: ${reason}`);
+        req.flash('success', 'Gift membership ended.');
+      }
+    } else if (!Number.isInteger(days) || days < 1 || days > 3660) req.flash('error', 'Give a number of days from 1 to 3,660.');
+    else {
+      const out = supporters.gift(req.target.id, days);
+      adminRepo.log(req.player.id, req.target.id, 'supporter-gift', `Gave ${days} day${days === 1 ? '' : 's'} of Supporter membership (until ${new Date(out.until).toISOString().slice(0, 10)}). Reason: ${reason}`);
+      req.flash('success', `${req.target.username} is a Supporter until ${new Date(out.until).toISOString().slice(0, 10)}.`);
+    }
+    res.redirect(`/admin/players/${req.target.id}#supporter`);
+  });
+
+  router.get('/admin/supporters', (req, res) => {
+    const now = Date.now();
+    res.render('admin/supporters', {
+      title: 'Admin · Supporters',
+      nav: 'admin',
+      o: supporters ? supporters.overview(now) : { counts: { active: 0, gifted: 0, ending: 0, ever: 0 }, members: [], events: [], revenue: [] },
+      price: process.env.SUPPORTER_PRICE || '',
+      open: Boolean(process.env.SUPPORTER_CHECKOUT_URL),
+      webhookReady: Boolean(process.env.LEMONSQUEEZY_WEBHOOK_SECRET),
+      ago: (ms) => presence.timeAgo(ms, now),
+    });
   });
 
   // Cosmetics: give a player a Supporter item (or any cosmetic), or take one back.
@@ -427,6 +469,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
         signupsOpen: tuning.get('registrationOpen'),
         signupsPerIp: tuning.get('signupsPerIpPerDay'),
         reserve: reserve ? reserve.count() : 0,
+        store: { checkout: Boolean(process.env.SUPPORTER_CHECKOUT_URL), webhook: Boolean(process.env.LEMONSQUEEZY_WEBHOOK_SECRET) },
         now,
       }),
       errors: health ? health.recent(20).map((e) => ({ ...e, ago: presence.timeAgo(e.created_at, now) })) : [],

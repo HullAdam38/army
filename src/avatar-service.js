@@ -3,6 +3,8 @@
 const avatars = require('./avatars');
 const images = require('./images');
 const tuning = require('./tuning');
+const supporter = require('./supporter');
+const cosmeticsCatalogue = require('./cosmetics');
 
 const MAX_UPLOAD_BYTES = 1024 * 1024;
 const REPORTS_PER_HOUR = 10;
@@ -16,11 +18,12 @@ const UPLOADS_PER_DAY = 10;
  */
 function createAvatarService(db, players) {
   const stmts = {
-    user: db.prepare(`SELECT u.id, u.username, u.level, u.banned_at, u.avatar_kind, u.avatar_badge, u.avatar_v, u.avatar_upload_blocked, un.tag AS unit_tag
+    user: db.prepare(`SELECT u.id, u.username, u.level, u.banned_at, u.avatar_kind, u.avatar_badge, u.avatar_v, u.avatar_upload_blocked, u.supporter_until, un.tag AS unit_tag
       FROM users u LEFT JOIN units un ON un.id = u.unit_id WHERE u.id = ?`),
     titles: db.prepare('SELECT title_id FROM user_titles WHERE user_id = ?'),
     cosmetics: db.prepare('SELECT cosmetic_id FROM user_cosmetics WHERE user_id = ?'),
     setBadge: db.prepare("UPDATE users SET avatar_badge = ?, avatar_kind = 'badge', avatar_v = avatar_v + 1 WHERE id = ?"),
+    replaceBadge: db.prepare('UPDATE users SET avatar_badge = ?, avatar_v = avatar_v + 1 WHERE id = ?'),
     setKind: db.prepare('UPDATE users SET avatar_kind = ?, avatar_v = avatar_v + 1 WHERE id = ?'),
     upload: db.prepare('SELECT mime, data, bytes, width, height, created_at FROM avatar_uploads WHERE user_id = ?'),
     uploadInfo: db.prepare('SELECT mime, bytes, width, height, created_at FROM avatar_uploads WHERE user_id = ?'),
@@ -48,11 +51,12 @@ function createAvatarService(db, players) {
   // Uploads per player per rolling day, kept in memory (a restart forgives them).
   const uploadsLog = new Map();
 
-  const ownerOf = (user) => ({
-    level: user.level,
-    titles: new Set(stmts.titles.all(user.id).map((r) => r.title_id)),
-    cosmetics: new Set(stmts.cosmetics.all(user.id).map((r) => r.cosmetic_id)), // badge packs
-  });
+  const ownerOf = (user, now = Date.now()) => {
+    const packs = new Set(stmts.cosmetics.all(user.id).map((r) => r.cosmetic_id)); // badge packs given or bought
+    // Supporters can use every badge pack while their membership lasts.
+    if (supporter.isActive(user, now)) for (const c of cosmeticsCatalogue.COSMETICS) if (c.kind === 'badgePack') packs.add(c.id);
+    return { level: user.level, titles: new Set(stmts.titles.all(user.id).map((r) => r.title_id)), cosmetics: packs };
+  };
   const badgeOf = (user) => avatars.parseBadge(user.avatar_badge, user.id);
 
   /** Where a player's avatar lives, for <img src>. */
@@ -122,6 +126,17 @@ function createAvatarService(db, players) {
     return { badge };
   }
 
+  /** Swaps out badge parts the player can no longer use (e.g. their membership ended). True if it changed. */
+  function tidyBadge(userId, now = Date.now()) {
+    const user = stmts.user.get(userId);
+    if (!user || !user.avatar_badge) return false;
+    const current = badgeOf(user);
+    const { badge, locked } = avatars.normalize(current, { base: avatars.defaultBadge(userId), owner: ownerOf(user, now) });
+    if (!locked.length) return false;
+    stmts.replaceBadge.run(JSON.stringify(badge), userId);
+    return true;
+  }
+
   function saveUpload(userId, buf, now = Date.now()) {
     const ed = editor(userId);
     if (ed.uploadBlocker) return { error: ed.uploadBlocker };
@@ -172,6 +187,7 @@ function createAvatarService(db, players) {
     editor,
     preview,
     saveBadge,
+    tidyBadge,
     saveUpload,
     use,
     removeUpload,

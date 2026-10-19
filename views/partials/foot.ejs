@@ -2,7 +2,7 @@
   <div class="container site-footer__inner">
     <a class="brand brand--small" href="/"><svg class="brand__crest" aria-hidden="true"><use href="#i-crest"/></svg><span>General<b>Forces</b></span></a>
     <p class="site-footer__note">A work of fiction for players aged 18+. No real units, operations or persons are depicted.</p>
-    <p class="site-footer__copy"><a href="/events">Events</a> · <a href="/support">Help &amp; support</a> · <a href="/terms">Terms of Service</a> · &copy; <%= year %> GeneralForces</p>
+    <p class="site-footer__copy"><a href="/events">Events</a> · <a href="/support">Help &amp; support</a> · <% if (signedIn) { %><a href="/supporter">Support the game</a> · <% } %><a href="/terms">Terms of Service</a> · &copy; <%= year %> GeneralForces</p>
   </div>
 </footer>
 </body>

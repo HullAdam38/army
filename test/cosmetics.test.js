@@ -70,7 +70,7 @@ test('the wardrobe, unit crests and admin grants', async () => {
     // The wardrobe: earned items can be worn, Supporter ones are locked.
     let page = (await ace.request('/account/wardrobe')).text;
     assert.match(page, /Field olive/);
-    assert.match(page, /Supporter item, coming soon/);
+    assert.match(page, /Included with Supporter membership/);
     let f = await ace.flash('/account/wardrobe', { kind: 'name', id: 'name-olive' });
     assert.match(f.message, /Field olive on/);
     f = await ace.flash('/account/wardrobe', { kind: 'name', id: 'name-crimson' });

@@ -22,6 +22,7 @@
     <div class="profile-hero__body">
       <p class="eyebrow">Service record</p>
       <h1 id="profile-name" class="profile-hero__name" style="<%= nameStyle(soldier.nameColor) %>"><%= soldier.username %></h1>
+      <% if (soldier.isSupporter) { %><p class="supporter-badge"><span class="tag tag--supporter">Supporter</span> <span class="muted small">Helps keep GeneralForces running</span></p><% } %>
       <% if (soldier.isBot) { %><p class="reserve-note"><span class="tag tag--reserve">Reserve</span> A reserve soldier run by HQ to keep the front busy while the game grows. Fights against them count as normal. Reserve soldiers stand down as more players join.</p><% } %>
       <% if (soldier.isTarget) { %><p class="hvt-tag"><svg aria-hidden="true"><use href="#i-target"/></svg>Today’s high-value target · <a href="/players#target">bonus for beating them</a></p><% } %>
       <% if (soldier.title) { %><p class="profile-hero__title callsign-title">“<%= soldier.title %>”</p><% } %>

@@ -3,6 +3,7 @@
 const chat = require('./chat');
 const titles = require('./titles');
 const bbcode = require('./bbcode');
+const supporter = require('./supporter');
 
 /**
  * Game chat backed by the database: posting, history, live polling,
@@ -12,7 +13,7 @@ const bbcode = require('./bbcode');
 function createChatService(db, players) {
   const MESSAGE_COLUMNS = `
     m.id, m.channel, m.user_id, m.body, m.created_at, m.kind,
-    u.username, u.level, u.is_admin, u.title, u.avatar_v, u.name_color, un.tag AS unit_tag`;
+    u.username, u.level, u.is_admin, u.title, u.avatar_v, u.name_color, u.supporter_until, un.tag AS unit_tag`;
   const FROM = `
     FROM chat_messages m JOIN users u ON u.id = m.user_id LEFT JOIN units un ON un.id = u.unit_id
     WHERE m.channel = ?1 AND m.deleted_at IS NULL AND u.banned_at IS NULL
@@ -72,6 +73,7 @@ function createChatService(db, players) {
         avatarUrl: `/avatars/${r.user_id}?v=${r.avatar_v || 0}`,
         html,
         mine: Boolean(me && r.user_id === me.id),
+        supporter: supporter.isActive(r),
         mentionsMe: Boolean(me && r.user_id !== me.id && html.includes('chat-mention--you')),
       };
     });

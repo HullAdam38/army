@@ -6,7 +6,7 @@
     <div>
       <p class="eyebrow">Quartermaster’s stores</p>
       <h1 class="page-head__title">Wardrobe</h1>
-      <p class="page-head__sub">Change how you look to other soldiers. Cosmetics never change how the game plays. Some you earn by playing; Supporter items are given out by HQ for now.</p>
+      <p class="page-head__sub">Change how you look to other soldiers. Cosmetics never change how the game plays. Some you earn by playing; <a href="/supporter">Supporters</a> can wear every Supporter item.</p>
     </div>
   </div>
 
@@ -35,11 +35,11 @@
             <span class="wardrobe__name"><%= c.name %><% if (c.premium) { %> <span class="tag tag--supporter">Supporter</span><% } %></span>
             <% if (c.blurb) { %><span class="muted small"><%= c.blurb %></span><% } %>
             <% if (k.id === 'badgePack') { %>
-              <% if (c.unlocked) { %><span class="tag">Owned</span><% } else { %><span class="muted small wardrobe__how"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><%= c.premium ? 'Supporter item, coming soon' : c.how %></span><% } %>
+              <% if (c.unlocked) { %><span class="tag">Owned</span><% } else { %><span class="muted small wardrobe__how"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><% if (c.premium) { %><a href="/supporter">Included with Supporter membership</a><% } else { %><%= c.how %><% } %></span><% } %>
             <% } else if (c.wearing) { %><span class="tag">Wearing</span>
             <% } else if (c.unlocked) { %>
               <form method="post" action="/account/wardrobe"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="kind" value="<%= k.id %>"><input type="hidden" name="id" value="<%= c.id %>"><button class="btn btn--primary btn--sm" type="submit">Wear</button></form>
-            <% } else { %><span class="muted small wardrobe__how"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><%= c.premium ? 'Supporter item, coming soon' : c.how %></span><% } %>
+            <% } else { %><span class="muted small wardrobe__how"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><% if (c.premium) { %><a href="/supporter">Included with Supporter membership</a><% } else { %><%= c.how %><% } %></span><% } %>
           </li>
         <% }) %>
       </ul>
