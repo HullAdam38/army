@@ -28,6 +28,11 @@ const COLORS = [
   { id: 'silver', name: 'Silver', hex: '#c9ced4', unlock: { level: 15 } },
   { id: 'gold', name: 'Gold', hex: '#e2b23c', unlock: { level: 30 } },
   { id: 'elite', name: 'Elite violet', hex: '#b28cff', unlock: { title: 'contender' } },
+  // Badge packs (src/cosmetics.js).
+  { id: 'gunmetal', name: 'Gunmetal', hex: '#3b4248', unlock: { cosmetic: 'pack-special-forces' } },
+  { id: 'oxblood', name: 'Oxblood', hex: '#5e0f14', unlock: { cosmetic: 'pack-special-forces' } },
+  { id: 'glacier', name: 'Glacier', hex: '#8fcbe0', unlock: { cosmetic: 'pack-arctic' } },
+  { id: 'frost', name: 'Frost', hex: '#d6ecf4', unlock: { cosmetic: 'pack-arctic' } },
 ];
 const COLOR = new Map(COLORS.map((c) => [c.id, c]));
 
@@ -88,6 +93,23 @@ const PATTERNS = [
       return cells.join('');
     },
   },
+  // Badge packs (src/cosmetics.js).
+  {
+    id: 'tiger', name: 'Tiger stripe', unlock: { cosmetic: 'pack-special-forces' },
+    svg: (c) => ['M0 14L46 4L40 12L84 8L76 18L120 14V24L72 30L80 22L34 28L42 20L0 28Z', 'M0 50L38 42L30 52L90 44L82 56L120 50V60L70 66L78 58L22 64L30 56L0 62Z',
+      'M0 88L50 80L42 90L96 84L88 94L120 90V100L66 104L74 96L26 102L34 94L0 100Z'].map((d) => `<path d="${d}" fill="${c}"/>`).join(''),
+  },
+  {
+    id: 'snow', name: 'Snow camo', unlock: { cosmetic: 'pack-arctic' },
+    svg: (c) => ['M10 18C24 10 36 18 34 28S16 38 10 32 2 24 10 18Z', 'M62 8C76 6 84 14 80 22S64 28 58 22 54 11 62 8Z', 'M90 46C104 42 114 52 110 62S94 70 88 62 82 50 90 46Z',
+      'M30 60C42 54 54 62 50 72S34 82 28 76 20 66 30 60Z', 'M70 84C82 80 92 88 88 98S72 106 66 100 60 88 70 84Z', 'M8 92C18 88 26 94 24 102S12 110 8 106 0 96 8 92Z']
+      .map((d) => `<path d="${d}" fill="${c}"/>`).join(''),
+  },
+  {
+    id: 'splinter', name: 'Splinter camo', unlock: { cosmetic: 'pack-arctic' },
+    svg: (c) => ['0,30 50,10 44,26 90,4 120,0 120,16 70,34 76,20', '0,74 40,56 34,70 100,44 120,40 120,58 60,80 66,66', '10,120 64,94 58,108 120,84 120,100 80,120']
+      .map((p) => `<polygon points="${p}" fill="${c}"/>`).join(''),
+  },
 ];
 
 // Emblems are drawn around (60, 54) in a roughly 52 × 56 box.
@@ -146,6 +168,7 @@ const TRIMS = [
   { id: 'heavy', name: 'Heavy', width: 8 },
   { id: 'double', name: 'Double', width: 3, inner: true },
   { id: 'rivets', name: 'Riveted', width: 5, dash: '0.1 9', unlock: { level: 8 } },
+  { id: 'braid', name: 'Gold braid', width: 6, dash: '8 3', inner: true, unlock: { cosmetic: 'pack-special-forces' } },
 ];
 
 const BANNERS = [
@@ -202,15 +225,20 @@ function defaultBadge(userId) {
 function unlockText(part) {
   if (!part.unlock) return null;
   if (part.unlock.level) return `Reach level ${part.unlock.level}`;
+  if (part.unlock.cosmetic) {
+    const pack = require('./cosmetics').BY_ID.get(part.unlock.cosmetic);
+    return `Part of the ${pack ? pack.name : 'a badge pack'} (Supporter item)`;
+  }
   const titles = require('./titles');
   const t = titles.TITLES_BY_ID.get(part.unlock.title);
   return t ? `Earn the “${t.name}” title` : 'Locked';
 }
 
-/** Whether a player with this level and these earned title ids may use `part`. */
-function isUnlocked(part, { level = 1, titles = new Set() } = {}) {
+/** Whether a player with this level, these earned title ids and these cosmetics may use `part`. */
+function isUnlocked(part, { level = 1, titles = new Set(), cosmetics = new Set() } = {}) {
   if (!part.unlock) return true;
   if (part.unlock.level) return level >= part.unlock.level;
+  if (part.unlock.cosmetic) return cosmetics.has(part.unlock.cosmetic);
   return titles.has(part.unlock.title);
 }
 

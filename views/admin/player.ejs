@@ -137,6 +137,30 @@
       </form>
     </section>
 
+    <section class="card admin-grid__wide" id="cosmetics" aria-labelledby="cos-title">
+      <h2 id="cos-title" class="card__title">Cosmetics</h2>
+      <% if (cosmeticGrants.length) { %>
+        <ul class="admin-gear">
+          <% cosmeticGrants.forEach(function (g) { %><li><span><%= g.cosmetic.name %></span><span class="muted"><%= g.source === 'purchase' ? 'bought' : 'given by HQ' %></span></li><% }) %>
+        </ul>
+      <% } else { %>
+        <p class="muted">Hasn’t been given any cosmetics (earned ones unlock by themselves).</p>
+      <% } %>
+      <form method="post" action="/admin/players/<%= t.id %>/cosmetics" class="form admin-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field"><label for="cos-item">Cosmetic</label>
+          <select id="cos-item" name="cosmetic" required>
+            <% cosmeticOptions.forEach(function (c) { %><option value="<%= c.id %>"><%= c.name %><%= c.unlock && c.unlock.premium ? ' (Supporter)' : '' %></option><% }) %>
+          </select>
+        </div>
+        <div class="field"><label for="cos-reason">Reason</label><input id="cos-reason" name="reason" maxlength="200" placeholder="Event prize, giveaway, test" required></div>
+        <div class="unit-command__actions">
+          <button class="btn btn--ghost btn--sm" type="submit" name="action" value="grant">Give</button>
+          <button class="btn btn--ghost btn--sm btn--danger" type="submit" name="action" value="revoke">Take back</button>
+        </div>
+      </form>
+    </section>
+
     <section class="card admin-grid__wide" id="inventory" aria-labelledby="inv-title">
       <h2 id="inv-title" class="card__title">Gear</h2>
       <% if (inventory.length) { %>

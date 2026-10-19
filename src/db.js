@@ -221,6 +221,24 @@ const SCHEMA = `
     created_at  INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_server_errors_time ON server_errors(created_at);
+  -- Cosmetics a player or unit owns beyond what they've earned (src/cosmetics.js):
+  -- granted by an admin today, bought in the store later. Never tradeable.
+  CREATE TABLE IF NOT EXISTS user_cosmetics (
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    cosmetic_id  TEXT    NOT NULL,
+    source       TEXT    NOT NULL, -- 'admin' or 'purchase'
+    granted_by   INTEGER,
+    granted_at   INTEGER NOT NULL,
+    PRIMARY KEY (user_id, cosmetic_id)
+  );
+  CREATE TABLE IF NOT EXISTS unit_cosmetics (
+    unit_id      INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+    cosmetic_id  TEXT    NOT NULL,
+    source       TEXT    NOT NULL,
+    granted_by   INTEGER,
+    granted_at   INTEGER NOT NULL,
+    PRIMARY KEY (unit_id, cosmetic_id)
+  );
   -- Invitations an officer sent to a player who is looking for a unit.
   CREATE TABLE IF NOT EXISTS unit_invites (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -845,7 +863,10 @@ const ADDED_COLUMNS = [
   ['users', 'casino_blackjacks', 'INTEGER NOT NULL DEFAULT 0'],
   ['chat_messages', 'kind', 'TEXT'], // null for players' messages; 'casino' for big-win shouts
   ['users', 'lfu_at', 'INTEGER'], // looking for a unit since (shown to unit officers)
-  ['inventory', 'condition', 'REAL NOT NULL DEFAULT 100'], // gear condition, 0–100% (src/gear.js)
+  ['inventory', 'condition', 'REAL NOT NULL DEFAULT 100'],
+  ['users', 'name_color', 'TEXT'], // cosmetic id of the callsign colour worn (src/cosmetics.js)
+  ['users', 'profile_banner', 'TEXT'], // cosmetic id of the profile banner
+  ['units', 'crest', 'TEXT'], // cosmetic id of the unit's crest style // gear condition, 0–100% (src/gear.js)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
   ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
   ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players

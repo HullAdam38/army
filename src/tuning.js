@@ -60,6 +60,8 @@ const SETTINGS = [
   { key: 'gearRepairShare', group: 'armory', label: 'Repair cost', type: 'number', unit: '× price', min: 0, max: 2, step: 0.05, default: 0.3, help: 'A full repair from 0% costs this share of the item’s price (pro rata: from 50% it costs half that). Repairs take cash out of the game.' },
   { key: 'gearSellShare', group: 'armory', label: 'Sale price', type: 'number', unit: '× price', min: 0, max: 0.9, step: 0.05, default: 0.4, help: 'What the Armory pays for gear in perfect condition, as a share of its price. Worn gear fetches less: half as much at 0%. Keep it well under 1 so buying and selling never makes money.' },
 
+  { key: 'cosmeticsShowSupporter', group: 'cosmetics', label: 'Show Supporter cosmetics', type: 'bool', default: true, help: 'Show Supporter-only cosmetics in players’ wardrobes even when they don’t own them, as a preview of what’s coming. Turn off to show only what they have or can earn.' },
+
   // Living world
   { key: 'reserveSoldiers', group: 'world', label: 'Reserve soldiers', type: 'int', unit: 'soldiers', min: 0, max: 200, step: 1, default: 30, help: 'Soldiers run by the game, marked “Reserve”, so new players have targets, rivals on the leaderboards and starter units to join. One stands down for every real player active in the last week; 0 stands them all down.' },
   { key: 'reserveMaxLevel', group: 'world', label: 'Reserve soldiers’ top level', type: 'int', unit: 'level', min: 5, max: 100, step: 1, default: 30, help: 'Reserve soldiers stop levelling up here, so real players overtake them.' },
@@ -82,6 +84,7 @@ const GROUPS = [
   { id: 'access', name: 'Access', blurb: 'Who can join.' },
   { id: 'casino', name: 'Casino', blurb: 'Games played with in-game cash.' },
   { id: 'armory', name: 'Armory', blurb: 'Gear wear, repairs and selling.' },
+  { id: 'cosmetics', name: 'Cosmetics', blurb: 'Looks that never change how the game plays.' },
   { id: 'world', name: 'Living world', blurb: 'Keeps a young game from feeling empty.' },
   { id: 'recruit', name: 'Recruit a friend', blurb: 'Rewards for bringing new players in.' },
 ];

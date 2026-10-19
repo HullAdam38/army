@@ -69,7 +69,7 @@
           <ul class="unit-rec">
             <% recommended.forEach(function (u) { %>
               <li class="unit-rec__item">
-                <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
+                <span class="unit-crest <%= crestClass(u.crest) %>" aria-hidden="true"><%= u.tag %></span>
                 <span class="unit-rec__body">
                   <a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a>
                   <span class="muted small"><%= u.members %> / <%= u.capacity %> members · <%= u.active %> active this week<%= u.requirements.length ? ` · ${u.requirements.map((r) => r.text).join(' · ')}` : '' %></span>
@@ -122,7 +122,7 @@
           <tr class="<%= u.isYours ? 'is-you' : '' %>">
             <td class="num units-table__pos" data-label="Rank"><%= u.position || '—' %></td>
             <th scope="row" class="directory__who">
-              <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
+              <span class="unit-crest <%= crestClass(u.crest) %>" aria-hidden="true"><%= u.tag %></span>
               <span class="roster__who">
                 <span><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><% if (u.isYours) { %> <span class="tag">Yours</span><% } %><% if (u.atWar) { %> <span class="tag tag--war">At war</span><% } %><% if (u.hq === 1) { %> <span class="tag tag--hq">HQ starter</span><% } %></span>
                 <span class="roster__rank">Commander <%= u.leader_name || '—' %></span>

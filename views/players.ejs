@@ -61,7 +61,7 @@
             <th scope="row" class="directory__who">
               <%- include('partials/avatar', { url: p.avatarUrl, size: 'sm' }) %>
               <span class="roster__who">
-                <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(p.username) %>"><%= p.username %></a><% if (p.isYou) { %> <span class="tag">You</span><% } %><% if (p.isBot) { %> <span class="tag tag--reserve" title="Run by HQ until more players join">Reserve</span><% } %></span>
+                <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(p.username) %>" style="<%= nameStyle(p.nameColor) %>"><%= p.username %></a><% if (p.isYou) { %> <span class="tag">You</span><% } %><% if (p.isBot) { %> <span class="tag tag--reserve" title="Run by HQ until more players join">Reserve</span><% } %></span>
                 <span class="roster__rank"><%= p.rank %></span>
               </span>
             </th>

@@ -40,7 +40,7 @@ function createUnitRepo(db, { rankCacheMs = 0 } = {}) {
       WHERE s.strength > me.strength OR (s.strength = me.strength AND (s.members > me.members OR (s.members = me.members AND s.id < me.id)))`),
     count: db.prepare('SELECT COUNT(*) AS n FROM units'),
     members: db.prepare(`
-      SELECT id, username, level, unit_role, unit_joined_at, unit_donated, last_seen_at, signed_out_at, banned_at, hospital_until, pvp_wins, missions_completed, avatar_v, is_bot
+      SELECT id, username, level, unit_role, unit_joined_at, unit_donated, last_seen_at, signed_out_at, banned_at, hospital_until, pvp_wins, missions_completed, avatar_v, is_bot, name_color
       FROM users WHERE unit_id = ?
       ORDER BY CASE unit_role WHEN 'leader' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END, level DESC, username COLLATE NOCASE`),
     memberCount: db.prepare('SELECT COUNT(*) AS n FROM users WHERE unit_id = ?'),

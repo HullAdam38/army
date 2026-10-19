@@ -18,7 +18,7 @@ const PROMOTION_PERKS = {
   officer: 'You can now remove Sergeants and Privates, promote Privates, call rally orders and launch raids.',
 };
 
-function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null, raidService = null, theatreService = null) {
+function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService = null, raidService = null, theatreService = null, cosmetics = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const urlOf = (unit, hash = '') => `/units/${unit.id}${hash}`;
@@ -211,6 +211,8 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
       raidShare: raids.TREASURY_SHARE,
       theatre: member && theatreService ? theatreService.summary(unit.id, now) : null,
       chain: Object.entries(units.ROLES).map(([key, r]) => ({ key, label: r.label })),
+      crests: cosmetics && (units.can.manage(role) || req.player.is_admin) ? cosmetics.crests(unit.id) : [],
+      crestGrants: cosmetics && req.player.is_admin ? cosmetics.unitGrantsFor(unit.id) : [],
       posts: member ? unitRepo.posts(unit.id).map((p) => ({ ...p, html: bbcode.render(p.body), ago: presence.timeAgo(p.created_at, now), canDelete: p.user_id === req.player.id || units.can.moderate(role) })) : [],
       log: member ? unitRepo.recentLog(unit.id).map((l) => ({ ...l, ago: presence.timeAgo(l.created_at, now) })) : [],
       apply: member ? null : {
@@ -404,6 +406,15 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
     return { ok: 'Unit settings saved.' };
   }, `${urlOf(req.unit)}#command`));
 
+  // The unit's crest style: the Commander picks from what the unit has earned or owns.
+  router.post('/units/:id/crest', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
+    if (!units.can.manage(role)) return { error: 'Only the Commander can change the crest.' };
+    if (!cosmetics) return { error: 'Not available.' };
+    const out = cosmetics.setCrest(unit.id, req.body.crest ? String(req.body.crest) : null);
+    if (!out.error) unitRepo.log(unit.id, 'crest', `${me.username} changed the unit’s crest.`);
+    return out;
+  }, `${urlOf(req.unit)}#crest`));
+
   router.post('/units/:id/disband', requireAuth, loadUnit, (req, res) => act(req, res, ({ me, unit, role }) => {
     if (!units.can.manage(role)) return { error: 'Only the Commander can disband the unit.' };
     if (String(req.body.confirm || '').trim().toUpperCase() !== unit.tag.toUpperCase()) return { error: `Type the tag ${unit.tag} to confirm.` };
@@ -573,6 +584,19 @@ function unitRoutes(players, unitRepo, adminRepo, warService, objectiveService =
     notifyAll(unitRepo.memberIds(unit.id), `HQ renamed your unit to ${v.name} [${v.tag}].`, `/units/${unit.id}`);
     return { ok: `Renamed to ${v.name} [${v.tag}].` };
   }));
+
+  // Admin: give a unit a crest, or take one back.
+  router.post('/units/:id/admin/cosmetics', requireAuth, adminOnly, loadUnit, (req, res) => act(req, res, ({ me, unit }) => {
+    if (!cosmetics) return { error: 'Not available.' };
+    const reason = String(req.body.reason || '').trim().slice(0, 200);
+    if (!reason) return { error: 'Give a reason; it goes in the audit log.' };
+    const revoke = req.body.action === 'revoke';
+    const out = revoke ? cosmetics.revoke({ unitId: unit.id, id: req.body.cosmetic }) : cosmetics.grant({ unitId: unit.id, id: req.body.cosmetic, by: me.id });
+    if (out.error) return out;
+    adminRepo.log(me.id, null, revoke ? 'cosmetic-revoke' : 'cosmetic-grant', `${revoke ? 'Took' : 'Gave'} the ${out.cosmetic.name} crest ${revoke ? 'from' : 'to'} ${unit.name} [${unit.tag}] (unit ${unit.id}). Reason: ${reason}`);
+    if (!revoke) notifyAll(unitRepo.officerIds(unit.id), `HQ gave ${unit.name} the ${out.cosmetic.name} crest. The Commander can put it on from the unit page.`, `/units/${unit.id}#crest`);
+    return { ok: `${revoke ? 'Took back' : 'Gave'} the ${out.cosmetic.name} crest.` };
+  }, `${urlOf(req.unit)}#admin`));
 
   router.post('/units/:id/admin/disband', requireAuth, adminOnly, loadUnit, (req, res) => act(req, res, ({ me, unit }) => {
     const reason = String(req.body.reason || '').trim().slice(0, 200);

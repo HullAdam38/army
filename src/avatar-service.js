@@ -19,6 +19,7 @@ function createAvatarService(db, players) {
     user: db.prepare(`SELECT u.id, u.username, u.level, u.banned_at, u.avatar_kind, u.avatar_badge, u.avatar_v, u.avatar_upload_blocked, un.tag AS unit_tag
       FROM users u LEFT JOIN units un ON un.id = u.unit_id WHERE u.id = ?`),
     titles: db.prepare('SELECT title_id FROM user_titles WHERE user_id = ?'),
+    cosmetics: db.prepare('SELECT cosmetic_id FROM user_cosmetics WHERE user_id = ?'),
     setBadge: db.prepare("UPDATE users SET avatar_badge = ?, avatar_kind = 'badge', avatar_v = avatar_v + 1 WHERE id = ?"),
     setKind: db.prepare('UPDATE users SET avatar_kind = ?, avatar_v = avatar_v + 1 WHERE id = ?'),
     upload: db.prepare('SELECT mime, data, bytes, width, height, created_at FROM avatar_uploads WHERE user_id = ?'),
@@ -47,7 +48,11 @@ function createAvatarService(db, players) {
   // Uploads per player per rolling day, kept in memory (a restart forgives them).
   const uploadsLog = new Map();
 
-  const ownerOf = (user) => ({ level: user.level, titles: new Set(stmts.titles.all(user.id).map((r) => r.title_id)) });
+  const ownerOf = (user) => ({
+    level: user.level,
+    titles: new Set(stmts.titles.all(user.id).map((r) => r.title_id)),
+    cosmetics: new Set(stmts.cosmetics.all(user.id).map((r) => r.cosmetic_id)), // badge packs
+  });
   const badgeOf = (user) => avatars.parseBadge(user.avatar_badge, user.id);
 
   /** Where a player's avatar lives, for <img src>. */

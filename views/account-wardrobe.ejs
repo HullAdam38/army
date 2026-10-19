@@ -1,0 +1,51 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Quartermaster’s stores</p>
+      <h1 class="page-head__title">Wardrobe</h1>
+      <p class="page-head__sub">Change how you look to other soldiers. Cosmetics never change how the game plays. Some you earn by playing; Supporter items are given out by HQ for now.</p>
+    </div>
+  </div>
+
+  <% kinds.forEach(function (k, ki) { %>
+    <% const items = k.items.filter((c) => showLocked || c.unlocked || !c.premium); %>
+    <section class="card wardrobe reveal" style="--i:<%= ki + 1 %>" id="<%= k.id %>" aria-labelledby="w-<%= k.id %>">
+      <h2 id="w-<%= k.id %>" class="card__title"><%= k.name %></h2>
+      <p class="muted small"><%= k.blurb %><% if (k.id === 'badgePack') { %> Use them in the <a href="/account/avatar">badge builder</a>.<% } %></p>
+      <ul class="wardrobe__grid">
+        <% if (k.id !== 'badgePack') { const none = !k.items.some((c) => c.wearing); %>
+          <li class="wardrobe__item<%= none ? ' is-on' : '' %>">
+            <span class="wardrobe__preview wardrobe__preview--<%= k.id %>"><% if (k.id === 'name') { %><span class="wardrobe__callsign"><%= player.username %></span><% } else { %><span class="profile-hero wardrobe__banner"></span><% } %></span>
+            <span class="wardrobe__name">Standard</span>
+            <% if (none) { %><span class="tag">Wearing</span><% } else { %>
+              <form method="post" action="/account/wardrobe"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="kind" value="<%= k.id %>"><button class="btn btn--ghost btn--sm" type="submit">Wear</button></form>
+            <% } %>
+          </li>
+        <% } %>
+        <% items.forEach(function (c) { %>
+          <li class="wardrobe__item<%= c.wearing ? ' is-on' : '' %><%= c.unlocked ? '' : ' is-locked' %>">
+            <span class="wardrobe__preview wardrobe__preview--<%= k.id %>">
+              <% if (k.id === 'name') { %><span class="wardrobe__callsign" style="<%= nameStyle(c.id) %>"><%= player.username %></span>
+              <% } else if (k.id === 'banner') { %><span class="profile-hero wardrobe__banner <%= bannerClass(c.id) %>"></span>
+              <% } else { %><svg class="wardrobe__pack-icon" aria-hidden="true"><use href="#i-star"/></svg><% } %>
+            </span>
+            <span class="wardrobe__name"><%= c.name %><% if (c.premium) { %> <span class="tag tag--supporter">Supporter</span><% } %></span>
+            <% if (c.blurb) { %><span class="muted small"><%= c.blurb %></span><% } %>
+            <% if (k.id === 'badgePack') { %>
+              <% if (c.unlocked) { %><span class="tag">Owned</span><% } else { %><span class="muted small wardrobe__how"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><%= c.premium ? 'Supporter item, coming soon' : c.how %></span><% } %>
+            <% } else if (c.wearing) { %><span class="tag">Wearing</span>
+            <% } else if (c.unlocked) { %>
+              <form method="post" action="/account/wardrobe"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="kind" value="<%= k.id %>"><input type="hidden" name="id" value="<%= c.id %>"><button class="btn btn--primary btn--sm" type="submit">Wear</button></form>
+            <% } else { %><span class="muted small wardrobe__how"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><%= c.premium ? 'Supporter item, coming soon' : c.how %></span><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% }) %>
+  <p class="muted small reveal">Unit crests belong to a unit: its Commander picks one on the unit page.</p>
+</main>
+
+<%- include('partials/foot') %>

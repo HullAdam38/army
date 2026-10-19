@@ -271,7 +271,7 @@ function createPlayerRepo(db) {
       const order = PLAYER_SORTS[sort] || PLAYER_SORTS.level;
       const total = db.prepare(`SELECT COUNT(*) AS n FROM users ${clause}`).get(...params).n;
       const rows = db.prepare(`
-        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, deploy_until, pvp_wins, pvp_losses, avatar_v, is_bot
+        SELECT id, username, level, xp, created_at, last_seen_at, signed_out_at, hospital_until, deploy_until, pvp_wins, pvp_losses, avatar_v, is_bot, name_color
         FROM users ${clause} ORDER BY ${order} LIMIT ? OFFSET ?`).all(...params, limit, offset);
       return { rows, total };
     },

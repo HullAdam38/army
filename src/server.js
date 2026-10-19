@@ -33,6 +33,7 @@ const { createTutorialService } = require('./tutorial-service');
 const { termsRoutes } = require('./routes/terms');
 const { legalSettings } = require('./legal');
 const game = require('./game');
+const cosmeticsCatalogue = require('./cosmetics');
 const { createMessageService } = require('./message-service');
 const { messageRoutes } = require('./routes/messages');
 const { formatRoutes } = require('./routes/format');
@@ -59,6 +60,7 @@ const { createCasinoPlayer } = require('./casino-player');
 const { createReserveService } = require('./reserve-service');
 const { createHealthService } = require('./health-service');
 const { createReferralService } = require('./referral-service');
+const { createCosmeticService } = require('./cosmetic-service');
 const { createServerSettings, defaultFile: defaultSettingsFile } = require('./server-settings');
 const { createTargetService } = require('./target-service');
 const { createAvatarService, MAX_UPLOAD_BYTES } = require('./avatar-service');
@@ -125,6 +127,9 @@ function createApp({
   settingsService.load();
   const anti = createAntiCheat(db, players, { secret, settings: settingsService });
   app.anti = anti; // exposed for tests and maintenance scripts
+  // Cosmetics: what players and units own and wear (src/cosmetics.js).
+  const cosmeticService = createCosmeticService(db);
+  app.cosmetics = cosmeticService; // exposed for tests
   // Recruit a friend: invite links, and rewards once a recruit has really played.
   const referralService = createReferralService(db, players, anti);
   app.referrals = referralService; // exposed for tests
@@ -219,6 +224,10 @@ function createApp({
   // Where a player's avatar image lives; `v` changes whenever they change it (see avatar-service).
   app.locals.avatarUrl = (id, v) => `/avatars/${id}?v=${v || 0}`;
   app.locals.year = new Date().getFullYear();
+  // Cosmetics in templates: a callsign colour (inline style), profile banner and unit crest classes.
+  app.locals.nameStyle = cosmeticsCatalogue.nameStyle;
+  app.locals.bannerClass = (id) => cosmeticsCatalogue.cssClass('profile-hero', id, 'banner');
+  app.locals.crestClass = (id) => cosmeticsCatalogue.cssClass('unit-crest', id, 'crest');
   // Settings admins can change on Admin › Server settings override the settings file.
   const serverSettings = createServerSettings(serverSettingsFile || defaultSettingsFile());
   app.locals.legal = legalSettings();
@@ -331,15 +340,16 @@ function createApp({
   app.use(avatarRoutes(players, avatarService, adminRepo));
   app.use(alertRoutes(players, pushService));
   app.use(messageRoutes(players, messageService, pushService));
-  app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService, raidService, theatreService));
+  app.use(unitRoutes(players, unitRepo, adminRepo, warService, objectiveService, raidService, theatreService, cosmeticService));
   app.use(theatreRoutes(players, unitRepo, theatreService));
   app.use(supportRoutes(players, supportService));
   app.use(casinoRoutes(players, casinoService, blackjackService));
-  app.use(accountRoutes(players, medalService, referralService));
+  app.use(accountRoutes(players, medalService, referralService, cosmeticService));
   app.use(eventRoutes(players, eventService, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService, {
     health: healthService,
     reserve: reserveService,
+    cosmetics: cosmeticService,
     production,
     serverSettings,
     onServerSettings: () => { app.locals.legal = legalSettings(); }, // the terms pick up new details at once

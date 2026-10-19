@@ -11,7 +11,7 @@
   <a class="back-link reveal" style="--i:0" href="/units"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All units</a>
 
   <section class="card unit-hero reveal" style="--i:1" aria-labelledby="unit-name">
-    <span class="unit-crest unit-crest--xl" aria-hidden="true"><%= unit.tag %></span>
+    <span class="unit-crest unit-crest--xl <%= crestClass(unit.crest) %>" aria-hidden="true"><%= unit.tag %></span>
     <div class="unit-hero__body">
       <p class="eyebrow">Unit profile · ranked #<%= unit.position %> · founded <time datetime="<%= stats.foundedIso %>"><%= stats.founded %></time></p>
       <h1 id="unit-name" class="profile-hero__name"><%= unit.name %> <span class="unit-tag">[<%= unit.tag %>]</span></h1>
@@ -235,7 +235,7 @@
           <li class="unit-roster__row unit-roster__row--<%= m.unit_role %><%= m.isYou ? ' is-you' : '' %>">
             <%- include('partials/avatar', { url: m.avatarUrl, size: 'sm' }) %>
             <span class="roster__who">
-              <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(m.username) %>"><%= m.username %></a><% if (m.isYou) { %> <span class="tag">You</span><% } %><% if (m.is_bot) { %> <span class="tag tag--reserve">Reserve</span><% } %></span>
+              <span><a class="roster__name directory__name" href="/profile/<%= encodeURIComponent(m.username) %>" style="<%= nameStyle(m.name_color) %>"><%= m.username %></a><% if (m.isYou) { %> <span class="tag">You</span><% } %><% if (m.is_bot) { %> <span class="tag tag--reserve">Reserve</span><% } %></span>
               <span class="roster__rank"><span class="unit-role unit-role--<%= m.unit_role %>"><%= m.roleLabel %></span> · Lv <%= m.level %><% if (member) { %> · donated <%= money(m.unit_donated) %><% } %></span>
             </span>
             <span class="unit-roster__seen">
@@ -458,8 +458,31 @@
     </section>
   <% } %>
 
+  <% if (can.manage && crests.length) { %>
+    <section id="crest" class="card unit-card reveal" style="--i:7" aria-labelledby="crest-title">
+      <h2 id="crest-title" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-crest"/></svg>Unit crest</h2>
+      <p class="muted small">How your tag’s crest looks to everyone: on this page, the unit list and recruiting cards.</p>
+      <ul class="crest-picker">
+        <li class="crest-picker__item<%= !unit.crest ? ' is-on' : '' %>">
+          <span class="unit-crest" aria-hidden="true"><%= unit.tag %></span>
+          <span class="crest-picker__name">Standard</span>
+          <% if (unit.crest) { %><form method="post" action="/units/<%= unit.id %>/crest"><%- csrf %><button class="btn btn--ghost btn--sm" type="submit">Use</button></form><% } else { %><span class="tag">In use</span><% } %>
+        </li>
+        <% crests.forEach(function (c) { %>
+          <li class="crest-picker__item<%= c.wearing ? ' is-on' : '' %><%= c.unlocked ? '' : ' is-locked' %>">
+            <span class="unit-crest <%= crestClass(c.id) %>" aria-hidden="true"><%= unit.tag %></span>
+            <span class="crest-picker__name"><%= c.name %></span>
+            <% if (c.wearing) { %><span class="tag">In use</span>
+            <% } else if (c.unlocked) { %><form method="post" action="/units/<%= unit.id %>/crest"><%- csrf %><input type="hidden" name="crest" value="<%= c.id %>"><button class="btn btn--ghost btn--sm" type="submit">Use</button></form>
+            <% } else { %><span class="muted small"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg><%= c.how %></span><% } %>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
+
   <% if (isAdmin) { %>
-    <section class="card unit-card admin-box reveal" style="--i:8" aria-labelledby="admin-unit-title">
+    <section class="card unit-card admin-box reveal" style="--i:8" aria-labelledby="admin-unit-title" id="admin">
       <h2 id="admin-unit-title" class="card__title">Admin</h2>
       <div class="unit-command__grid">
         <form method="post" action="/units/<%= unit.id %>/admin/rename" class="form unit-command__form">
@@ -474,6 +497,17 @@
           <%- csrf %>
           <div class="field"><label for="admin-reason">Reason (sent to members)</label><input id="admin-reason" name="reason" maxlength="200"></div>
           <button class="btn btn--ghost btn--danger" type="submit">Disband unit</button>
+        </form>
+        <form method="post" action="/units/<%= unit.id %>/admin/cosmetics" class="form unit-command__form">
+          <%- csrf %>
+          <div class="field"><label for="admin-crest">Crest</label>
+            <select id="admin-crest" name="cosmetic"><% crests.forEach(function (c) { %><option value="<%= c.id %>"><%= c.name %><%= crestGrants.some((g) => g.id === c.id) ? ' (given)' : '' %></option><% }) %></select>
+          </div>
+          <div class="field"><label for="admin-crest-reason">Reason</label><input id="admin-crest-reason" name="reason" maxlength="200" placeholder="Event prize" required></div>
+          <div class="unit-command__actions">
+            <button class="btn btn--ghost btn--sm" type="submit" name="action" value="grant">Give crest</button>
+            <button class="btn btn--ghost btn--sm btn--danger" type="submit" name="action" value="revoke">Take back</button>
+          </div>
         </form>
       </div>
     </section>

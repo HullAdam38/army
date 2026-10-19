@@ -24,7 +24,7 @@
 <li class="chat-msg<%= m.mine ? ' chat-msg--mine' : '' %><%= m.mentionsMe ? ' chat-msg--mention' : '' %><%= m.is_admin ? ' chat-msg--admin' : '' %>" id="m-<%= m.id %>" data-id="<%= m.id %>">
   <a class="chat-msg__avatar" href="/profile/<%= encodeURIComponent(m.username) %>" tabindex="-1" aria-hidden="true"><%- include('avatar', { url: m.avatarUrl, size: 'xs' }) %></a>
   <div class="chat-msg__head">
-    <a class="chat-msg__name" href="/profile/<%= encodeURIComponent(m.username) %>"><% if (m.unit_tag) { %><span class="unit-tag">[<%= m.unit_tag %>]</span> <% } %><%= m.username %></a>
+    <a class="chat-msg__name" href="/profile/<%= encodeURIComponent(m.username) %>" style="<%= nameStyle(m.name_color) %>"><% if (m.unit_tag) { %><span class="unit-tag">[<%= m.unit_tag %>]</span> <% } %><%= m.username %></a>
     <% if (m.titleName) { %><span class="callsign-title chat-msg__title"><%= m.titleName %></span><% } %>
     <% if (m.is_admin) { %><span class="tag tag--admin">Admin</span><% } %>
     <span class="chat-msg__lvl">Lv <%= m.level %></span>

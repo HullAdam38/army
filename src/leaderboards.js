@@ -52,7 +52,7 @@ const BOARDS = {
 function createLeaderboards(db, { cacheMs = 0 } = {}) {
   const rank = Object.fromEntries(Object.entries(BOARDS).map(([key, b]) => [key, db.prepare(`
     SELECT id, value, detail, ROW_NUMBER() OVER (ORDER BY ${b.order}) AS position FROM (${b.source}) ORDER BY position`)]));
-  const people = (n) => db.prepare(`SELECT id, username, level, avatar_v, last_seen_at, signed_out_at, is_bot FROM users WHERE id IN (${Array(n).fill('?').join(',')})`);
+  const people = (n) => db.prepare(`SELECT id, username, level, avatar_v, last_seen_at, signed_out_at, is_bot, name_color FROM users WHERE id IN (${Array(n).fill('?').join(',')})`);
   const cache = new Map(); // key → { at, list, byId }
 
   function ranking(key, now) {

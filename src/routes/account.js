@@ -10,7 +10,7 @@ const tuning = require('../tuning');
 
 const MAX_BIO = 2000; // BBCode source, tags included
 
-function accountRoutes(players, medalService, referrals = null) {
+function accountRoutes(players, medalService, referrals = null, cosmetics = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   // Guessing the current password from a hijacked session gets throttled too.
@@ -25,6 +25,22 @@ function accountRoutes(players, medalService, referrals = null) {
     });
 
   router.get('/account/password', requireAuth, (req, res) => render(req, res, 200));
+
+  // The wardrobe: callsign colours, profile banners and badge packs.
+  router.get('/account/wardrobe', requireAuth, (req, res) => {
+    res.render('account-wardrobe', {
+      title: 'Wardrobe',
+      nav: 'wardrobe',
+      kinds: cosmetics ? cosmetics.wardrobe(req.player.id) : [],
+      showLocked: tuning.get('cosmeticsShowSupporter'),
+    });
+  });
+  router.post('/account/wardrobe', requireAuth, (req, res) => {
+    const kind = String(req.body.kind || '');
+    const out = cosmetics ? cosmetics.wear(req.player.id, kind, req.body.id ? String(req.body.id) : null) : { error: 'Not available.' };
+    req.flash(out.error ? 'error' : 'success', out.error || out.ok);
+    res.redirect(`/account/wardrobe#${kind === 'banner' ? 'banner' : 'name'}`);
+  });
 
   // Recruit a friend: your invite link and how your recruits are getting on.
   router.get('/account/recruit', requireAuth, (req, res) => {

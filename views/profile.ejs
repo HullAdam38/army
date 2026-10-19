@@ -4,7 +4,7 @@
 <main id="main" class="container game-main">
   <a class="back-link reveal" style="--i:0" href="/players"><svg aria-hidden="true"><use href="#i-arrow"/></svg>All players</a>
 
-  <section class="card profile-hero reveal" style="--i:1" aria-labelledby="profile-name">
+  <section class="card profile-hero <%= bannerClass(soldier.banner) %> reveal" style="--i:1" aria-labelledby="profile-name">
     <div class="profile-hero__avatar">
       <%- include('partials/avatar', { url: soldier.avatarUrl, size: 'xl', eager: true, alt: `${soldier.username}'s avatar` }) %>
       <% if (soldier.isYou) { %><a class="profile-hero__avatar-edit" href="/account/avatar">Change avatar</a><% } else if (soldier.avatarIsUpload) { %>
@@ -21,7 +21,7 @@
     </div>
     <div class="profile-hero__body">
       <p class="eyebrow">Service record</p>
-      <h1 id="profile-name" class="profile-hero__name"><%= soldier.username %></h1>
+      <h1 id="profile-name" class="profile-hero__name" style="<%= nameStyle(soldier.nameColor) %>"><%= soldier.username %></h1>
       <% if (soldier.isBot) { %><p class="reserve-note"><span class="tag tag--reserve">Reserve</span> A reserve soldier run by HQ to keep the front busy while the game grows. Fights against them count as normal. Reserve soldiers stand down as more players join.</p><% } %>
       <% if (soldier.isTarget) { %><p class="hvt-tag"><svg aria-hidden="true"><use href="#i-target"/></svg>Today’s high-value target · <a href="/players#target">bonus for beating them</a></p><% } %>
       <% if (soldier.title) { %><p class="profile-hero__title callsign-title">“<%= soldier.title %>”</p><% } %>
@@ -83,7 +83,7 @@
       </ul>
     <% } %>
     <% if (soldier.isYou) { %>
-      <p class="profile-hero__note">This is how other soldiers see you. <a href="/account/profile">Edit profile</a> · <a href="/account/avatar">Avatar</a> · <a href="/hq">Back to HQ</a> · <a href="/medals">Medals</a> · <a href="/account/password">Change password</a> · <a href="/account/recruit">Recruit a friend</a></p>
+      <p class="profile-hero__note">This is how other soldiers see you. <a href="/account/profile">Edit profile</a> · <a href="/account/avatar">Avatar</a> · <a href="/hq">Back to HQ</a> · <a href="/medals">Medals</a> · <a href="/account/password">Change password</a> · <a href="/account/wardrobe">Wardrobe</a> · <a href="/account/recruit">Recruit a friend</a></p>
     <% } %>
   </section>
 

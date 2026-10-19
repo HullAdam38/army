@@ -68,7 +68,7 @@
           <ul class="unit-rec">
             <% unitHelp.recommended.forEach(function (u) { %>
               <li class="unit-rec__item">
-                <span class="unit-crest" aria-hidden="true"><%= u.tag %></span>
+                <span class="unit-crest <%= crestClass(u.crest) %>" aria-hidden="true"><%= u.tag %></span>
                 <span class="unit-rec__body"><a class="roster__name directory__name" href="/units/<%= u.id %>"><%= u.name %></a><span class="muted small"><%= u.members %> / <%= u.capacity %> members · <%= u.active %> active</span></span>
                 <a class="btn btn--ghost btn--sm" href="/units/<%= u.id %>#apply">Apply</a>
               </li>

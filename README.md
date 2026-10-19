@@ -141,6 +141,22 @@ A brand-new game has nobody in it, so the game keeps the world busy until real p
 - **News in Global chat:** short announcements for promotions to Second Lieutenant and above, new units, wars declared and won, raids won and HQ units handed over. They look different from messages and don't count as unread. Game settings › Living world can turn them off.
 - Admin › Player stats leaves reserve soldiers out of every count. Rules: `src/reserve.js`; running them: `src/reserve-service.js`.
 
+## Cosmetics
+
+Looks that never change how the game plays (`src/cosmetics.js`). They can't be traded or turned into cash, so they never touch the economy or the casino, and they're ready to sell later.
+
+| Kind | Earned | Supporter items |
+|---|---|---|
+| **Callsign colour**: in chat, on profiles, leaderboards, the players list and rosters | Field olive (level 10), Command gold (level 35) | Crimson, Sky blue, Elite violet, Ember, Jade, Arctic white |
+| **Profile banner**: the background of your profile header | Woodland (level 20), Campaign ribbons (“Veteran” title) | Desert storm, Arctic, Night ops, Urban, Digital camo |
+| **Badge packs**: extra parts in the avatar badge builder | – | Special Forces (tiger stripe, gold braid trim, gunmetal, oxblood), Arctic Warfare (snow and splinter camo, glacier, frost) |
+| **Unit crest**: how a unit's tag crest looks everywhere; owned by the unit, picked by its Commander | Veteran (5 wars won) | Gunmetal, Gold, Camo, Crimson, Navy |
+
+- **Wardrobe** (`/account/wardrobe`, under More on phones and linked from your profile): wear what you've earned or been given; Supporter items you don't have show as “coming soon” (Game settings › Cosmetics can hide them).
+- **Unit crests:** the Commander picks on the unit page (Unit crest card).
+- **Admins** give or take back any cosmetic: on a player's admin page (Cosmetics) and, for crests, in the Admin box on a unit's page. Each needs a reason, goes in the audit log, and the player (or the unit's officers) is told. Taking an item back takes it off too.
+- Ownership is stored in `user_cosmetics` / `unit_cosmetics` with a `source` (`admin` now, `purchase` once the store exists), so a store only has to add rows.
+
 ## Recruit a friend
 
 `/account/recruit` (under More on phones, and linked from HQ and your profile) shows your invite link (`/join/<callsign>`) with Copy and Share buttons, and how your recruits are doing.

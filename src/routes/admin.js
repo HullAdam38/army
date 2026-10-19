@@ -16,6 +16,7 @@ const { createStatsService } = require('../stats-service');
 const { createCasinoStats } = require('../casino-stats');
 const tuning = require('../tuning');
 const launch = require('../launch');
+const cosmeticsCatalogue = require('../cosmetics');
 
 const PAGE_SIZE = 25;
 const timeLeft = (ms) => {
@@ -34,7 +35,7 @@ const REASON_LABELS = {
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null } = {}) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null } = {}) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -128,6 +129,8 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
     return {
       inventory: ITEMS.filter((i) => owned.has(i.id)).map((i) => ({ ...i, equipped: equipped.has(i.id) })),
       grantable: SLOTS.map((s) => ({ ...s, items: ITEMS.filter((i) => i.slot === s.id && !owned.has(i.id)) })).filter((s) => s.items.length),
+      cosmeticGrants: cosmetics ? cosmetics.grantsFor(t.id) : [],
+      cosmeticOptions: cosmeticsCatalogue.COSMETICS.filter((c) => c.kind !== 'crest'),
       unit,
       titleName: t.title ? require('../titles').nameOf(t.title) : null,
       statCap: require('../training').statCap(t.level),
@@ -208,6 +211,24 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       req.flash('success', `${item.name} given to ${req.target.username}.`);
     }
     res.redirect(`/admin/players/${req.target.id}#inventory`);
+  });
+
+  // Cosmetics: give a player a Supporter item (or any cosmetic), or take one back.
+  router.post('/admin/players/:id/cosmetics', loadTarget, (req, res) => {
+    const reason = admin.cleanReason(req.body.reason);
+    const revoke = req.body.action === 'revoke';
+    if (!cosmetics) req.flash('error', 'Not available.');
+    else if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else {
+      const out = revoke ? cosmetics.revoke({ userId: req.target.id, id: req.body.cosmetic }) : cosmetics.grant({ userId: req.target.id, id: req.body.cosmetic, by: req.player.id });
+      if (out.error) req.flash('error', out.error);
+      else {
+        adminRepo.log(req.player.id, req.target.id, revoke ? 'cosmetic-revoke' : 'cosmetic-grant', `${revoke ? 'Took back' : 'Gave'} ${out.cosmetic.name}. Reason: ${reason}`);
+        if (!revoke) players.notify(req.target.id, 'system', `HQ gave you ${out.cosmetic.name}. Put it on in your wardrobe.`, out.cosmetic.kind === 'badgePack' ? '/account/avatar' : `/account/wardrobe#${out.cosmetic.kind}`);
+        req.flash('success', `${revoke ? 'Took back' : 'Gave'} ${out.cosmetic.name}.`);
+      }
+    }
+    res.redirect(`/admin/players/${req.target.id}#cosmetics`);
   });
 
   // Take a player out of their unit (not its Commander: transfer command or disband from the unit page).

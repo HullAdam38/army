@@ -273,6 +273,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         lastSeen: presence.timeAgo(u.last_seen_at, now),
         isYou,
         isBot: Boolean(u.is_bot),
+        nameColor: u.name_color,
         canAttack: !isYou && !selfBlocker && !targetBlocker,
         // Short reason for the row; the full sentence goes in the tooltip.
         blocker: targetBlocker,
@@ -346,6 +347,8 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         hospitalReason: them.hospital_reason,
         isYou,
         isBot: Boolean(user.is_bot),
+        nameColor: user.name_color,
+        banner: user.profile_banner,
         unit: (() => {
           const u = user.unit_id ? unitRepo.findById(user.unit_id) : null;
           return u ? { id: u.id, name: u.name, tag: u.tag, role: units.roleLabel(user.unit_role) } : null;
