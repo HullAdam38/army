@@ -61,6 +61,14 @@ const SCHEMA = `
     PRIMARY KEY (user_id, vehicle_id)
   );
 
+  -- The workshop (src/workshop.js): materials a player holds. They can't be traded.
+  CREATE TABLE IF NOT EXISTS materials (
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    material_id  TEXT    NOT NULL,
+    qty          INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, material_id)
+  );
+
   CREATE TABLE IF NOT EXISTS battles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -900,6 +908,9 @@ const ADDED_COLUMNS = [
   ['units', 'crest', 'TEXT'], // cosmetic id of the unit's crest style
   ['users', 'vehicle_id', 'TEXT'], // the vehicle the player takes out (src/vehicles.js)
   ['users', 'vehicle_missions', 'INTEGER NOT NULL DEFAULT 0'], // missions won with a vehicle out (Driver's Badge)
+  ['inventory', 'upgrade', 'INTEGER NOT NULL DEFAULT 0'], // workshop upgrade, Mk I–III (src/workshop.js)
+  ['vehicles', 'upgrade', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'upgrades_made', 'INTEGER NOT NULL DEFAULT 0'], // workshop upgrades, for the Master Mechanic medal
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
   ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
   ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players

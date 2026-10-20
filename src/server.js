@@ -53,6 +53,7 @@ const { settingsRoutes } = require('./routes/settings');
 const { createObjectiveService } = require('./objective-service');
 const { createRaidService } = require('./raid-service');
 const { createVehicleService } = require('./vehicle-service');
+const { createWorkshopService } = require('./workshop-service');
 const { createTheatreService } = require('./theatre-service');
 const { createSupportService } = require('./support-service');
 const { createCasinoService } = require('./casino-service');
@@ -136,6 +137,9 @@ function createApp({
   // The motor pool: vehicles and their bonuses (src/vehicles.js).
   const vehicleService = createVehicleService(db, players);
   app.vehicles = vehicleService; // exposed for tests
+  // The workshop: materials, upgrades and salvage (src/workshop.js).
+  const workshopService = createWorkshopService(db, players, vehicleService);
+  app.workshop = workshopService; // exposed for tests
   // Recruit a friend: invite links, and rewards once a recruit has really played.
   const referralService = createReferralService(db, players, anti);
   app.referrals = referralService; // exposed for tests
@@ -201,7 +205,7 @@ function createApp({
   const operationService = createOperationService(db, players);
   const baseService = createBaseService(db, players);
   baseService.schedule();
-  const deploymentService = createDeploymentService(db, players, { effects, vehicles: vehicleService, onReturn: (userId, now) => {
+  const deploymentService = createDeploymentService(db, players, { effects, vehicles: vehicleService, workshop: workshopService, onReturn: (userId, now) => {
     objectiveService.track(userId, 'deployments', 1, now);
     theatreService.track(userId, 'deployments', 1, now);
     if (vehicleService.assigned(userId)) daily.progress(userId, 'vehicle_deploy', 1, { now }); // a motor pool daily order
@@ -336,8 +340,8 @@ function createApp({
   }));
   app.use(authRoutes(players, anti, referralService));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService));
-  app.use(armoryRoutes(players, vehicleService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService));
+  app.use(armoryRoutes(players, vehicleService, workshopService));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService));
   app.use(notificationRoutes(players, pushService));
@@ -369,6 +373,7 @@ function createApp({
     cosmetics: cosmeticService,
     supporters: supporterService,
     vehicles: vehicleService,
+    workshop: workshopService,
     production,
     serverSettings,
     onServerSettings: () => { app.locals.legal = legalSettings(); }, // the terms pick up new details at once

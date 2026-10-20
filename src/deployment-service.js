@@ -5,6 +5,7 @@ const game = require('./game');
 const perks = require('./perks');
 const { NEUTRAL } = require('./events');
 const tuning = require('./tuning');
+const workshopRules = require('./workshop');
 const { announceLevels } = require('./notify');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
@@ -15,7 +16,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
  * `effects(now)` supplies live event multipliers (Double XP, Payday); `vehicles`
  * the motor pool, whose transports add to the pay.
  */
-function createDeploymentService(db, players, { effects = () => NEUTRAL, onReturn = null, vehicles = null } = {}) {
+function createDeploymentService(db, players, { effects = () => NEUTRAL, onReturn = null, vehicles = null, workshop = null } = {}) {
   const stmts = {
     insert: db.prepare('INSERT INTO deployments (user_id, kind, started_at, ends_at) VALUES (?, ?, ?, ?)'),
     active: db.prepare("SELECT * FROM deployments WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"),
@@ -54,7 +55,8 @@ function createDeploymentService(db, players, { effects = () => NEUTRAL, onRetur
       }
       const levels = game.grantXp(p, r.xp);
       p.deploy_until = null;
-      const report = [r.story, r.find, r.injury ? `Ran into an ambush on the way back and took ${r.injury} damage.` : null].filter(Boolean).join(' ');
+      const found = workshop ? workshopRules.describe(workshop.find(d.user_id, r.cash, 'deployment', rng)) : '';
+      const report = [r.story, r.find, found ? `Brought back ${found} for the workshop.` : null, r.injury ? `Ran into an ambush on the way back and took ${r.injury} damage.` : null].filter(Boolean).join(' ');
       stmts.finish.run(r.cash, r.xp, report, now, d.id);
       players.save(p, { reason: 'deployment', ref: `deployment:${d.id}` });
       stmts.setUntil.run(null, d.user_id);

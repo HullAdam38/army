@@ -2,6 +2,7 @@
 
 const vehicles = require('./vehicles');
 const gear = require('./gear');
+const workshop = require('./workshop');
 
 const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 
@@ -15,7 +16,9 @@ function createVehicleService(db, players) {
     owned: db.prepare('SELECT vehicle_id, condition FROM vehicles WHERE user_id = ? ORDER BY acquired_at'),
     countMission: db.prepare('UPDATE users SET vehicle_missions = vehicle_missions + 1 WHERE id = ?'),
     one: db.prepare('SELECT condition FROM vehicles WHERE user_id = ? AND vehicle_id = ?'),
-    assigned: db.prepare(`SELECT u.vehicle_id, u.is_bot, v.condition FROM users u
+    upgrades: db.prepare('SELECT vehicle_id, upgrade FROM vehicles WHERE user_id = ? AND upgrade > 0'),
+    setUpgrade: db.prepare('UPDATE vehicles SET upgrade = ? WHERE user_id = ? AND vehicle_id = ?'),
+    assigned: db.prepare(`SELECT u.vehicle_id, u.is_bot, v.condition, v.upgrade FROM users u
                           LEFT JOIN vehicles v ON v.user_id = u.id AND v.vehicle_id = u.vehicle_id WHERE u.id = ?`),
     add: db.prepare('INSERT OR IGNORE INTO vehicles (user_id, vehicle_id, condition, acquired_at) VALUES (?, ?, 100, ?)'),
     remove: db.prepare('DELETE FROM vehicles WHERE user_id = ? AND vehicle_id = ?'),
@@ -27,33 +30,40 @@ function createVehicleService(db, players) {
   /** Map of vehicle id → condition. */
   const owned = (userId) => new Map(stmts.owned.all(userId).filter((r) => vehicles.VEHICLES_BY_ID.has(r.vehicle_id)).map((r) => [r.vehicle_id, r.condition]));
 
-  /** The vehicle the player takes out, or null: { vehicle, condition, bot }. */
+  /** Workshop upgrades: Map of vehicle id → 1–3. */
+  const upgrades = (userId) => new Map(stmts.upgrades.all(userId).map((r) => [r.vehicle_id, r.upgrade]));
+
+  /** The vehicle the player takes out, or null: { vehicle, condition, upgrade, bot }. */
   function assigned(userId) {
     const r = stmts.assigned.get(userId);
     const vehicle = r && r.vehicle_id && r.condition !== null ? vehicles.VEHICLES_BY_ID.get(r.vehicle_id) : null;
-    return vehicle ? { vehicle, condition: r.condition, bot: Boolean(r.is_bot) } : null;
+    return vehicle ? { vehicle, condition: r.condition, upgrade: r.upgrade || 0, bot: Boolean(r.is_bot) } : null;
   }
 
   /** The bonuses the player's assigned vehicle gives right now. */
   function bonuses(userId) {
     const a = assigned(userId);
-    return a ? vehicles.bonusesOf(a.vehicle, a.condition) : vehicles.NO_BONUS;
+    return a ? vehicles.bonusesOf(a.vehicle, a.condition, a.upgrade) : vehicles.NO_BONUS;
   }
 
   return {
     owned,
+    upgrades,
+    setUpgrade: (userId, vehicleId, upgrade) => stmts.setUpgrade.run(upgrade, userId, vehicleId),
     assigned,
     bonuses,
 
     /** Every vehicle in the catalogue by class, with this player's state for each. */
     garage(player) {
       const mine = owned(player.id);
+      const ups = upgrades(player.id);
       const out = assigned(player.id);
       return vehicles.CLASSES.map((cls) => ({
         ...cls,
         vehicles: vehicles.VEHICLES.filter((v) => v.cls === cls.id).map((v) => {
           const has = mine.has(v.id);
           const condition = has ? mine.get(v.id) : 100;
+          const upgrade = ups.get(v.id) || 0;
           let state = 'buy';
           if (out && out.vehicle.id === v.id) state = 'assigned';
           else if (has) state = 'owned';
@@ -68,7 +78,9 @@ function createVehicleService(db, players) {
             power: Math.round(gear.effectiveness(condition) * 100),
             repairCost: has ? gear.repairCost(v, condition) : 0,
             saleValue: has ? gear.saleValue(v, condition) : 0,
-            bonusText: vehicles.describe(vehicles.bonusesOf(v, condition)),
+            upgrade,
+            upgradeLabel: workshop.label(upgrade),
+            bonusText: vehicles.describe(vehicles.bonusesOf(v, condition, upgrade)),
             fullText: vehicles.describe(vehicles.bonusesOf(v, 100)),
           };
         }),

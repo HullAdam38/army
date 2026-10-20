@@ -209,3 +209,15 @@ for (const v of vehicleRules.VEHICLES) {
   const what = v.cls === 'armour' ? `raid strikes +${Math.round(b.raidDamage * 100)}% damage (no mission pay)` : `≈ ${fmt(gain + dep)}/day extra, ${fmt(upkeep)}/day repairs`;
   console.log(`${v.name} (L${level}, ${fmt(v.price)}): ${what}${net > 0 && v.cls !== 'armour' ? ` → pays for itself in ${Math.ceil(v.price / net)} days` : ''}`);
 }
+
+// ---- Workshop: how long materials take to upgrade the gear a player ends the month with ----
+const workshopRules = require(path + 'workshop');
+console.log('\n== Workshop over 30 days (materials from missions and deployments; operations add more, rich in cores)');
+for (const pr of profiles) {
+  const r = run(pr);
+  const worth = r.income.missions * 0.12 * tuningRules.get('workshopDropMult') + r.income.deployments * 0.08 * tuningRules.get('workshopDropMult');
+  const cost = (target) => [1, 2, 3].reduce((n, l) => n + Object.entries(workshopRules.recipe(target, l).materials).reduce((m, [id, q]) => m + q * workshopRules.MATERIALS_BY_ID.get(id).worth, 0), 0);
+  const mk3 = r.gearItems.reduce((n, item) => n + cost(item), 0);
+  const fees = r.gearItems.reduce((n, item) => n + [1, 2, 3].reduce((m, l) => m + workshopRules.recipe(item, l).cash, 0), 0);
+  console.log(`${r.profile}: materials worth ≈ ${fmt(worth)} a month · taking their ${r.gearItems.length} items to Mk III needs ≈ ${fmt(mk3)} (${(mk3 / Math.max(1, worth) * 30).toFixed(0)} days of materials) plus ${fmt(fees)} in fees`);
+}

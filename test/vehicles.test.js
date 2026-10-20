@@ -30,7 +30,7 @@ test('vehicle rules: classes, bonuses, wear and purchases', () => {
   assert.deepEqual(vehicles.describe(vehicles.bonusesOf(v('utility-pickup'))), ['+4% mission pay', '+10% deployment pay']);
   assert.deepEqual(vehicles.describe(vehicles.bonusesOf(v('light-tank'))), ['+6% raid damage']);
   assert.equal(vehicles.bestMissionCash(4), 0);
-  assert.equal(vehicles.bestMissionCash(15), 0.06);
+  assert.ok(Math.abs(vehicles.bestMissionCash(15) - 0.06 * 1.3) < 1e-9, 'the best transport open, fully upgraded');
 
   // Admin settings scale the bonuses and the wear.
   tuning.set({ vehicleBonusMult: 2, vehicleWearMult: 3 });

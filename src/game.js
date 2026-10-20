@@ -483,8 +483,8 @@ function regenTo(player, now) {
  * for the gear-only view other players see. `conditions` (item id → 0–100)
  * weakens worn gear.
  */
-function statsFor(level, itemIds = [], trained = null, conditions = null) {
-  return combat.buildStats(level, [...modifiersFor(itemIds, conditions), ...training.modifiersFor(trained)]);
+function statsFor(level, itemIds = [], trained = null, conditions = null, upgrades = null) {
+  return combat.buildStats(level, [...modifiersFor(itemIds, conditions, upgrades), ...training.modifiersFor(trained)]);
 }
 
 /**

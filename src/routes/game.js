@@ -24,11 +24,12 @@ const seasonRules = require('../seasons');
 const tuning = require('../tuning');
 const titles = require('../titles');
 const vehicles = require('../vehicles');
+const workshopRules = require('../workshop');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null, workshopService = null) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -134,7 +135,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       vehicle: (() => {
         const a = vehicleService && vehicleService.assigned(me.id);
         if (!a) return null;
-        const text = vehicles.describe(vehicles.bonusesOf(a.vehicle, a.condition)).filter((t) => t.includes('mission'));
+        const text = vehicles.describe(vehicles.bonusesOf(a.vehicle, a.condition, a.upgrade)).filter((t) => t.includes('mission'));
         return { name: a.vehicle.name, icon: vehicles.CLASSES_BY_ID.get(a.vehicle.cls).icon, text, condition: Math.floor(a.condition) };
       })(),
       result: null,
@@ -151,11 +152,13 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       const r = out.result;
       gear.wear(players, fresh.id, r.success ? 'mission' : 'missionFailed');
       const drove = vehicleService ? vehicleService.wear(fresh.id, r.success ? 'mission' : 'missionFailed') : null;
+      // Materials for the workshop, now and then.
+      r.foundText = r.success && workshopService ? workshopRules.describe(workshopService.find(fresh.id, r.cash)) : '';
       players.log(
         fresh.id,
         r.success ? 'success' : 'failure',
         r.success
-          ? `${r.missionName}: objective secured. +${r.xp} XP, +$${r.cash}.`
+          ? `${r.missionName}: objective secured. +${r.xp} XP, +$${r.cash}.${r.foundText ? ` Found ${r.foundText}.` : ''}`
           : `${r.missionName}: mission failed. Took ${r.damage} damage${r.absorbed ? ` (armour absorbed ${r.absorbed})` : ''}, +${r.xp} XP.`,
       );
       for (const lvl of r.levelsGained) {
@@ -191,7 +194,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       req.flash(
         r.success ? 'success' : 'error',
         r.success
-          ? `${r.missionName} complete. +${r.xp} XP, +$${r.cash}.`
+          ? `${r.missionName} complete. +${r.xp} XP, +$${r.cash}.${r.foundText ? ` Found ${r.foundText}.` : ''}`
           : `${r.missionName} failed. You took ${r.damage} damage${r.absorbed ? ` (armour absorbed ${r.absorbed})` : ''} but earned ${r.xp} XP.`,
       );
       if (r.levelsGained.length) {
@@ -208,6 +211,11 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       if (!out.error) {
         gear.wear(players, fresh.id, out.result.success ? 'mission' : 'missionFailed');
         if (vehicleService) out.drove = Boolean(vehicleService.wear(fresh.id, out.result.success ? 'mission' : 'missionFailed'));
+        if (workshopService && out.result.success) {
+          const bag = workshopService.find(fresh.id, out.result.cash);
+          if (out.completed && out.bonus) for (const [k, n] of Object.entries(workshopService.find(fresh.id, out.bonus.cash, 'operation'))) bag[k] = (bag[k] || 0) + n;
+          out.foundText = workshopRules.describe(bag);
+        }
       }
       return out;
     });
@@ -219,7 +227,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       if (r.success) daily.progress(req.player.id, 'missions_won', 1);
       if (r.success && outcome.drove) daily.progress(req.player.id, 'vehicle_missions', 1);
       req.flash(r.success ? 'success' : 'error', r.success
-        ? `${op.name} · ${stage.name}: done. +${r.xp} XP, +$${r.cash.toLocaleString('en-US')}.`
+        ? `${op.name} · ${stage.name}: done. +${r.xp} XP, +$${r.cash.toLocaleString('en-US')}.${outcome.foundText ? ` Found ${outcome.foundText}.` : ''}`
         : `${op.name} · ${stage.name}: failed. You took ${r.damage} damage but earned ${r.xp} XP. Try the stage again.`);
       if (completed) req.flash('success', `${op.name} complete! Bonus +$${bonus.cash.toLocaleString('en-US')} and +${bonus.xp} XP.`);
       if (outcome.levelsGained.length) req.flash('success', `Promotion! You are now level ${outcome.levelsGained.at(-1)}.`);

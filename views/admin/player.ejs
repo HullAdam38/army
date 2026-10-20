@@ -192,6 +192,9 @@
           <% vehiclesOwned.forEach(function (v) { %><li><span><%= v.name %></span><span class="muted">Lv <%= v.minLevel %> · vehicle · <%= v.condition %>%<%= v.out ? ' · taken out' : '' %></span></li><% }) %>
         </ul>
       <% } %>
+      <% if (materials.length) { %>
+        <p class="muted small">Workshop materials: <%= materials.map((m) => `${m.qty.toLocaleString('en-US')} ${m.name}`).join(' · ') %></p>
+      <% } %>
       <div class="admin-gear__forms">
         <% if (grantable.length || vehiclesGrantable.length) { %>
           <form method="post" action="/admin/players/<%= t.id %>/items" class="form admin-form">
@@ -219,6 +222,19 @@
             </div>
             <div class="field"><label for="take-reason">Reason</label><input id="take-reason" name="reason" maxlength="200" placeholder="Bought through an exploit" required></div>
             <button class="btn btn--ghost btn--sm btn--danger" type="submit">Take away</button>
+          </form>
+        <% } %>
+        <% if (materials.length) { %>
+          <form method="post" action="/admin/players/<%= t.id %>/materials" class="form admin-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="field"><label for="mat-id">Workshop materials</label>
+              <select id="mat-id" name="material" required>
+                <% materials.forEach(function (m) { %><option value="<%= m.id %>"><%= m.name %></option><% }) %>
+              </select>
+            </div>
+            <div class="field"><label for="mat-qty">Amount (negative takes away)</label><input id="mat-qty" name="qty" type="number" min="-100000" max="100000" step="1" value="10" required></div>
+            <div class="field"><label for="mat-reason">Reason</label><input id="mat-reason" name="reason" maxlength="200" placeholder="Event prize" required></div>
+            <button class="btn btn--ghost btn--sm" type="submit">Apply</button>
           </form>
         <% } %>
       </div>

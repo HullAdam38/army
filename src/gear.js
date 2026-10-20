@@ -11,6 +11,7 @@
 
 const tuning = require('./tuning');
 const { ITEMS_BY_ID } = require('./items');
+const workshop = require('./workshop');
 
 const FULL_POWER_AT = 50; // condition from which gear works at 100%
 const WORN_AT = 50; // tell the player once their gear drops below this…
@@ -28,10 +29,10 @@ const WEAR = {
 /** How much of an item's stats work at `condition` (1 at 50% and up, 0.5 at 0%). */
 const effectiveness = (condition = 100) => Math.min(1, 0.5 + Math.max(0, condition) / (2 * FULL_POWER_AT));
 
-/** An item's modifiers at a given condition: each bonus scaled by its effectiveness. */
-function scaledMods(item, condition = 100) {
-  const f = effectiveness(condition);
-  if (f >= 1) return item.mods;
+/** An item's modifiers at a given condition and workshop upgrade (0–3): each bonus scaled by both. */
+function scaledMods(item, condition = 100, upgrade = 0) {
+  const f = effectiveness(condition) * workshop.gearFactor(upgrade);
+  if (f === 1) return item.mods;
   return item.mods.map((m) => ({ ...m, value: m.value * f }));
 }
 

@@ -8,12 +8,14 @@ const { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryV
 const gear = require('../gear');
 const { createRequireAuth } = require('../require-auth');
 const vehicles = require('../vehicles');
+const workshop = require('../workshop');
 
 /**
  * The Armory: your loadout and inventory on /armory, a shop per gear slot
- * (plus supplies) on /armory/shop/:shop, and the motor pool on /armory/motor-pool.
+ * (plus supplies) on /armory/shop/:shop, the motor pool on /armory/motor-pool
+ * and the workshop on /armory/workshop.
  */
-function armoryRoutes(players, vehicleService = null) {
+function armoryRoutes(players, vehicleService = null, workshopService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const toInventory = (res, slot) => res.redirect(slot ? `/armory#inv-${slot}` : '/armory');
@@ -22,7 +24,7 @@ function armoryRoutes(players, vehicleService = null) {
   router.get('/armory', requireAuth, (req, res) => {
     const owned = players.ownedItemIds(req.player.id);
     const equipment = players.equipment(req.player.id);
-    const inventory = inventoryView(owned, equipment, players.conditions(req.player.id));
+    const inventory = inventoryView(owned, equipment, players.conditions(req.player.id), players.upgrades(req.player.id));
     const all = inventory.flatMap((s) => s.items);
     res.render('armory', {
       title: 'Armory',
@@ -182,7 +184,7 @@ function armoryRoutes(players, vehicleService = null) {
         classes,
         mine,
         cash: req.player.cash,
-        assigned: a ? { ...a.vehicle, cls: vehicles.CLASSES_BY_ID.get(a.vehicle.cls), condition: a.condition, bonusText: vehicles.describe(vehicles.bonusesOf(a.vehicle, a.condition)) } : null,
+        assigned: a ? { ...a.vehicle, cls: vehicles.CLASSES_BY_ID.get(a.vehicle.cls), condition: a.condition, upgradeLabel: workshop.label(a.upgrade), bonusText: vehicles.describe(vehicles.bonusesOf(a.vehicle, a.condition, a.upgrade)) } : null,
         repairAll: mine.reduce((n, v) => n + v.repairCost, 0),
         fullPowerAt: gear.FULL_POWER_AT,
       });
@@ -205,6 +207,42 @@ function armoryRoutes(players, vehicleService = null) {
     });
     router.post('/armory/motor-pool/sell/:id', requireAuth, (req, res) => {
       done(req, res, vehicleService.sell(req.player.id, String(req.params.id)), (o) => `${o.vehicle.name} sold for $${o.value.toLocaleString('en-US')}.`, null);
+    });
+  }
+
+  // ----- Workshop: materials, upgrades and salvage (src/workshop.js) -----
+  if (workshopService) {
+    const KINDS = ['gear', 'vehicle'];
+    const back = (res, kind, id) => res.redirect(`/armory/workshop${id ? `#ws-${kind}-${id}` : ''}`);
+
+    router.get('/armory/workshop', requireAuth, (req, res) => {
+      res.render('workshop', {
+        title: 'Workshop',
+        nav: 'armory',
+        shops: SHOPS,
+        active: 'workshop',
+        cash: req.player.cash,
+        maxUpgrade: workshop.MAX_UPGRADE,
+        gearStep: Math.round(workshop.GEAR_STEP * 100),
+        vehicleStep: Math.round(workshop.VEHICLE_STEP * 100),
+        ...workshopService.view(req.player),
+      });
+    });
+
+    router.post('/armory/workshop/upgrade/:kind/:id', requireAuth, (req, res, next) => {
+      const kind = String(req.params.kind);
+      if (!KINDS.includes(kind)) return next();
+      const out = workshopService.upgrade(req.player.id, kind, String(req.params.id));
+      req.flash(out.error ? 'error' : 'success', out.error || `Upgraded: ${out.name}.`);
+      back(res, kind, out.error ? null : req.params.id);
+    });
+
+    router.post('/armory/workshop/salvage/:kind/:id', requireAuth, (req, res, next) => {
+      const kind = String(req.params.kind);
+      if (!KINDS.includes(kind)) return next();
+      const out = workshopService.salvage(req.player.id, kind, String(req.params.id));
+      req.flash(out.error ? 'error' : 'success', out.error || `${out.name} salvaged${out.bag && Object.keys(out.bag).length ? ` for ${workshop.describe(out.bag)}` : ', but nothing usable came off it'}.`);
+      back(res);
     });
   }
 

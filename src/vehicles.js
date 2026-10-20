@@ -15,6 +15,7 @@
 
 const tuning = require('./tuning');
 const gear = require('./gear');
+const workshop = require('./workshop');
 
 const CLASSES = [
   { id: 'light', name: 'Light vehicles', icon: 'i-jeep', blurb: 'Fast and nimble: a better chance of success on missions and operations.' },
@@ -48,18 +49,18 @@ const VEHICLES = [
 const VEHICLES_BY_ID = new Map(VEHICLES.map((v) => [v.id, v]));
 
 const NO_BONUS = Object.freeze({ missionChance: 0, missionCash: 0, deployCash: 0, raidDamage: 0 });
-// The biggest mission pay bonus any vehicle gives at the default setting (anti-cheat allows for it).
-const MAX_MISSION_CASH_BONUS = Math.max(...VEHICLES.map((v) => v.bonus.missionCash || 0));
-/** The biggest mission pay bonus a vehicle open to `level` gives at the default setting. */
-const bestMissionCash = (level) => Math.max(0, ...VEHICLES.filter((v) => v.minLevel <= level).map((v) => v.bonus.missionCash || 0));
+// The biggest mission pay bonus any vehicle gives at the default setting, fully upgraded (anti-cheat allows for it).
+const MAX_MISSION_CASH_BONUS = Math.max(...VEHICLES.map((v) => v.bonus.missionCash || 0)) * workshop.vehicleFactor(workshop.MAX_UPGRADE);
+/** The biggest mission pay bonus a vehicle open to `level` gives at the default setting, fully upgraded. */
+const bestMissionCash = (level) => Math.max(0, ...VEHICLES.filter((v) => v.minLevel <= level).map((v) => v.bonus.missionCash || 0)) * workshop.vehicleFactor(workshop.MAX_UPGRADE);
 
 // Condition points lost per use, before the admin multiplier.
 const WEAR = { mission: 0.15, missionFailed: 0.3, strike: 0.5, deployHour: 0.2 };
 
-/** What a vehicle adds at `condition`: its bonuses × its power at that condition × the admin setting. */
-function bonusesOf(vehicle, condition = 100) {
+/** What a vehicle adds at `condition` and workshop `upgrade`: its bonuses × its power × its upgrade × the admin setting. */
+function bonusesOf(vehicle, condition = 100, upgrade = 0) {
   if (!vehicle) return NO_BONUS;
-  const f = gear.effectiveness(condition) * tuning.get('vehicleBonusMult');
+  const f = gear.effectiveness(condition) * workshop.vehicleFactor(upgrade) * tuning.get('vehicleBonusMult');
   const out = {};
   for (const k of Object.keys(NO_BONUS)) out[k] = Math.round((vehicle.bonus[k] || 0) * f * 10000) / 10000;
   return out;

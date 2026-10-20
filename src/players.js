@@ -69,6 +69,8 @@ function createPlayerRepo(db) {
     owned: db.prepare('SELECT item_id FROM inventory WHERE user_id = ?'),
     addItem: db.prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, acquired_at) VALUES (?, ?, ?)'),
     conditions: db.prepare('SELECT item_id, condition FROM inventory WHERE user_id = ?'),
+    upgrades: db.prepare('SELECT item_id, upgrade FROM inventory WHERE user_id = ? AND upgrade > 0'),
+    setUpgrade: db.prepare('UPDATE inventory SET upgrade = ? WHERE user_id = ? AND item_id = ?'),
     setCondition: db.prepare('UPDATE inventory SET condition = ? WHERE user_id = ? AND item_id = ?'),
     removeItem: db.prepare('DELETE FROM inventory WHERE user_id = ? AND item_id = ?'),
     unequipItem: db.prepare('DELETE FROM equipment WHERE user_id = ? AND item_id = ?'),
@@ -215,6 +217,9 @@ function createPlayerRepo(db) {
     /** Condition (0–100) of each item the player owns: Map of item id → condition. */
     conditions: (id) => new Map(stmts.conditions.all(id).map((r) => [r.item_id, r.condition])),
     setCondition: (id, itemId, condition) => stmts.setCondition.run(condition, id, itemId),
+    /** Workshop upgrades of a player's gear: Map of item id → 1–3 (src/workshop.js). */
+    upgrades: (id) => new Map(stmts.upgrades.all(id).map((r) => [r.item_id, r.upgrade])),
+    setUpgrade: (id, itemId, upgrade) => stmts.setUpgrade.run(upgrade, id, itemId),
     /** Takes an item out of the inventory (and off the player, if worn). */
     removeItem(id, itemId) {
       stmts.unequipItem.run(id, itemId);

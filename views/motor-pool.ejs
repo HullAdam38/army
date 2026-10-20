@@ -18,7 +18,7 @@
       <div class="motor-out__body">
         <svg class="motor-out__icon" aria-hidden="true"><use href="#<%= assigned.cls.icon %>"/></svg>
         <div class="motor-out__text">
-          <p class="motor-out__name"><%= assigned.name %> <span class="muted small"><%= assigned.cls.name %></span></p>
+          <p class="motor-out__name"><%= assigned.name %><% if (assigned.upgradeLabel) { %> <span class="tag tag--mk"><%= assigned.upgradeLabel %></span><% } %> <span class="muted small"><%= assigned.cls.name %></span></p>
           <p class="motor-out__bonus"><%= assigned.bonusText.length ? assigned.bonusText.join(' · ') : 'No bonus right now' %></p>
           <span class="inventory__condition">
             <span class="meter <%= assigned.condition >= 50 ? 'meter--health' : 'meter--energy' %> inventory__meter" role="meter" aria-label="Condition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.floor(assigned.condition) %>"><span class="meter__fill" style="width:<%= Math.max(2, assigned.condition) %>%"></span></span>
@@ -51,7 +51,7 @@
         <% mine.forEach(function (v) { %>
           <li class="inventory__item<%= v.state === 'assigned' ? ' is-equipped' : '' %><%= v.power < 100 ? ' is-worn' : '' %>" id="veh-<%= v.id %>">
             <span class="inventory__body">
-              <span class="inventory__name"><%= v.name %></span>
+              <span class="inventory__name"><%= v.name %><% if (v.upgradeLabel) { %> <span class="tag tag--mk"><%= v.upgradeLabel %></span><% } %></span>
               <span class="inventory__mods"><%= v.bonusText.join(' · ') %></span>
               <span class="inventory__condition">
                 <span class="meter <%= v.condition >= 50 ? 'meter--health' : 'meter--energy' %> inventory__meter" role="meter" aria-label="Condition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.floor(v.condition) %>"><span class="meter__fill" style="width:<%= Math.max(2, v.condition) %>%"></span></span>

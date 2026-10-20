@@ -1,0 +1,86 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Math.round(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <%- include('partials/armory-subnav', { shops, active }) %>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Armory</p>
+      <h1 class="page-head__title"><svg class="page-head__icon" aria-hidden="true"><use href="#i-kit"/></svg>Workshop</h1>
+      <p class="page-head__sub">Won missions, operations and deployments turn up materials. Use them to upgrade your gear (+<%= gearStep %>% to all its stats per level) and vehicles (+<%= vehicleStep %>% to their bonus per level), up to Mk <%= ['', 'I', 'II', 'III'][maxUpgrade] %>. Salvage what you’ve outgrown for materials instead of selling it. Materials can’t be traded.</p>
+    </div>
+  </div>
+
+  <section class="card ws-materials reveal" style="--i:1" aria-labelledby="mat-title">
+    <h2 id="mat-title" class="card__title">Materials</h2>
+    <ul class="ws-materials__list">
+      <% materials.forEach(function (m) { %>
+        <li class="ws-material ws-material--<%= m.id %>" title="<%= m.blurb %>">
+          <span class="ws-material__qty"><%= m.qty.toLocaleString('en-US') %></span>
+          <span class="ws-material__name"><%= m.name %></span>
+          <span class="muted small"><%= m.blurb %></span>
+        </li>
+      <% }) %>
+    </ul>
+    <p class="muted small">Cash on hand: <strong><%= money(cash) %></strong>. Each upgrade also has a workshop fee in cash. Upgrades are lost when you sell an item; salvaging gives back half the materials they took.</p>
+  </section>
+
+  <% const rowOf = function (r) { %>
+    <li class="ws-row<%= r.equipped ? ' is-equipped' : '' %>" id="ws-<%= r.kind %>-<%= r.id %>">
+      <div class="ws-row__head">
+        <span class="ws-row__name"><%= r.name %></span>
+        <% if (r.upgradeLabel) { %><span class="tag tag--mk"><%= r.upgradeLabel %></span><% } %>
+        <% if (r.equipped) { %><span class="tag"><%= r.kind === 'vehicle' ? 'Taken out' : 'Equipped' %></span><% } %>
+      </div>
+      <% if (r.next) { %>
+        <p class="ws-row__next">To <strong><%= r.nextLabel %></strong>:
+          <% r.next.parts.forEach(function (p, i) { %><%= i ? ' · ' : '' %><span class="<%= p.have >= p.need ? '' : 'ws-short' %>"><%= p.need.toLocaleString('en-US') %> <%= p.name %> <span class="muted">(<%= p.have.toLocaleString('en-US') %>)</span></span><% }) %>
+          · <span class="<%= cash >= r.next.cash ? '' : 'ws-short' %>"><%= money(r.next.cash) %> fee</span>
+        </p>
+      <% } else { %>
+        <p class="ws-row__next muted">Fully upgraded.</p>
+      <% } %>
+      <div class="ws-row__actions">
+        <% if (r.next) { %>
+          <form method="post" action="/armory/workshop/upgrade/<%= r.kind %>/<%= r.id %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn--primary btn--sm" type="submit" <%- r.next.ready ? '' : 'disabled' %> aria-label="Upgrade the <%= r.name %> to <%= r.nextLabel %>"><%= r.next.ready ? `Upgrade to ${r.nextLabel}` : 'Not enough yet' %></button>
+          </form>
+        <% } %>
+        <form method="post" action="/armory/workshop/salvage/<%= r.kind %>/<%= r.id %>" data-confirm="Salvage the <%= r.name %><%= r.upgradeLabel ? ' ' + r.upgradeLabel : '' %> for <%= r.salvage %>? It’s gone for good<%= r.equipped ? ', and it’s in use right now' : '' %>.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--danger btn--sm" type="submit" aria-label="Salvage the <%= r.name %> for <%= r.salvage %>">Salvage</button>
+        </form>
+        <span class="muted small ws-row__yield">Salvage: <%= r.salvage %></span>
+      </div>
+    </li>
+  <% } %>
+
+  <section class="reveal" style="--i:2" aria-labelledby="ws-gear-title">
+    <h2 id="ws-gear-title" class="section-title">Gear</h2>
+    <% if (gear.length) { %>
+      <div class="ws-groups">
+        <% gear.forEach(function (slot) { %>
+          <section class="card ws-group" aria-labelledby="ws-slot-<%= slot.id %>">
+            <h3 id="ws-slot-<%= slot.id %>" class="inventory__title"><%= slot.label %></h3>
+            <ul class="ws-list"><% slot.items.forEach(rowOf) %></ul>
+          </section>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="muted">You don’t own any gear yet. <a href="/armory/shop/weapons">Visit the shops</a>.</p>
+    <% } %>
+  </section>
+
+  <section class="reveal" style="--i:3" aria-labelledby="ws-veh-title">
+    <h2 id="ws-veh-title" class="section-title">Vehicles</h2>
+    <% if (vehicles.length) { %>
+      <section class="card ws-group"><ul class="ws-list"><% vehicles.forEach(rowOf) %></ul></section>
+    <% } else { %>
+      <p class="muted">No vehicles yet. <a href="/armory/motor-pool">Visit the motor pool</a>.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

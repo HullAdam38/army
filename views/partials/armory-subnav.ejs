@@ -1,8 +1,9 @@
-<%# The Armory's menu: your inventory, then a shop per gear slot and supplies, then the motor pool. Expects `shops` and `active`. %>
+<%# The Armory's menu: your inventory, then a shop per gear slot and supplies, then the motor pool and the workshop. Expects `shops` and `active`. %>
 <nav class="subnav" aria-label="Armory">
   <a class="subnav__link" href="/armory" <%- active === 'inventory' ? 'aria-current="page"' : '' %>>Inventory</a>
   <% shops.forEach(function (s) { %>
     <a class="subnav__link" href="/armory/shop/<%= s.id %>" <%- active === s.id ? 'aria-current="page"' : '' %>><%= s.name %></a>
   <% }) %>
   <a class="subnav__link" href="/armory/motor-pool" <%- active === 'motor-pool' ? 'aria-current="page"' : '' %>>Motor pool</a>
+  <a class="subnav__link" href="/armory/workshop" <%- active === 'workshop' ? 'aria-current="page"' : '' %>>Workshop</a>
 </nav>

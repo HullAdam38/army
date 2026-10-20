@@ -19,6 +19,7 @@ const launch = require('../launch');
 const cosmeticsCatalogue = require('../cosmetics');
 const supporterRules = require('../supporter');
 const vehicleRules = require('../vehicles');
+const workshopRules = require('../workshop');
 
 const PAGE_SIZE = 25;
 const timeLeft = (ms) => {
@@ -32,13 +33,13 @@ const REASON_LABELS = {
   'season-reward': 'Season rewards', medal: 'Medal rewards', tutorial: 'Basic training rewards', 'unit-objective': 'Unit objectives',
   'target-bonus': 'High-value target', 'bounty-claim': 'Bounties collected', 'bounty-placed': 'Bounties posted', 'bounty-refund': 'Bounty refunds',
   armory: 'Armory (gear)', 'armory-repair': 'Armory (repairs)', 'armory-sale': 'Armory (gear sold)', supplies: 'Armory (supplies)',
-  vehicle: 'Motor pool (vehicles)', 'vehicle-repair': 'Motor pool (repairs)', 'vehicle-sale': 'Motor pool (vehicles sold)', training: 'Training', scout: 'Scouting', base: 'Forward base', 'base-refund': 'Forward base refunds',
+  vehicle: 'Motor pool (vehicles)', 'vehicle-repair': 'Motor pool (repairs)', 'vehicle-sale': 'Motor pool (vehicles sold)', workshop: 'Workshop (upgrade fees)', training: 'Training', scout: 'Scouting', base: 'Forward base', 'base-refund': 'Forward base refunds',
   'hospital-treatment': 'Hospital treatment', 'hospital-discharge': 'Hospital discharge', 'unit-donation': 'Unit donations', 'unit-founded': 'Units founded',
   signup: 'Starting cash', 'bank-deposit': 'Bank deposits (fees)', 'bank-withdraw': 'Bank withdrawals', reversal: 'Anti-cheat reversals', 'daily-order': 'Daily orders', 'daily-bonus': 'Daily commendation',
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null, supporters = null, vehicles = null } = {}) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null, supporters = null, vehicles = null, workshop = null } = {}) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -139,6 +140,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
         return {
           vehiclesOwned: vehicleRules.VEHICLES.filter((v) => mine.has(v.id)).map((v) => ({ ...v, condition: Math.floor(mine.get(v.id)), out: Boolean(out && out.vehicle.id === v.id) })),
           vehiclesGrantable: vehicles ? vehicleRules.VEHICLES.filter((v) => !mine.has(v.id)) : [],
+          materials: workshop ? (() => { const have = workshop.materials(t.id); return workshopRules.MATERIALS.map((m) => ({ ...m, qty: have.get(m.id) || 0 })); })() : [],
         };
       })(),
       cosmeticGrants: cosmetics ? cosmetics.grantsFor(t.id) : [],
@@ -228,6 +230,24 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       adminRepo.log(req.player.id, req.target.id, 'item-grant', `Gave ${item.name}. Reason: ${reason}`);
       players.notify(req.target.id, 'system', `HQ issued you a ${item.name}. Equip it in the Armory.`, '/armory');
       req.flash('success', `${item.name} given to ${req.target.username}.`);
+    }
+    res.redirect(`/admin/players/${req.target.id}#inventory`);
+  });
+
+  // Give or take workshop materials.
+  router.post('/admin/players/:id/materials', loadTarget, (req, res) => {
+    const material = workshopRules.MATERIALS_BY_ID.get(String(req.body.material || ''));
+    const qty = Math.trunc(Number(req.body.qty));
+    const reason = admin.cleanReason(req.body.reason);
+    if (!workshop || !material) req.flash('error', 'Pick a material.');
+    else if (!Number.isInteger(qty) || !qty || Math.abs(qty) > 100000) req.flash('error', 'Give an amount from -100,000 to 100,000 (negative takes away).');
+    else if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else {
+      workshop.add(req.target.id, { [material.id]: qty });
+      const n = Math.abs(qty).toLocaleString('en-US');
+      adminRepo.log(req.player.id, req.target.id, qty > 0 ? 'materials-grant' : 'materials-remove', `${qty > 0 ? 'Gave' : 'Took away'} ${n} ${material.name}. Reason: ${reason}`);
+      if (qty > 0) players.notify(req.target.id, 'system', `HQ sent you ${n} ${material.name} for the workshop.`, '/armory/workshop');
+      req.flash('success', `${qty > 0 ? 'Gave' : 'Took away'} ${n} ${material.name}.`);
     }
     res.redirect(`/admin/players/${req.target.id}#inventory`);
   });

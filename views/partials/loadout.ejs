@@ -7,7 +7,7 @@
       <svg class="loadout__icon" aria-hidden="true"><use href="#<%= icons[s.id] %>"/></svg>
       <span class="loadout__body">
         <span class="loadout__label"><%= s.label %></span>
-        <span class="loadout__name"><%= s.item ? s.item.name : 'Empty' %></span>
+        <span class="loadout__name"><%= s.item ? s.item.name : 'Empty' %><% if (s.upgradeLabel) { %> <span class="tag tag--mk"><%= s.upgradeLabel %></span><% } %></span>
         <% if (s.item) { %><span class="loadout__mods"><%= s.mods.join(' · ') %></span><% } %>
         <% if (s.item && s.worn) { %><span class="loadout__worn">Worn: <%= Math.floor(s.condition) %>% condition</span><% } %>
       </span>

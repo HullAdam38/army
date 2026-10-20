@@ -3864,3 +3864,23 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .motor-class__title svg { width: 22px; height: 22px; color: var(--energy); }
 .motor-class__blurb { margin: -4px 0 12px; }
 .profile-vehicle { margin: 12px 0 0; }
+.mission-result__found { display: block; margin-top: 2px; color: var(--xp); }
+
+/* ----- Workshop (Armory › Workshop) ----- */
+.tag--mk { color: var(--bg); background: var(--xp); }
+.ws-materials { margin-bottom: 20px; }
+.ws-materials__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: 10px; margin: 0 0 12px; padding: 0; list-style: none; }
+.ws-material { display: grid; gap: 2px; padding: 10px 12px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.ws-material__qty { font-family: var(--font-display); font-size: 1.6rem; line-height: 1.1; }
+.ws-material__name { font-weight: 600; }
+.ws-material--core .ws-material__qty { color: var(--energy); }
+.ws-groups { display: grid; gap: 14px; }
+.ws-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ws-row { display: grid; gap: 6px; padding: 10px 12px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.ws-row.is-equipped { border-color: var(--olive); box-shadow: inset 3px 0 0 var(--olive); }
+.ws-row__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ws-row__name { font-weight: 700; }
+.ws-row__next { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+.ws-short { color: var(--danger); }
+.ws-row__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ws-row__yield { flex: 1 1 12rem; min-width: 0; }

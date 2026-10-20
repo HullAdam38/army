@@ -3,11 +3,12 @@
 const { ITEMS, ITEMS_BY_ID, SLOTS } = require('./items');
 const combat = require('./combat');
 const gear = require('./gear');
+const workshop = require('./workshop');
 const { statsFor, gearBonus } = require('./game');
 
 /** A player's real combat stats: equipped gear plus training. */
 function statsOf(players, user) {
-  return statsFor(user.level, Object.values(players.equipment(user.id)), user, players.conditions(user.id));
+  return statsFor(user.level, Object.values(players.equipment(user.id)), user, players.conditions(user.id), players.upgrades(user.id));
 }
 
 /** Checks a purchase. Returns { error } or { item, cost }. */
@@ -33,9 +34,9 @@ function checkEquip(itemId, player, owned) {
  * the player row as `trained` for their true stats (own pages, scouting);
  * without it you get the gear-only view everyone else sees.
  */
-function loadoutView(level, equipment, trained = null, conditions = null) {
+function loadoutView(level, equipment, trained = null, conditions = null, upgrades = null) {
   const itemIds = Object.values(equipment);
-  const stats = statsFor(level, itemIds, trained, conditions);
+  const stats = statsFor(level, itemIds, trained, conditions, upgrades);
   return {
     stats,
     rating: combat.combatRating(stats),
@@ -45,7 +46,8 @@ function loadoutView(level, equipment, trained = null, conditions = null) {
     slots: SLOTS.map((slot) => {
       const item = ITEMS_BY_ID.get(equipment[slot.id]) || null;
       const condition = item && conditions && conditions.has(item.id) ? conditions.get(item.id) : 100;
-      return { ...slot, item, condition, worn: condition < gear.FULL_POWER_AT, mods: item ? gear.scaledMods(item, condition).map(combat.describeModifier) : [] };
+      const upgrade = item && upgrades && upgrades.has(item.id) ? upgrades.get(item.id) : 0;
+      return { ...slot, item, condition, upgrade, upgradeLabel: workshop.label(upgrade), worn: condition < gear.FULL_POWER_AT, mods: item ? gear.scaledMods(item, condition, upgrade).map(combat.describeModifier) : [] };
     }),
   };
 }
@@ -63,10 +65,10 @@ const SHOPS_BY_ID = new Map(SHOPS.map((s) => [s.id, s]));
 const shopForSlot = (slotId) => SHOPS.find((s) => s.slot === slotId) || null;
 
 /** A player's loadout, with their training and their gear's condition. `trained: false` for the view others see. */
-const loadoutOf = (players, user, { trained = true } = {}) => loadoutView(user.level, players.equipment(user.id), trained ? user : null, players.conditions(user.id));
+const loadoutOf = (players, user, { trained = true } = {}) => loadoutView(user.level, players.equipment(user.id), trained ? user : null, players.conditions(user.id), players.upgrades(user.id));
 
 /** Owned gear grouped by slot, best first, for the inventory: condition, repair cost and sale value included. */
-function inventoryView(owned, equipment, conditions = new Map()) {
+function inventoryView(owned, equipment, conditions = new Map(), upgrades = new Map()) {
   return SLOTS.map((slot) => ({
     ...slot,
     shop: shopForSlot(slot.id),
@@ -74,6 +76,7 @@ function inventoryView(owned, equipment, conditions = new Map()) {
       .sort((a, b) => b.minLevel - a.minLevel)
       .map((item) => {
         const condition = conditions.has(item.id) ? conditions.get(item.id) : 100;
+        const upgrade = upgrades.get(item.id) || 0;
         return {
           ...item,
           equipped: equipment[slot.id] === item.id,
@@ -82,7 +85,9 @@ function inventoryView(owned, equipment, conditions = new Map()) {
           power: Math.round(gear.effectiveness(condition) * 100),
           repairCost: gear.repairCost(item, condition),
           saleValue: gear.saleValue(item, condition),
-          modText: gear.scaledMods(item, condition).map(combat.describeModifier),
+          upgrade,
+          upgradeLabel: workshop.label(upgrade),
+          modText: gear.scaledMods(item, condition, upgrade).map(combat.describeModifier),
         };
       }),
   }));

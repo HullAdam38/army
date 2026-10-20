@@ -720,7 +720,7 @@ The parts are in `src/avatars.js`, the picture checks in `src/images.js`, and st
 
 ## Medals
 
-Nineteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Twenty medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -743,6 +743,7 @@ Nineteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays onc
 | Card Sharp | blackjacks dealt at the casino | 5 / 50 / 250 |
 | Driver’s Badge | missions and operation stages won with a vehicle taken out | 25 / 150 / 600 |
 | Fleet Commander | vehicles in your motor pool at the same time | 1 / 5 / 12 |
+| Master Mechanic | upgrades made in the workshop | 1 / 10 / 40 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
 - **Casino medals** use career totals kept on the player (`casino_wagered`, `casino_big_wins`, `casino_blackjacks`), since plays are only kept 30 days. Every game has a house edge, so betting to earn High Roller always costs more than it pays.
@@ -962,6 +963,8 @@ src/
   armory.js          purchase/equip rules and loadout views
   vehicles.js        motor pool: vehicle catalogue, bonuses and wear
   vehicle-service.js owned vehicles, buying, repairs, selling, wear
+  workshop.js        materials, drops, upgrade recipes and salvage
+  workshop-service.js materials held, upgrades and salvage
   routes/armory.js   armory pages and actions
   pvp.js             attack rules, fight simulation, rewards
   routes/pvp.js      attack + battle reports
@@ -1088,6 +1091,11 @@ The markup is in `views/partials/tabbar.ejs`.
   | **Armour** | Light Tank (12), IFV (28), Main Battle Tank (45), Heavy Assault Tank (70), Siege Walker (95) | +6% to +22% damage on unit raid strikes |
 
   Pay bonuses join the rank-perk and unit bonuses before events and admin settings multiply them, and anti-cheat's mission pay limits allow for the best transport a player could have. The vehicle taken out wears like gear (0.15 points a mission, 0.3 on a failed one, 0.5 a raid strike, 0.2 per deployed hour) and loses bonus below 50%, to half at 0%; players are told at 50% and 15%. Repairs and sales use the gear prices (ledger reasons `vehicle`, `vehicle-repair`, `vehicle-sale`). `npm run balance` shows each vehicle paying for itself in about 1–3 months of full play at its unlock level, faster later. The bike or truck shows on the Missions page, the transport on Deployments, the armour on the raid card, and the vehicle on the player's profile. Admins give or take vehicles in the Gear and vehicles card of a player's admin page (audit-logged), and Game settings › Armory has *Vehicle bonuses* and *Vehicle wear*. Rules: `src/vehicles.js`; service: `src/vehicle-service.js`.
+- `/armory/workshop`: the **workshop** (last tab of the Armory menu). Materials turn up on won missions (worth about 12% of the pay), completed operations (30% of the bonus, rich in cores) and deployments (8%), rounded at random so small amounts still appear sometimes. Four kinds: *Scrap metal*, *Circuit boards* (weapons, kit, light vehicles), *Composite plating* (armour, helmets, transports, tanks) and rare *Prototype cores* (Mk II and up).
+  - **Upgrades:** gear goes from Mk I to Mk III, +5% to all its stats per level (so it counts in PvP too); vehicles +10% to their bonus per level. Mk n costs materials worth 8% × n of the item's price plus a 4% × n cash fee (ledger reason `workshop`), so the effort is the same at every level. `npm run balance` puts a full loadout at Mk III at about a month of materials.
+  - **Salvage:** break down gear or a vehicle for materials worth 20% of its price (less when worn) plus half the materials its upgrades took, instead of selling it for cash. Upgrades are lost when an item is sold.
+  - Materials can't be traded, sold or given, so they never pass value between accounts. Reserve soldiers find none. The *Master Mechanic* medal counts upgrades (1 / 10 / 40).
+  - Upgrades show as a Mk tag in the Armory, the loadout, profiles and the motor pool. Admins see a player's materials and give or take them on the player's admin page (audit-logged). Game settings › Armory has *Workshop material drops* and *Upgrade cost*. Rules: `src/workshop.js`; service: `src/workshop-service.js`.
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted

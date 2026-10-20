@@ -34,6 +34,7 @@ const MEDALS = [
   { id: 'bigwinner', name: 'Big Winner', icon: 'i-star', metric: 'casinoBigWins', unit: 'wins of 20× or more', thresholds: [1, 10, 50], blurb: 'Win at least 20 times your bet on one slot spin or roulette spin.' },
   { id: 'driver', name: 'Driver’s Badge', icon: 'i-jeep', metric: 'vehicleMissions', unit: 'missions won with a vehicle out', thresholds: [25, 150, 600], blurb: 'Win missions and operation stages with a vehicle from the motor pool taken out.' },
   { id: 'fleet', name: 'Fleet Commander', icon: 'i-tank', metric: 'vehicles', unit: 'vehicles in your motor pool', thresholds: [1, 5, 12], blurb: 'Own vehicles. Every vehicle in your motor pool at the same time counts.' },
+  { id: 'mechanic', name: 'Master Mechanic', icon: 'i-kit', metric: 'upgrades', unit: 'workshop upgrades', thresholds: [1, 10, 40], blurb: 'Upgrade gear and vehicles in the workshop.' },
   { id: 'cardsharp', name: 'Card Sharp', icon: 'i-crest', metric: 'casinoBlackjacks', unit: 'blackjacks', thresholds: [5, 50, 250], blurb: 'Get dealt blackjack at the casino’s blackjack tables.' },
 ];
 

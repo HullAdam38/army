@@ -278,6 +278,12 @@
           ? ` — objective secured. +${r.xp} XP, +$${r.cash}.`
           : ` — mission failed. You took ${r.damage} damage${r.absorbed ? ` (armour absorbed ${r.absorbed})` : ''} but earned ${r.xp} XP.`,
       );
+      if (r.foundText) {
+        const found = document.createElement('span');
+        found.className = 'mission-result__found';
+        found.textContent = `Found ${r.foundText} for the workshop.`;
+        text.append(found);
+      }
       if (r.levelsGained.length) {
         const promo = document.createElement('span');
         promo.className = 'mission-result__promo';
