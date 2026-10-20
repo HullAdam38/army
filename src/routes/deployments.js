@@ -14,7 +14,7 @@ function deploymentRoutes(players, deploymentService) {
     const now = Date.now();
     const me = game.applyRegen(players.findById(req.player.id), now);
     const used = deploymentService.hoursUsed(me.id, now);
-    const mult = deploymentService.multipliers(me.level, now);
+    const mult = deploymentService.multipliers(me.level, now, me.id);
     const active = deploymentService.active(me.id);
     res.render('deployments', {
       title: 'Deployments',
@@ -25,6 +25,7 @@ function deploymentRoutes(players, deploymentService) {
       used: Math.round(used * 10) / 10,
       left: Math.max(0, Math.floor((deployments.dailyCapHours() - used) * 10) / 10),
       boosted: mult.cashMult > 1 || mult.xpMult > 1,
+      vehiclePct: Math.round(deploymentService.vehicleBonus(me.id) * 1000) / 10, // a transport from the motor pool
       active: active ? { ...active, kind: deployments.KINDS_BY_ID.get(active.kind) } : null,
       kinds: deployments.KINDS.map((k) => ({
         ...k,

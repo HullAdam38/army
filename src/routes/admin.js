@@ -18,6 +18,7 @@ const tuning = require('../tuning');
 const launch = require('../launch');
 const cosmeticsCatalogue = require('../cosmetics');
 const supporterRules = require('../supporter');
+const vehicleRules = require('../vehicles');
 
 const PAGE_SIZE = 25;
 const timeLeft = (ms) => {
@@ -30,13 +31,14 @@ const REASON_LABELS = {
   mission: 'Missions', operation: 'Operations', pvp: 'PvP (cash taken)', deployment: 'Deployments', 'supply-drop': 'Supply drops',
   'season-reward': 'Season rewards', medal: 'Medal rewards', tutorial: 'Basic training rewards', 'unit-objective': 'Unit objectives',
   'target-bonus': 'High-value target', 'bounty-claim': 'Bounties collected', 'bounty-placed': 'Bounties posted', 'bounty-refund': 'Bounty refunds',
-  armory: 'Armory (gear)', supplies: 'Armory (supplies)', training: 'Training', scout: 'Scouting', base: 'Forward base', 'base-refund': 'Forward base refunds',
+  armory: 'Armory (gear)', 'armory-repair': 'Armory (repairs)', 'armory-sale': 'Armory (gear sold)', supplies: 'Armory (supplies)',
+  vehicle: 'Motor pool (vehicles)', 'vehicle-repair': 'Motor pool (repairs)', 'vehicle-sale': 'Motor pool (vehicles sold)', training: 'Training', scout: 'Scouting', base: 'Forward base', 'base-refund': 'Forward base refunds',
   'hospital-treatment': 'Hospital treatment', 'hospital-discharge': 'Hospital discharge', 'unit-donation': 'Unit donations', 'unit-founded': 'Units founded',
   signup: 'Starting cash', 'bank-deposit': 'Bank deposits (fees)', 'bank-withdraw': 'Bank withdrawals', reversal: 'Anti-cheat reversals', 'daily-order': 'Daily orders', 'daily-bonus': 'Daily commendation',
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
-function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null, supporters = null } = {}) {
+function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null, supporters = null, vehicles = null } = {}) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
 
@@ -130,6 +132,15 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
     return {
       inventory: ITEMS.filter((i) => owned.has(i.id)).map((i) => ({ ...i, equipped: equipped.has(i.id) })),
       grantable: SLOTS.map((s) => ({ ...s, items: ITEMS.filter((i) => i.slot === s.id && !owned.has(i.id)) })).filter((s) => s.items.length),
+      ...(() => {
+        // Vehicles share the Gear card; their ids go in the same select as "veh:<id>".
+        const mine = vehicles ? vehicles.owned(t.id) : new Map();
+        const out = vehicles ? vehicles.assigned(t.id) : null;
+        return {
+          vehiclesOwned: vehicleRules.VEHICLES.filter((v) => mine.has(v.id)).map((v) => ({ ...v, condition: Math.floor(mine.get(v.id)), out: Boolean(out && out.vehicle.id === v.id) })),
+          vehiclesGrantable: vehicles ? vehicleRules.VEHICLES.filter((v) => !mine.has(v.id)) : [],
+        };
+      })(),
       cosmeticGrants: cosmetics ? cosmetics.grantsFor(t.id) : [],
       supporterInfo: {
         active: supporterRules.isActive(t),
@@ -197,7 +208,8 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   });
 
   // Give or take a gear item.
-  router.post('/admin/players/:id/items', loadTarget, (req, res) => {
+  router.post('/admin/players/:id/items', loadTarget, (req, res, next) => {
+    if (String(req.body.item || '').startsWith('veh:')) return next(); // a vehicle (below)
     const item = ITEMS_BY_ID.get(String(req.body.item || ''));
     const reason = admin.cleanReason(req.body.reason);
     const owned = players.ownedItemIds(req.target.id);
@@ -216,6 +228,28 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       adminRepo.log(req.player.id, req.target.id, 'item-grant', `Gave ${item.name}. Reason: ${reason}`);
       players.notify(req.target.id, 'system', `HQ issued you a ${item.name}. Equip it in the Armory.`, '/armory');
       req.flash('success', `${item.name} given to ${req.target.username}.`);
+    }
+    res.redirect(`/admin/players/${req.target.id}#inventory`);
+  });
+
+  // Give or take a vehicle (same form as gear, with "veh:<id>").
+  router.post('/admin/players/:id/items', loadTarget, (req, res) => {
+    const vehicle = vehicleRules.VEHICLES_BY_ID.get(String(req.body.item).slice(4));
+    const reason = admin.cleanReason(req.body.reason);
+    if (!vehicles || !vehicle) req.flash('error', 'Pick a vehicle.');
+    else if (!reason) req.flash('error', 'Give a reason; it goes in the audit log.');
+    else if (req.body.action === 'remove') {
+      if (!vehicles.remove(req.target.id, vehicle.id)) req.flash('error', `${req.target.username} doesn’t own the ${vehicle.name}.`);
+      else {
+        adminRepo.log(req.player.id, req.target.id, 'vehicle-remove', `Took away the ${vehicle.name}. Reason: ${reason}`);
+        req.flash('success', `${vehicle.name} removed.`);
+      }
+    } else if (!vehicles.grant(req.target.id, vehicle.id)) {
+      req.flash('error', `${req.target.username} already owns the ${vehicle.name}.`);
+    } else {
+      adminRepo.log(req.player.id, req.target.id, 'vehicle-grant', `Gave the ${vehicle.name}. Reason: ${reason}`);
+      players.notify(req.target.id, 'system', `HQ issued you a ${vehicle.name}. Take it out in the motor pool.`, '/armory/motor-pool');
+      req.flash('success', `${vehicle.name} given to ${req.target.username}.`);
     }
     res.redirect(`/admin/players/${req.target.id}#inventory`);
   });

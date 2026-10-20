@@ -12,9 +12,10 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 /**
  * Deployments backed by the database. start() and recall() run inside
  * players.transaction(); completeDue() opens its own and runs every minute.
- * `effects(now)` supplies live event multipliers (Double XP, Payday).
+ * `effects(now)` supplies live event multipliers (Double XP, Payday); `vehicles`
+ * the motor pool, whose transports add to the pay.
  */
-function createDeploymentService(db, players, { effects = () => NEUTRAL, onReturn = null } = {}) {
+function createDeploymentService(db, players, { effects = () => NEUTRAL, onReturn = null, vehicles = null } = {}) {
   const stmts = {
     insert: db.prepare('INSERT INTO deployments (user_id, kind, started_at, ends_at) VALUES (?, ?, ?, ?)'),
     active: db.prepare("SELECT * FROM deployments WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"),
@@ -28,12 +29,13 @@ function createDeploymentService(db, players, { effects = () => NEUTRAL, onRetur
     setUntil: db.prepare('UPDATE users SET deploy_until = ? WHERE id = ?'),
   };
 
-  /** Multipliers that apply when a soldier returns: rank perks × live events. */
-  const multipliers = (level, now) => {
+  /** Multipliers that apply when a soldier returns: (rank perks + their vehicle) × live events × the admin setting. */
+  const multipliers = (level, now, userId = null) => {
     const p = perks.perksFor(level);
     const e = effects(now);
     const admin = tuning.get('deploymentPayMult'); // Admin › Game settings
-    return { cashMult: (1 + p.missionCash) * e.cashMult * admin, xpMult: (1 + p.missionXp) * e.xpMult * admin };
+    const vehicle = vehicles && userId ? vehicles.bonuses(userId).deployCash : 0;
+    return { cashMult: (1 + p.missionCash + vehicle) * e.cashMult * admin, xpMult: (1 + p.missionXp) * e.xpMult * admin };
   };
 
   const hoursUsed = (userId, now) => deployments.hoursUsed(stmts.recent.all(userId, now - 48 * deployments.HOUR), now);
@@ -44,7 +46,7 @@ function createDeploymentService(db, players, { effects = () => NEUTRAL, onRetur
       if (!d || d.status !== 'active' || d.ends_at > now) return null;
       const kind = deployments.KINDS_BY_ID.get(d.kind);
       const p = game.applyRegen(players.findById(d.user_id), now);
-      const r = deployments.resolve(kind, p, { ...multipliers(p.level, now), rng });
+      const r = deployments.resolve(kind, p, { ...multipliers(p.level, now, p.id), rng });
       p.cash += r.cash;
       if (r.injury) {
         if (p.health >= p.max_health) p.health_updated_at = now;
@@ -56,6 +58,7 @@ function createDeploymentService(db, players, { effects = () => NEUTRAL, onRetur
       stmts.finish.run(r.cash, r.xp, report, now, d.id);
       players.save(p, { reason: 'deployment', ref: `deployment:${d.id}` });
       stmts.setUntil.run(null, d.user_id);
+      if (vehicles) vehicles.wear(d.user_id, 'deployHour', kind.hours);
       if (onReturn) onReturn(d.user_id, now); // counts towards unit objectives
       players.log(d.user_id, 'success', `Back from ${kind.name}: +${r.xp} XP, +${money(r.cash)}. ${report}`, '/deployments');
       players.notify(d.user_id, 'deployment', `Your soldier is back from the ${kind.name.toLowerCase()}: +${money(r.cash)}, +${r.xp} XP.${r.find ? ' Found a supply cache!' : ''}${r.injury ? ` Took ${r.injury} damage.` : ''}`, '/deployments');
@@ -70,6 +73,8 @@ function createDeploymentService(db, players, { effects = () => NEUTRAL, onRetur
 
   return {
     multipliers,
+    /** The pay bonus the player's vehicle adds to deployments right now. */
+    vehicleBonus: (userId) => (vehicles ? vehicles.bonuses(userId).deployCash : 0),
     hoursUsed,
     active: (userId) => stmts.active.get(userId) || null,
     history: (userId, limit = 10) => stmts.history.all(userId, limit),

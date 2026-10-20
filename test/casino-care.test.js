@@ -40,9 +40,9 @@ test('loss limits: tighter at once, looser after 24 hours; breaks only get longe
   assert.match(cp.setLimit(id, '9000', now).ok, /in 24 hours/);
   let s = cp.status(id, now + HOUR);
   assert.deepEqual([s.limit, s.next, s.nextAt], [2000, 9000, now + LIMIT_DELAY_MS]);
-  assert.match(cp.cancelPending(id).ok, /cancelled/);
+  assert.match(cp.cancelPending(id, now + HOUR).ok, /cancelled/);
   assert.equal(cp.status(id, now + 2 * LIMIT_DELAY_MS).limit, 2000);
-  assert.match(cp.cancelPending(id).error, /no change/);
+  assert.match(cp.cancelPending(id, now + HOUR).error, /no change/);
 
   // Removing also waits, then applies by itself.
   assert.match(cp.setLimit(id, '', now).ok, /removed in 24 hours/);

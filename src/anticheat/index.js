@@ -10,8 +10,11 @@ const admin = require('../admin');
 const DEVICE_COOKIE = 'ef.dev';
 const perks = require('../perks');
 const events = require('../events');
-// The most a single mission can pay: the best mission's top roll with every rank perk, a unit rally and a Payday event.
-const MAX_MISSION_CASH = Math.ceil(Math.max(...MISSIONS.map((m) => m.cash[1])) * (1 + perks.MAX_CASH_BONUS + require('../units').RALLY.bonus) * events.MAX_CASH_MULT);
+const vehicles = require('../vehicles');
+// The most a single mission can pay: the best mission's top roll with every rank perk, a unit rally,
+// the best transport (at `vehicleMult`, the admin's vehicle bonus setting) and a Payday event.
+const maxMissionCash = (vehicleMult = 1) => Math.ceil(Math.max(...MISSIONS.map((m) => m.cash[1]))
+  * (1 + perks.MAX_CASH_BONUS + require('../units').RALLY.bonus + vehicles.MAX_MISSION_CASH_BONUS * vehicleMult) * events.MAX_CASH_MULT);
 const MAX_PVP_CASH = pvp.CASH_CAP_PER_LEVEL * admin.MAX_LEVEL;
 
 /** Which game action a POST path is, or null for ones we don't time (sign-in, admin…). */
@@ -298,7 +301,8 @@ function createAntiCheat(db, players, { secret, settings = null }) {
         });
       }
       const suspects = new Map();
-      const payCeiling = Math.ceil(MAX_MISSION_CASH * generous('missionCashMult', now - rules.FARMING_WINDOW_MS, Math.max)); // admin pay setting
+      const farmSince = now - rules.FARMING_WINDOW_MS;
+      const payCeiling = Math.ceil(maxMissionCash(generous('vehicleBonusMult', farmSince, Math.max)) * generous('missionCashMult', farmSince, Math.max)); // admin settings
       for (const e of stmts.suspectLedger.all(now - rules.FARMING_WINDOW_MS, payCeiling, MAX_PVP_CASH)) {
         const rule = e.reason === 'unknown' ? 'unknown-money' : 'impossible-payout';
         const key = `${rule}:${e.user_id}`;
@@ -359,13 +363,14 @@ function createAntiCheat(db, players, { secret, settings = null }) {
       // So do admin settings: faster energy or higher mission pay at any point in the window.
       const regenMs = Math.round(generous('energyRegenMinutes', since, Math.min) * 60 * 1000);
       const adminCashMult = generous('missionCashMult', since, Math.max);
+      const vehicleMult = generous('vehicleBonusMult', since, Math.max);
       const rows = stmts.gains.all(since);
       const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
       for (const r of rows) {
         const refills = stmts.refills.get(r.user_id, since).n;
         const cap = rules.missionCashCap({
           missions: MISSIONS, level: r.level, maxEnergy: r.max_energy, refills, energyRegenMs: regenMs,
-          cashMult: (1 + perks.perksFor(r.level).missionCash) * eventCashMult * adminCashMult,
+          cashMult: (1 + perks.perksFor(r.level).missionCash + vehicles.bestMissionCash(r.level) * vehicleMult) * eventCashMult * adminCashMult,
         });
         const reasons = [];
         let severity = 0;

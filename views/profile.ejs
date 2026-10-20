@@ -118,6 +118,7 @@
     <section class="card reveal" style="--i:3" aria-labelledby="gear-title">
       <h2 id="gear-title" class="card__title">Loadout</h2>
       <%- include('partials/loadout', { loadout, editable: false }) %>
+      <% if (soldier.vehicle) { %><p class="profile-vehicle"><svg class="inline-icon" aria-hidden="true"><use href="#<%= soldier.vehicle.icon %>"/></svg>Vehicle: <strong><%= soldier.vehicle.name %></strong> <span class="muted small"><%= soldier.vehicle.cls %></span></p><% } %>
     </section>
 
     <% if (ownTraining) { %>

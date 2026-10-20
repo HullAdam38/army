@@ -59,6 +59,8 @@ const SETTINGS = [
   { key: 'gearWearMult', group: 'armory', label: 'Gear wear', type: 'mult', min: 0, max: 5, step: 0.1, default: 1, help: 'How fast gear wears with use. At 1 a weapon drops about half a point a mission and a point a fight; below 50% condition gear starts losing power. 0 turns wear off.' },
   { key: 'gearRepairShare', group: 'armory', label: 'Repair cost', type: 'number', unit: '× price', min: 0, max: 2, step: 0.05, default: 0.3, help: 'A full repair from 0% costs this share of the item’s price (pro rata: from 50% it costs half that). Repairs take cash out of the game.' },
   { key: 'gearSellShare', group: 'armory', label: 'Sale price', type: 'number', unit: '× price', min: 0, max: 0.9, step: 0.05, default: 0.4, help: 'What the Armory pays for gear in perfect condition, as a share of its price. Worn gear fetches less: half as much at 0%. Keep it well under 1 so buying and selling never makes money.' },
+  { key: 'vehicleBonusMult', group: 'armory', label: 'Vehicle bonuses', type: 'mult', min: 0, max: 3, step: 0.1, default: 1, help: 'Scales every vehicle bonus in the motor pool (mission success, mission and deployment pay, raid damage). 0 turns them off; vehicles still wear.' },
+  { key: 'vehicleWearMult', group: 'armory', label: 'Vehicle wear', type: 'mult', min: 0, max: 5, step: 0.1, default: 1, help: 'How fast vehicles wear with use. At 1 a vehicle drops 0.15 points a mission (0.3 when it fails), half a point a raid strike and 0.2 points per deployed hour. Repairs and sales use the gear repair cost and sale price above. 0 turns wear off.' },
 
   { key: 'cosmeticsShowSupporter', group: 'cosmetics', label: 'Show Supporter cosmetics', type: 'bool', default: true, help: 'Show Supporter-only cosmetics in players’ wardrobes even when they don’t own them, as a preview of what’s coming. Turn off to show only what they have or can earn.' },
 
@@ -83,7 +85,7 @@ const GROUPS = [
   { id: 'avatars', name: 'Avatars', blurb: 'Who can upload their own picture.' },
   { id: 'access', name: 'Access', blurb: 'Who can join.' },
   { id: 'casino', name: 'Casino', blurb: 'Games played with in-game cash.' },
-  { id: 'armory', name: 'Armory', blurb: 'Gear wear, repairs and selling.' },
+  { id: 'armory', name: 'Armory', blurb: 'Gear and vehicle wear, repairs, selling and vehicle bonuses.' },
   { id: 'cosmetics', name: 'Cosmetics', blurb: 'Looks that never change how the game plays.' },
   { id: 'world', name: 'Living world', blurb: 'Keeps a young game from feeling empty.' },
   { id: 'recruit', name: 'Recruit a friend', blurb: 'Rewards for bringing new players in.' },

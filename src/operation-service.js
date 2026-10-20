@@ -27,7 +27,7 @@ function createOperationService(db, players) {
      * Plays the next stage of an operation. Returns { error } or
      * { stage, result, completed, bonus, levelsGained, player }.
      */
-    run(userId, opId, { stats, xpBonus = 0, cashBonus = 0, now = Date.now(), rng } = {}) {
+    run(userId, opId, { stats, xpBonus = 0, cashBonus = 0, chanceBonus = 0, now = Date.now(), rng } = {}) {
       const op = ops.OPERATIONS_BY_ID.get(opId);
       if (!op) return { error: 'Unknown operation.' };
       const row = stmts.get.get(userId, opId) || null;
@@ -35,7 +35,7 @@ function createOperationService(db, players) {
       if (progress.coolingUntil) return { error: `${op.name} is complete. The next one is ready in ${Math.ceil((progress.coolingUntil - now) / 3_600_000)}h.` };
       const stage = op.stages[progress.stage - 1];
       const fresh = players.findById(userId);
-      const out = game.resolveMission(stage, fresh, { now, rng, stats, xpBonus, cashBonus });
+      const out = game.resolveMission(stage, fresh, { now, rng, stats, xpBonus, cashBonus, chanceBonus });
       if (out.error) return out;
       const p = out.player;
       const r = out.result;

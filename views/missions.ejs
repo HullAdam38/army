@@ -21,6 +21,18 @@
     </p>
   <% } %>
 
+  <% if (vehicle) { %>
+    <p class="perk-strip reveal" style="--i:1">
+      <svg aria-hidden="true"><use href="#<%= vehicle.icon %>"/></svg>
+      <span>Vehicle: <a href="/armory/motor-pool"><%= vehicle.name %></a> (<%= vehicle.condition %>%)<% if (vehicle.text.length) { %>: <strong><%= vehicle.text.join(' · ') %></strong><% } else { %> <span class="muted">helps on raids and deployments, not missions.</span><% } %></span>
+    </p>
+  <% } else if (player.level >= 3) { %>
+    <p class="perk-strip perk-strip--hint reveal muted" style="--i:1">
+      <svg aria-hidden="true"><use href="#i-jeep"/></svg>
+      <span>A vehicle from the <a href="/armory/motor-pool">motor pool</a> raises your chance of success or your pay.</span>
+    </p>
+  <% } %>
+
   <% campaigns.forEach(function (c) { %>
     <% if (c.state === 'teaser') { %>
       <section class="campaign campaign--teaser" aria-labelledby="campaign-<%= c.id %>">

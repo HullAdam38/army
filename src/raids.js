@@ -64,9 +64,9 @@ function strikeBlocker(player, now = Date.now()) {
   return null;
 }
 
-/** One strike: damage from the striker's combat rating, and the return fire they take. */
-function strike(stats, player, rng = Math.random) {
-  const damage = Math.max(1, Math.round(combat.combatRating(stats) * (0.8 + 0.45 * rng())));
+/** One strike: damage from the striker's combat rating (plus `damageBonus`, from armour in the motor pool), and the return fire they take. */
+function strike(stats, player, rng = Math.random, damageBonus = 0) {
+  const damage = Math.max(1, Math.round(combat.combatRating(stats) * (0.8 + 0.45 * rng()) * (1 + damageBonus)));
   const hurt = Math.max(1, Math.round(player.max_health * (0.03 + 0.05 * rng())));
   return { damage, hurt };
 }

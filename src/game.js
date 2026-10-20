@@ -497,8 +497,9 @@ function gearBonus(level, stats) {
   return Math.min(MAX_GEAR_SUCCESS_BONUS, Math.max(0, (ratio - 1) * 0.1));
 }
 
-function successChance(mission, player, stats = statsFor(player.level)) {
-  let chance = mission.chance + 0.01 * Math.max(0, player.level - mission.minLevel);
+/** `bonus`: extra chance from elsewhere (a light vehicle in the motor pool). */
+function successChance(mission, player, stats = statsFor(player.level), bonus = 0) {
+  let chance = mission.chance + 0.01 * Math.max(0, player.level - mission.minLevel) + bonus;
   chance += gearBonus(player.level, stats);
   chance += training.missionBonus(mission, player);
   if (player.health < player.max_health / 2) chance -= 0.1;
@@ -543,16 +544,17 @@ function runMission(missionId, current, opts = {}) {
 
 /**
  * Rolls any mission-shaped object (a mission, or one stage of an operation).
- * `xpBonus` and `cashBonus` are fractions from the unit Drill ground and rank perks.
+ * `xpBonus` and `cashBonus` are fractions from the unit Drill ground and rank perks;
+ * `chanceBonus` is added to the success chance (a light vehicle).
  */
-function resolveMission(mission, current, { now = Date.now(), rng = Math.random, stats, xpBonus = 0, cashBonus = 0 } = {}) {
+function resolveMission(mission, current, { now = Date.now(), rng = Math.random, stats, xpBonus = 0, cashBonus = 0, chanceBonus = 0 } = {}) {
   const missionId = mission.id;
   const player = applyRegen(current, now);
   const blocker = missionBlocker(mission, player, now);
   if (blocker) return { error: `${blocker}.`, player };
 
   stats = stats || statsFor(player.level);
-  const chance = successChance(mission, player, stats);
+  const chance = successChance(mission, player, stats, chanceBonus);
   const wasFullEnergy = player.energy >= player.max_energy;
   player.energy -= mission.energy;
   if (wasFullEnergy) player.energy_updated_at = now; // regen clock starts now
@@ -680,13 +682,13 @@ function playerView(raw, now = Date.now()) {
   };
 }
 
-function missionViews(raw, now = Date.now(), stats = statsFor(raw.level)) {
+function missionViews(raw, now = Date.now(), stats = statsFor(raw.level), chanceBonus = 0) {
   const p = applyRegen(raw, now);
   return MISSIONS.map((m) => ({
     ...m,
     locked: p.level < m.minLevel,
     blocker: missionBlocker(m, p, now),
-    chancePct: Math.round(successChance(m, p, stats) * 100),
+    chancePct: Math.round(successChance(m, p, stats, chanceBonus) * 100),
     favoursLabel: m.favours ? training.STATS[m.favours].label : null,
     favoursBonusPct: Math.round(training.missionBonus(m, p) * 1000) / 10,
   }));

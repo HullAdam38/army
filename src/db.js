@@ -51,6 +51,16 @@ const SCHEMA = `
     PRIMARY KEY (user_id, slot)
   );
 
+  -- The motor pool (src/vehicles.js): vehicles a player owns and their condition, 0–100%.
+  -- The one they take out is users.vehicle_id.
+  CREATE TABLE IF NOT EXISTS vehicles (
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    vehicle_id   TEXT    NOT NULL,
+    condition    REAL    NOT NULL DEFAULT 100,
+    acquired_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, vehicle_id)
+  );
+
   CREATE TABLE IF NOT EXISTS battles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -877,7 +887,7 @@ const ADDED_COLUMNS = [
   ['users', 'casino_blackjacks', 'INTEGER NOT NULL DEFAULT 0'],
   ['chat_messages', 'kind', 'TEXT'], // null for players' messages; 'casino' for big-win shouts
   ['users', 'lfu_at', 'INTEGER'], // looking for a unit since (shown to unit officers)
-  ['inventory', 'condition', 'REAL NOT NULL DEFAULT 100'],
+  ['inventory', 'condition', 'REAL NOT NULL DEFAULT 100'], // gear condition, 0–100% (src/gear.js)
   ['users', 'supporter_until', 'INTEGER'], // Supporter perks last until then (src/supporter.js)
   ['users', 'supporter_since', 'INTEGER'],
   ['users', 'supporter_status', 'TEXT'], // the provider's status: active, cancelled, past_due…; 'gift' for one from HQ
@@ -887,7 +897,8 @@ const ADDED_COLUMNS = [
   ['users', 'supporter_lapsed_at', 'INTEGER'], // when Supporter-only looks were taken off after it ended
   ['users', 'name_color', 'TEXT'], // cosmetic id of the callsign colour worn (src/cosmetics.js)
   ['users', 'profile_banner', 'TEXT'], // cosmetic id of the profile banner
-  ['units', 'crest', 'TEXT'], // cosmetic id of the unit's crest style // gear condition, 0–100% (src/gear.js)
+  ['units', 'crest', 'TEXT'], // cosmetic id of the unit's crest style
+  ['users', 'vehicle_id', 'TEXT'], // the vehicle the player takes out (src/vehicles.js)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
   ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
   ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players

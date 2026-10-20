@@ -23,16 +23,19 @@ const baseRules = require('../base');
 const seasonRules = require('../seasons');
 const tuning = require('../tuning');
 const titles = require('../titles');
+const vehicles = require('../vehicles');
 
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
   const statsOf = (user) => armory.statsOf(players, user);
-  /** Mission XP and pay bonuses from the player's unit Drill ground and rank perks. */
+  const vehicleOf = (user) => (vehicleService ? vehicleService.bonuses(user.id) : vehicles.NO_BONUS);
+  const chanceOf = (user) => vehicleOf(user).missionChance;
+  /** Mission XP, pay and success bonuses from the player's unit Drill ground, rank perks and vehicle. */
   const bonusesFor = (user) => {
     const unit = user.unit_id ? unitRepo.findById(user.unit_id) : null;
     const p = perks.perksFor(user.level);
@@ -40,16 +43,19 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     // …and so do the admin pay and XP settings.
     const rally = units.rallyBonus(unit); // a unit's "Advance!" rally order
     const region = theatreService && unit ? theatreService.xpBonus(unit.id) : 0; // regions held on the theatre of war
+    const v = vehicleOf(user); // the motor pool
     return {
       xpBonus: (1 + units.xpBonus(unit) + rally + region + p.missionXp) * e.xpMult * tuning.get('missionXpMult') - 1,
-      cashBonus: (1 + rally + p.missionCash) * e.cashMult * tuning.get('missionCashMult') - 1,
+      cashBonus: (1 + rally + p.missionCash + v.missionCash) * e.cashMult * tuning.get('missionCashMult') - 1,
+      chanceBonus: v.missionChance,
+      vehicle: v,
     };
   };
 
   router.get('/hq', requireAuth, (req, res) => {
     tutorialService.check(req.player.id);
     medalService.check(req.player.id); // e.g. defences or war wins since the last action
-    const missions = game.missionViews(req.player, Date.now(), statsOf(req.player));
+    const missions = game.missionViews(req.player, Date.now(), statsOf(req.player), chanceOf(req.player));
     const nextMission = missions.find((m) => !m.blocker) || null;
     res.render('hq', {
       title: 'Headquarters',
@@ -95,7 +101,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     const now = Date.now();
     const me = game.applyRegen(req.player, now);
     const stats = statsOf(req.player);
-    const missions = game.missionViews(req.player, now, stats);
+    const missions = game.missionViews(req.player, now, stats, chanceOf(req.player));
     const progress = operationService.progressFor(me.id, now);
     const bonus = bonusesFor(me);
     res.render('missions', {
@@ -121,10 +127,16 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
           ...op,
           ...pr,
           locked: me.level < op.minLevel,
-          next: stage ? { ...stage, blocker: game.missionBlocker(stage, me, now), chancePct: Math.round(game.successChance(stage, me, stats) * 100) } : null,
+          next: stage ? { ...stage, blocker: game.missionBlocker(stage, me, now), chancePct: Math.round(game.successChance(stage, me, stats, bonus.chanceBonus) * 100) } : null,
         };
       }),
       perks: { unlocked: perks.unlocked(me.level), next: perks.nextPerk(me.level), bonus },
+      vehicle: (() => {
+        const a = vehicleService && vehicleService.assigned(me.id);
+        if (!a) return null;
+        const text = vehicles.describe(vehicles.bonusesOf(a.vehicle, a.condition)).filter((t) => t.includes('mission'));
+        return { name: a.vehicle.name, icon: vehicles.CLASSES_BY_ID.get(a.vehicle.cls).icon, text, condition: Math.floor(a.condition) };
+      })(),
       result: null,
     });
   });
@@ -138,6 +150,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       players.save(out.player, { reason: 'mission', ref: req.params.id });
       const r = out.result;
       gear.wear(players, fresh.id, r.success ? 'mission' : 'missionFailed');
+      if (vehicleService) vehicleService.wear(fresh.id, r.success ? 'mission' : 'missionFailed');
       players.log(
         fresh.id,
         r.success ? 'success' : 'failure',
@@ -166,7 +179,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         error: outcome.error || null,
         result: outcome.result || null,
         player: game.playerView(latest),
-        missions: game.missionViews(latest, Date.now(), statsOf(latest)).map(({ id, blocker, chancePct, locked }) => ({ id, blocker, chancePct, locked })),
+        missions: game.missionViews(latest, Date.now(), statsOf(latest), chanceOf(latest)).map(({ id, blocker, chancePct, locked }) => ({ id, blocker, chancePct, locked })),
       });
     }
 
@@ -191,7 +204,10 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
     const outcome = players.transaction(() => {
       const fresh = players.findById(req.player.id);
       const out = operationService.run(fresh.id, String(req.params.id), { stats: statsOf(fresh), ...bonusesFor(fresh) });
-      if (!out.error) gear.wear(players, fresh.id, out.result.success ? 'mission' : 'missionFailed');
+      if (!out.error) {
+        gear.wear(players, fresh.id, out.result.success ? 'mission' : 'missionFailed');
+        if (vehicleService) vehicleService.wear(fresh.id, out.result.success ? 'mission' : 'missionFailed');
+      }
       return out;
     });
     if (outcome.error) {
@@ -352,6 +368,10 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         nameColor: user.name_color,
         banner: user.profile_banner,
         isSupporter: supporter.isActive(user),
+        vehicle: (() => {
+          const a = vehicleService && vehicleService.assigned(user.id);
+          return a ? { name: a.vehicle.name, icon: vehicles.CLASSES_BY_ID.get(a.vehicle.cls).icon, cls: vehicles.CLASSES_BY_ID.get(a.vehicle.cls).name } : null;
+        })(),
         unit: (() => {
           const u = user.unit_id ? unitRepo.findById(user.unit_id) : null;
           return u ? { id: u.id, name: u.name, tag: u.tag, role: units.roleLabel(user.unit_role) } : null;

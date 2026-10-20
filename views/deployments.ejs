@@ -18,7 +18,8 @@
 
   <div class="deploy-cap reveal" style="--i:1">
     <div class="deploy-cap__bar" role="img" aria-label="<%= used %> of <%= cap %> hours used in the last 24 hours"><span style="width:<%= Math.min(100, Math.round((used / cap) * 100)) %>%"></span></div>
-    <p class="deploy-cap__note"><%= used %>h of <%= cap %>h used in the last 24 hours. Hours free up as old deployments roll out of the window.<% if (boosted) { %> <strong>Rank perks or a live event are boosting your pay.</strong><% } %></p>
+    <p class="deploy-cap__note"><%= used %>h of <%= cap %>h used in the last 24 hours. Hours free up as old deployments roll out of the window.<% if (boosted) { %> <strong>Rank perks, your vehicle or a live event are boosting your pay.</strong><% } %></p>
+    <p class="deploy-cap__note"><svg class="inline-icon" aria-hidden="true"><use href="#i-truck"/></svg><% if (vehiclePct) { %>Your vehicle adds <strong>+<%= vehiclePct %>%</strong> pay.<% } else { %>A transport from the <a href="/armory/motor-pool#transport">motor pool</a> adds to deployment pay.<% } %></p>
   </div>
 
   <% if (active) { %>

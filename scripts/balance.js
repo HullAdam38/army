@@ -189,3 +189,23 @@ for (const pr of profiles) {
   const resale = Math.max(0, r.gearSpend - r.gearItems.reduce((n, i) => n + i.price, 0)) * tuningRules.get('gearSellShare') * 0.75;
   console.log(`${r.profile}: weapon wear ${Math.round(points.weapon)} points (${(points.weapon / 100).toFixed(1)} full repairs) · repairs about ${fmt(repairs)} (${(100 * repairs / income).toFixed(1)}% of income) · selling outgrown gear returns about ${fmt(resale)}`);
 }
+
+// ---- Vehicles: what each one is worth to a player who spends all their energy on missions ----
+const vehicleRules = require(path + 'vehicles');
+console.log('\n== Vehicles at their unlock level (a full day of energy on the best mission, ~720 energy; repairs included)');
+for (const v of vehicleRules.VEHICLES) {
+  const level = v.minLevel;
+  const p = { ...newPlayer(0), level, max_energy: 50 + 5 * (level - 1), max_health: 100 + 10 * (level - 1), health: 100 + 10 * (level - 1) };
+  const best = game.MISSIONS.filter((m) => m.minLevel <= level).map((m) => ({ m, ev: game.successChance(m, p) * (m.cash[0] + m.cash[1]) / 2 / m.energy })).sort((a, b) => b.ev - a.ev)[0].m;
+  const runs = 720 / best.energy;
+  const avg = (best.cash[0] + best.cash[1]) / 2;
+  const b = vehicleRules.bonusesOf(v);
+  const chance = game.successChance(best, p);
+  const gain = runs * avg * ((Math.min(0.97, chance + b.missionChance) - chance) + chance * b.missionCash);
+  const dep = b.deployCash * deployments.rewardFor(deployments.KINDS_BY_ID.get(level >= 5 ? 'long-range' : 'recon'), level).cash * (level >= 5 ? 1 : 2); // one overnight patrol a day
+  const wear = runs * vehicleRules.WEAR.mission * tuningRules.get('vehicleWearMult');
+  const upkeep = (v.price * tuningRules.get('gearRepairShare') * wear) / 100;
+  const net = gain + dep - upkeep;
+  const what = v.cls === 'armour' ? `raid strikes +${Math.round(b.raidDamage * 100)}% damage (no mission pay)` : `≈ ${fmt(gain + dep)}/day extra, ${fmt(upkeep)}/day repairs`;
+  console.log(`${v.name} (L${level}, ${fmt(v.price)}): ${what}${net > 0 && v.cls !== 'armour' ? ` → pays for itself in ${Math.ceil(v.price / net)} days` : ''}`);
+}

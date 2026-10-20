@@ -179,7 +179,7 @@
     </section>
 
     <section class="card admin-grid__wide" id="inventory" aria-labelledby="inv-title">
-      <h2 id="inv-title" class="card__title">Gear</h2>
+      <h2 id="inv-title" class="card__title">Gear and vehicles</h2>
       <% if (inventory.length) { %>
         <ul class="admin-gear">
           <% inventory.forEach(function (i) { %><li><span><%= i.name %></span><span class="muted">Lv <%= i.minLevel %> · <%= i.slot %><%= i.equipped ? ' · equipped' : '' %></span></li><% }) %>
@@ -187,27 +187,34 @@
       <% } else { %>
         <p class="muted">Owns no gear.</p>
       <% } %>
+      <% if (vehiclesOwned.length) { %>
+        <ul class="admin-gear">
+          <% vehiclesOwned.forEach(function (v) { %><li><span><%= v.name %></span><span class="muted">Lv <%= v.minLevel %> · vehicle · <%= v.condition %>%<%= v.out ? ' · taken out' : '' %></span></li><% }) %>
+        </ul>
+      <% } %>
       <div class="admin-gear__forms">
-        <% if (grantable.length) { %>
+        <% if (grantable.length || vehiclesGrantable.length) { %>
           <form method="post" action="/admin/players/<%= t.id %>/items" class="form admin-form">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="action" value="grant">
             <div class="field"><label for="give-item">Give an item</label>
               <select id="give-item" name="item" required>
                 <% grantable.forEach(function (s) { %><optgroup label="<%= s.label %>"><% s.items.forEach(function (i) { %><option value="<%= i.id %>"><%= i.name %> (Lv <%= i.minLevel %>)</option><% }) %></optgroup><% }) %>
+                <% if (vehiclesGrantable.length) { %><optgroup label="Vehicles"><% vehiclesGrantable.forEach(function (v) { %><option value="veh:<%= v.id %>"><%= v.name %> (Lv <%= v.minLevel %>)</option><% }) %></optgroup><% } %>
               </select>
             </div>
             <div class="field"><label for="give-reason">Reason</label><input id="give-reason" name="reason" maxlength="200" placeholder="Lost item after bug" required></div>
             <button class="btn btn--ghost btn--sm" type="submit">Give</button>
           </form>
         <% } %>
-        <% if (inventory.length) { %>
-          <form method="post" action="/admin/players/<%= t.id %>/items" class="form admin-form" data-confirm="Take this item away? It's unequipped first.">
+        <% if (inventory.length || vehiclesOwned.length) { %>
+          <form method="post" action="/admin/players/<%= t.id %>/items" class="form admin-form" data-confirm="Take this away? It's unequipped first.">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="action" value="remove">
             <div class="field"><label for="take-item">Take an item</label>
               <select id="take-item" name="item" required>
                 <% inventory.forEach(function (i) { %><option value="<%= i.id %>"><%= i.name %><%= i.equipped ? ' (equipped)' : '' %></option><% }) %>
+                <% if (vehiclesOwned.length) { %><optgroup label="Vehicles"><% vehiclesOwned.forEach(function (v) { %><option value="veh:<%= v.id %>"><%= v.name %><%= v.out ? ' (taken out)' : '' %></option><% }) %></optgroup><% } %>
               </select>
             </div>
             <div class="field"><label for="take-reason">Reason</label><input id="take-reason" name="reason" maxlength="200" placeholder="Bought through an exploit" required></div>

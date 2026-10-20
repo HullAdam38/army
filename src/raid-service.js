@@ -14,7 +14,7 @@ const money = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
  * Unit raids backed by the database. launch() and strike() run inside the
  * caller's transaction; finishDue() settles raids that have run out of time.
  */
-function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) {
+function createRaidService(db, players, unitRepo, { onStrike = () => {}, vehicles = null } = {}) {
   const stmts = {
     active: db.prepare("SELECT * FROM raids WHERE unit_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"),
     byId: db.prepare('SELECT * FROM raids WHERE id = ?'),
@@ -133,13 +133,14 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
       if (player.unit_id !== unitId) return { error: 'You’re not in this unit.' };
       const blocker = raids.strikeBlocker(player, now);
       if (blocker) return { error: `${blocker}.` };
-      const hit = raids.strike(statsOf(players, player), player, rng);
+      const hit = raids.strike(statsOf(players, player), player, rng, vehicles ? vehicles.bonuses(userId).raidDamage : 0);
       if (player.energy >= player.max_energy) player.energy_updated_at = now; // regen starts again from here
       player.energy -= raids.STRIKE_ENERGY;
       if (player.health >= player.max_health) player.health_updated_at = now;
       player.health = Math.max(1, player.health - hit.hurt);
       players.save(player, { reason: 'raid-strike', ref: `raid:${raid.id}` });
       gear.wear(players, userId, 'strike', now);
+      if (vehicles) vehicles.wear(userId, 'strike');
       const dealt = Math.min(hit.damage, raid.hp);
       stmts.damage.run(dealt, raid.id);
       stmts.hit.run(raid.id, userId, dealt, now);
@@ -183,6 +184,7 @@ function createRaidService(db, players, unitRepo, { onStrike = () => {} } = {}) 
           top: hits.slice(0, 5).map((h) => ({ userId: h.user_id, username: h.username, avatarV: h.avatar_v, damage: h.damage, strikes: h.strikes, share: Math.round((h.damage / Math.max(1, raid.max_hp - raid.hp)) * 100) })),
           mine: mine ? { damage: mine.damage, strikes: mine.strikes } : null,
           blocker: raid.ends_at <= now ? 'The raid has run out of time' : raids.strikeBlocker(p, now),
+          vehiclePct: vehicles ? Math.round(vehicles.bonuses(me.id).raidDamage * 1000) / 10 : 0, // armour from the motor pool
         },
       };
     },

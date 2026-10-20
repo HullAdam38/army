@@ -958,6 +958,8 @@ src/
   combat.js          stats, modifiers, damage & armour maths (shared with PvP)
   items.js           armory catalogue
   armory.js          purchase/equip rules and loadout views
+  vehicles.js        motor pool: vehicle catalogue, bonuses and wear
+  vehicle-service.js owned vehicles, buying, repairs, selling, wear
   routes/armory.js   armory pages and actions
   pvp.js             attack rules, fight simulation, rewards
   routes/pvp.js      attack + battle reports
@@ -1075,6 +1077,15 @@ The markup is in `views/partials/tabbar.ejs`.
 - **Selling:** the Armory buys gear back for 40% of its price in perfect condition, less when worn (half that at 0%); equipped gear can be sold too (ledger reason `armory-sale`). Sold gear can be bought again, good as new.
 - Game settings › Armory has *Gear wear* (0 turns it off), *Repair cost* and *Sale price*. Rules: `src/gear.js`.
 - `/armory/shop/weapons`, `/armory/shop/armour`, `/armory/shop/helmets`, `/armory/shop/kit` and `/armory/shop/supplies`: the shops, one per gear slot plus supplies. A menu across the top of every Armory page switches between the inventory and the shops. Buying an item equips it and brings you back to the same shop; new-gear notifications link straight to the right shop.
+- `/armory/motor-pool`: the **motor pool** (last tab of the Armory menu). Players own as many vehicles as they like and take one out at a time; buying one takes it out if nothing else is. Three classes of five, from level 3 to 95, each helping in a different part of the game. **None change PvP**, so fights stay about the soldier:
+
+  | Class | Vehicles (level) | Bonus |
+  |---|---|---|
+  | **Light vehicles** | Trail Bike (3), Patrol Jeep (10), Recon Buggy (25), Armoured Scout Car (45), Stealth Rover (75) | +3% to +8% mission and operation success chance |
+  | **Transports** | Utility Pickup (5), Supply Truck (15), APC (32), Heavy MRAP (55), Hover Transport (85) | +4% to +12% mission and operation pay, +10% to +30% deployment pay |
+  | **Armour** | Light Tank (12), IFV (28), Main Battle Tank (45), Heavy Assault Tank (70), Siege Walker (95) | +6% to +22% damage on unit raid strikes |
+
+  Pay bonuses join the rank-perk and unit bonuses before events and admin settings multiply them, and anti-cheat's mission pay limits allow for the best transport a player could have. The vehicle taken out wears like gear (0.15 points a mission, 0.3 on a failed one, 0.5 a raid strike, 0.2 per deployed hour) and loses bonus below 50%, to half at 0%; players are told at 50% and 15%. Repairs and sales use the gear prices (ledger reasons `vehicle`, `vehicle-repair`, `vehicle-sale`). `npm run balance` shows each vehicle paying for itself in about 1–3 months of full play at its unlock level, faster later. The bike or truck shows on the Missions page, the transport on Deployments, the armour on the raid card, and the vehicle on the player's profile. Admins give or take vehicles in the Gear and vehicles card of a player's admin page (audit-logged), and Game settings › Armory has *Vehicle bonuses* and *Vehicle wear*. Rules: `src/vehicles.js`; service: `src/vehicle-service.js`.
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted

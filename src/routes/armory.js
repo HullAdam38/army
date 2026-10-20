@@ -7,12 +7,13 @@ const { ITEMS_BY_ID, SLOTS } = require('../items');
 const { SHOPS, SHOPS_BY_ID, catalogueView, checkEquip, checkPurchase, inventoryView, loadoutOf, shopForSlot } = require('../armory');
 const gear = require('../gear');
 const { createRequireAuth } = require('../require-auth');
+const vehicles = require('../vehicles');
 
 /**
- * The Armory: your loadout and inventory on /armory, and a shop per gear slot
- * (plus supplies) on /armory/shop/:shop.
+ * The Armory: your loadout and inventory on /armory, a shop per gear slot
+ * (plus supplies) on /armory/shop/:shop, and the motor pool on /armory/motor-pool.
  */
-function armoryRoutes(players) {
+function armoryRoutes(players, vehicleService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const toInventory = (res, slot) => res.redirect(slot ? `/armory#inv-${slot}` : '/armory');
@@ -160,6 +161,52 @@ function armoryRoutes(players) {
     req.flash('info', `${current.name} stowed.`);
     toInventory(res, slot.id);
   });
+
+  // ----- Motor pool: vehicles (src/vehicles.js) -----
+  if (vehicleService) {
+    const pool = (res, id) => res.redirect(`/armory/motor-pool${id ? `#veh-${id}` : ''}`);
+    const done = (req, res, out, ok, id) => {
+      req.flash(out.error ? 'error' : 'success', out.error || ok(out));
+      pool(res, out.error ? null : id);
+    };
+
+    router.get('/armory/motor-pool', requireAuth, (req, res) => {
+      const classes = vehicleService.garage(req.player);
+      const mine = classes.flatMap((c) => c.vehicles).filter((v) => v.owned);
+      const a = vehicleService.assigned(req.player.id);
+      res.render('motor-pool', {
+        title: 'Motor pool',
+        nav: 'armory',
+        shops: SHOPS,
+        active: 'motor-pool',
+        classes,
+        mine,
+        cash: req.player.cash,
+        assigned: a ? { ...a.vehicle, cls: vehicles.CLASSES_BY_ID.get(a.vehicle.cls), condition: a.condition, bonusText: vehicles.describe(vehicles.bonusesOf(a.vehicle, a.condition)) } : null,
+        repairAll: mine.reduce((n, v) => n + v.repairCost, 0),
+        fullPowerAt: gear.FULL_POWER_AT,
+      });
+    });
+
+    router.post('/armory/motor-pool/buy/:id', requireAuth, (req, res) => {
+      const id = String(req.params.id);
+      done(req, res, vehicleService.buy(req.player.id, id), (o) => `${o.vehicle.name} bought${o.assigned ? ' and taken out' : '. Take it out when you want to use it'}.`, id);
+    });
+    router.post('/armory/motor-pool/assign/:id', requireAuth, (req, res) => {
+      const id = String(req.params.id);
+      done(req, res, vehicleService.assign(req.player.id, id), (o) => `You’re taking the ${o.vehicle.name} out.`, id);
+    });
+    router.post('/armory/motor-pool/park', requireAuth, (req, res) => {
+      done(req, res, vehicleService.park(req.player.id), (o) => `${o.vehicle.name} left in the motor pool.`, null);
+    });
+    router.post('/armory/motor-pool/repair/:id', requireAuth, (req, res) => {
+      const id = String(req.params.id);
+      done(req, res, vehicleService.repair(req.player.id, id), (o) => `${o.jobs.length === 1 ? o.jobs[0].vehicle.name : `${o.jobs.length} vehicles`} repaired to 100% for $${o.cost.toLocaleString('en-US')}.`, id === 'all' ? null : id);
+    });
+    router.post('/armory/motor-pool/sell/:id', requireAuth, (req, res) => {
+      done(req, res, vehicleService.sell(req.player.id, String(req.params.id)), (o) => `${o.vehicle.name} sold for $${o.value.toLocaleString('en-US')}.`, null);
+    });
+  }
 
   return router;
 }

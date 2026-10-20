@@ -140,6 +140,7 @@
             <form method="post" action="/units/<%= unit.id %>/raid/strike"><%- csrf %><button class="btn btn--primary" type="submit">Strike · <%= raid.energy %> energy</button></form>
           <% } %>
           <p class="muted small"><%= r.mine ? `Your damage: ${r.mine.damage.toLocaleString('en-US')} in ${r.mine.strikes} strike${r.mine.strikes === 1 ? '' : 's'}.` : 'You haven’t struck yet. Every strike counts towards your share.' %> Each strike costs a little health too.</p>
+          <p class="muted small"><svg class="inline-icon" aria-hidden="true"><use href="#i-tank"/></svg><% if (r.vehiclePct) { %>Your vehicle adds <strong>+<%= r.vehiclePct %>%</strong> damage.<% } else { %>Armour from the <a href="/armory/motor-pool#armour">motor pool</a> adds damage to every strike.<% } %></p>
         </div>
         <% if (r.top.length) { %>
           <h3 class="unit-raid__sub">Top strikers <span class="muted small">(<%= r.strikers %> in total)</span></h3>

@@ -1,0 +1,131 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Math.round(n).toLocaleString('en-US'); %>
+
+<main id="main" class="container game-main">
+  <%- include('partials/armory-subnav', { shops, active }) %>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Armory</p>
+      <h1 class="page-head__title"><svg class="page-head__icon" aria-hidden="true"><use href="#i-jeep"/></svg>Motor pool</h1>
+      <p class="page-head__sub">Own as many vehicles as you like, and take one out at a time. Light vehicles help on missions, transports bring back more pay, and armour hits harder on unit raids. Vehicles never change PvP fights.</p>
+    </div>
+  </div>
+
+  <section class="card motor-out reveal" style="--i:1" aria-labelledby="out-title">
+    <h2 id="out-title" class="card__title">Taken out</h2>
+    <% if (assigned) { %>
+      <div class="motor-out__body">
+        <svg class="motor-out__icon" aria-hidden="true"><use href="#<%= assigned.cls.icon %>"/></svg>
+        <div class="motor-out__text">
+          <p class="motor-out__name"><%= assigned.name %> <span class="muted small"><%= assigned.cls.name %></span></p>
+          <p class="motor-out__bonus"><%= assigned.bonusText.length ? assigned.bonusText.join(' · ') : 'No bonus right now' %></p>
+          <span class="inventory__condition">
+            <span class="meter <%= assigned.condition >= 50 ? 'meter--health' : 'meter--energy' %> inventory__meter" role="meter" aria-label="Condition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.floor(assigned.condition) %>"><span class="meter__fill" style="width:<%= Math.max(2, assigned.condition) %>%"></span></span>
+            <span><%= Math.floor(assigned.condition) %>% condition</span>
+          </span>
+        </div>
+        <form method="post" action="/armory/motor-pool/park">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn--ghost btn--sm" type="submit">Leave in the motor pool</button>
+        </form>
+      </div>
+    <% } else { %>
+      <p class="muted"><%= mine.length ? 'Nothing taken out. Pick one of your vehicles below.' : 'You don’t own a vehicle yet. Buy one below; it’s taken out straight away.' %></p>
+    <% } %>
+  </section>
+
+  <% if (mine.length) { %>
+    <section class="reveal" style="--i:2" aria-labelledby="mine-title">
+      <div class="inventory__head">
+        <h2 id="mine-title" class="section-title">Your vehicles</h2>
+        <% if (repairAll) { %>
+          <form method="post" action="/armory/motor-pool/repair/all">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn--ghost btn--sm" type="submit">Repair all · <%= money(repairAll) %></button>
+          </form>
+        <% } %>
+      </div>
+      <p class="muted small inventory__note">Vehicles wear as you use them: on missions and operations, raid strikes and deployments. Below <%= fullPowerAt %>% they start losing their bonus (half at 0%). Only the vehicle you’ve taken out wears.</p>
+      <ul class="inventory__list motor-mine">
+        <% mine.forEach(function (v) { %>
+          <li class="inventory__item<%= v.state === 'assigned' ? ' is-equipped' : '' %><%= v.power < 100 ? ' is-worn' : '' %>" id="veh-<%= v.id %>">
+            <span class="inventory__body">
+              <span class="inventory__name"><%= v.name %></span>
+              <span class="inventory__mods"><%= v.bonusText.join(' · ') %></span>
+              <span class="inventory__condition">
+                <span class="meter <%= v.condition >= 50 ? 'meter--health' : 'meter--energy' %> inventory__meter" role="meter" aria-label="Condition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.floor(v.condition) %>"><span class="meter__fill" style="width:<%= Math.max(2, v.condition) %>%"></span></span>
+                <span><%= v.conditionLabel %> · <%= Math.floor(v.condition) %>%<%= v.power < 100 ? ` · ${v.power}% bonus` : '' %></span>
+              </span>
+            </span>
+            <span class="inventory__actions">
+              <% if (v.state !== 'assigned') { %>
+                <form method="post" action="/armory/motor-pool/assign/<%= v.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn--primary btn--sm" type="submit" aria-label="Take the <%= v.name %> out">Take out</button>
+                </form>
+              <% } %>
+              <% if (v.repairCost) { %>
+                <form method="post" action="/armory/motor-pool/repair/<%= v.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn--ghost btn--sm" type="submit" aria-label="Repair the <%= v.name %> for <%= money(v.repairCost) %>">Repair <%= money(v.repairCost) %></button>
+                </form>
+              <% } %>
+              <form method="post" action="/armory/motor-pool/sell/<%= v.id %>" data-confirm="Sell the <%= v.name %> for <%= money(v.saleValue) %>?">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn--ghost btn--danger btn--sm" type="submit" aria-label="Sell the <%= v.name %> for <%= money(v.saleValue) %>">Sell <%= money(v.saleValue) %></button>
+              </form>
+            </span>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
+
+  <p class="shop-status muted small reveal" style="--i:3">
+    <span>Cash on hand: <strong><%= money(cash) %></strong></span>
+    <span><% classes.forEach(function (c, i) { %><%= i ? ' · ' : '' %><a href="#<%= c.id %>"><%= c.name %></a><% }) %></span>
+  </p>
+
+  <% classes.forEach(function (c, ci) { %>
+    <section class="motor-class reveal" style="--i:<%= ci + 4 %>" id="<%= c.id %>" aria-labelledby="cls-<%= c.id %>">
+      <h2 id="cls-<%= c.id %>" class="section-title motor-class__title"><svg aria-hidden="true"><use href="#<%= c.icon %>"/></svg><%= c.name %></h2>
+      <p class="muted small motor-class__blurb"><%= c.blurb %></p>
+      <ul class="item-grid">
+        <% c.vehicles.forEach(function (v) { %>
+          <li class="card item item--<%= v.state === 'assigned' ? 'equipped' : v.state %>" id="shop-<%= v.id %>">
+            <div class="mission__head">
+              <span class="mission__theatre"><%= c.name %></span>
+              <span class="mission__level">Lv <%= v.minLevel %>+</span>
+            </div>
+            <h3 class="item__name"><%= v.name %></h3>
+            <p class="item__blurb"><%= v.blurb %></p>
+            <ul class="item__mods">
+              <% v.fullText.forEach(function (t) { %><li><%= t %></li><% }) %>
+            </ul>
+            <div class="item__foot">
+              <span class="item__price"><%= v.owned ? 'Owned' : money(v.price) %></span>
+              <% if (v.state === 'assigned') { %>
+                <span class="item__status"><span class="status-dot" aria-hidden="true"></span>Taken out</span>
+              <% } else if (v.state === 'owned') { %>
+                <form method="post" action="/armory/motor-pool/assign/<%= v.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn--ghost btn--sm" type="submit" aria-label="Take the <%= v.name %> out">Take out</button>
+                </form>
+              <% } else if (v.state === 'locked') { %>
+                <span class="item__status item__status--muted"><svg aria-hidden="true"><use href="#i-lock"/></svg>Level <%= v.minLevel %></span>
+              <% } else { %>
+                <form method="post" action="/armory/motor-pool/buy/<%= v.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn--primary btn--sm" type="submit" <%- v.state === 'expensive' ? 'disabled' : '' %>><%= v.state === 'expensive' ? 'Need funds' : 'Buy' %></button>
+                </form>
+              <% } %>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% }) %>
+</main>
+
+<%- include('partials/foot') %>
