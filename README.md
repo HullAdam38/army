@@ -965,6 +965,7 @@ src/
   vehicle-service.js owned vehicles, buying, repairs, selling, wear
   workshop.js        materials, drops, upgrade recipes and salvage
   workshop-service.js materials held, upgrades and salvage
+  service-record.js  the career page and its milestones
   routes/armory.js   armory pages and actions
   pvp.js             attack rules, fight simulation, rewards
   routes/pvp.js      attack + battle reports
@@ -1096,6 +1097,7 @@ The markup is in `views/partials/tabbar.ejs`.
   - **Salvage:** break down gear or a vehicle for materials worth 20% of its price (less when worn) plus half the materials its upgrades took, instead of selling it for cash. Upgrades are lost when an item is sold.
   - Materials can't be traded, sold or given, so they never pass value between accounts. Reserve soldiers find none. The *Master Mechanic* medal counts upgrades (1 / 10 / 40).
   - Upgrades show as a Mk tag in the Armory, the loadout, profiles and the motor pool. Admins see a player's materials and give or take them on the player's admin page (audit-logged). Game settings › Armory has *Workshop material drops* and *Upgrade cost*. Rules: `src/workshop.js`; service: `src/workshop-service.js`.
+- `/profile/:name/record`: the **service record**, linked from every profile. A soldier's career on one page: service (enlisted, days on duty, rank, medals, titles, orders, best streak), missions and operations (won, failed, success rate, operations completed, deployments and hours deployed), combat (PvP wins and losses, longest winning streak attacking or defending, biggest haul linking to its battle report, bounties, seasons and best finish), unit service (wars, war points, raids joined and won, strikes, damage) and the motor pool and workshop. A **milestones** timeline lists new ranks, medals, titles, the first PvP win and first vehicle, newest first. Like the medals, PvP records only count fights that paid XP and weren't reversed, so farming linked accounts builds nothing. Soldiers see an extra private card on their own record: earnings by source, PvP takings, raid loot, casino betting and their training. Code: `src/service-record.js`.
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted

@@ -29,7 +29,7 @@ const workshopRules = require('../workshop');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null, workshopService = null) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null, workshopService = null, record = null) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -328,6 +328,22 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       attackEnergy: pvp.ATTACK_ENERGY,
       backUrl: req.originalUrl,
       target: targetService ? targetService.view(me) : null,
+    });
+  });
+
+  // The service record: a soldier's career on one page (src/service-record.js).
+  router.get('/profile/:username/record', requireAuth, (req, res, next) => {
+    const user = record && players.findByUsername(String(req.params.username));
+    if (!user) return next();
+    const own = user.id === req.player.id;
+    const rank = game.rankFor(user.level);
+    res.render('service-record', {
+      title: `${user.username} · Service record`,
+      nav: own ? 'profile' : null,
+      soldier: { username: user.username, level: user.level, rank: rank.name, grade: rank.grade, isBot: Boolean(user.is_bot), title: titles.nameOf(user.title), nameColor: user.name_color },
+      own,
+      ...record.view(user, { own }),
+      when: (ms) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }),
     });
   });
 

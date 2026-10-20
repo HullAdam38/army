@@ -54,6 +54,7 @@ const { createObjectiveService } = require('./objective-service');
 const { createRaidService } = require('./raid-service');
 const { createVehicleService } = require('./vehicle-service');
 const { createWorkshopService } = require('./workshop-service');
+const { createServiceRecord } = require('./service-record');
 const { createTheatreService } = require('./theatre-service');
 const { createSupportService } = require('./support-service');
 const { createCasinoService } = require('./casino-service');
@@ -340,7 +341,7 @@ function createApp({
   }));
   app.use(authRoutes(players, anti, referralService));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService, createServiceRecord(db)));
   app.use(armoryRoutes(players, vehicleService, workshopService));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService));

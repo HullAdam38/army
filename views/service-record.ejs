@@ -1,0 +1,49 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const cell = (v) => (typeof v === 'number' ? v.toLocaleString('en-US') : v); %>
+
+<main id="main" class="container game-main">
+  <a class="back-link reveal" style="--i:0" href="/profile/<%= encodeURIComponent(soldier.username) %>"><svg aria-hidden="true"><use href="#i-arrow"/></svg><%= own ? 'Your profile' : `${soldier.username}’s profile` %></a>
+  <div class="page-head reveal" style="--i:1">
+    <div>
+      <p class="eyebrow">Service record</p>
+      <h1 class="page-head__title" style="<%= nameStyle(soldier.nameColor) %>"><%= soldier.username %></h1>
+      <p class="page-head__sub"><%= soldier.rank %> (<%= soldier.grade %>) · Level <%= soldier.level %><% if (soldier.title) { %> · “<%= soldier.title %>”<% } %><% if (soldier.isBot) { %> · <span class="tag tag--reserve">Reserve</span><% } %></p>
+    </div>
+  </div>
+
+  <div class="record-grid">
+    <% sections.forEach(function (s, i) { %>
+      <section class="card record-card reveal" style="--i:<%= i + 2 %>" aria-labelledby="rec-<%= s.id %>">
+        <h2 id="rec-<%= s.id %>" class="card__title"><%= s.title %></h2>
+        <dl class="record-list">
+          <% s.rows.forEach(function ([label, value]) { %>
+            <div><dt><%= label %></dt><dd><% if (value && value.href) { %><a href="<%= value.href %>"><%= value.text %></a><% } else { %><%= cell(value) %><% } %></dd></div>
+          <% }) %>
+        </dl>
+      </section>
+    <% }) %>
+    <% if (privateRows) { %>
+      <section class="card record-card record-card--private reveal" style="--i:7" aria-labelledby="rec-private">
+        <h2 id="rec-private" class="card__title"><svg class="inline-icon" aria-hidden="true"><use href="#i-lock"/></svg>Only you can see this</h2>
+        <dl class="record-list">
+          <% privateRows.forEach(function ([label, value]) { %><div><dt><%= label %></dt><dd><%= cell(value) %></dd></div><% }) %>
+        </dl>
+      </section>
+    <% } %>
+  </div>
+
+  <section class="card record-timeline reveal" style="--i:8" aria-labelledby="rec-timeline">
+    <h2 id="rec-timeline" class="card__title">Milestones</h2>
+    <ol class="timeline">
+      <% timeline.forEach(function (t) { %>
+        <li class="timeline__item timeline__item--<%= t.kind %><%= t.tier ? ` timeline__item--${t.tier}` : '' %>">
+          <time datetime="<%= new Date(t.at).toISOString() %>"><%= when(t.at) %></time>
+          <span><%= t.text %></span>
+        </li>
+      <% }) %>
+    </ol>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

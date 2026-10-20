@@ -3884,3 +3884,23 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .ws-short { color: var(--danger); }
 .ws-row__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ws-row__yield { flex: 1 1 12rem; min-width: 0; }
+
+/* ----- Service record (/profile/:name/record) ----- */
+.record-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: 16px; margin-bottom: 16px; }
+.record-list { display: grid; gap: 0; margin: 0; }
+.record-list > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.record-list > div:last-child { border-bottom: 0; }
+.record-list dt { color: var(--text-muted); min-width: 0; }
+.record-list dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; min-width: 0; max-width: 14rem; }
+.record-card--private { border-style: dashed; }
+.timeline { display: grid; gap: 0; margin: 0; padding: 0 0 0 4px; list-style: none; }
+.timeline__item { position: relative; display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 4px 14px; padding: 8px 0 8px 18px; border-left: 2px solid var(--line); }
+.timeline__item::before { content: ''; position: absolute; left: -6px; top: 13px; width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+.timeline__item time { color: var(--text-muted); font-size: 0.9rem; }
+.timeline__item--rank::before { background: var(--xp); }
+.timeline__item--medal::before { background: var(--energy); }
+.timeline__item--gold::before { background: #f2c94c; box-shadow: 0 0 0 3px rgb(242 201 76 / 0.25); }
+.timeline__item--enlisted::before, .timeline__item--pvp::before { background: var(--accent); }
+@media (max-width: 420px) {
+  .timeline__item { grid-template-columns: minmax(0, 1fr); }
+}

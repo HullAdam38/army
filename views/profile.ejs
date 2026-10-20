@@ -42,6 +42,7 @@
         <% if (soldier.unit) { %><li><a class="unit-badge" href="/units/<%= soldier.unit.id %>"><svg aria-hidden="true"><use href="#i-flag"/></svg><span class="unit-tag">[<%= soldier.unit.tag %>]</span> <%= soldier.unit.name %></a> · <%= soldier.unit.role %></li><% } %>
         <% if (season) { %><li><a class="season-badge season-badge--<%= season.division.id %>" href="/seasons"><svg aria-hidden="true"><use href="#i-podium"/></svg>Season <%= season.number %> · <%= season.placed ? `${season.division.name} · #${season.rank}` : 'Placing' %> · <%= season.rating.toLocaleString('en-US') %></a></li><% } %>
         <li>Enlisted <time datetime="<%= soldier.enlistedIso %>"><%= soldier.enlisted %></time></li>
+        <li><a href="/profile/<%= encodeURIComponent(soldier.username) %>/record"><svg class="inline-icon" aria-hidden="true"><use href="#i-star"/></svg>Full service record</a></li>
       </ul>
     </div>
     <% if (attack) { %>
