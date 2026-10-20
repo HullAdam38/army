@@ -261,7 +261,9 @@ function createApp({
   // The site's address for links search engines and link previews keep: SITE_URL
   // if set (e.g. https://generalforces.com), otherwise the address it was reached on.
   app.use((req, res, next) => {
-    res.locals.siteUrl = (process.env.SITE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    // The Host header is the visitor's to set, so only a plain host name is used (it ends up in the sitemap and share links).
+    const host = /^[A-Za-z0-9.-]{1,253}(:\d{1,5})?$/.test(req.get('host') || '') ? req.get('host') : 'localhost';
+    res.locals.siteUrl = (process.env.SITE_URL || `${req.protocol}://${host}`).replace(/\/$/, '');
     res.locals.canonicalPath = req.path;
     next();
   });

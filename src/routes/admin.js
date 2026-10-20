@@ -7,6 +7,7 @@ const game = require('../game');
 const presence = require('../presence');
 const { loadoutOf } = require('../armory');
 const { createRequireAuth } = require('../require-auth');
+const { createFailureTracker } = require('../middleware');
 const bbcode = require('../bbcode');
 const support = require('../support');
 const { ITEMS, ITEMS_BY_ID, SLOTS } = require('../items');
@@ -484,15 +485,22 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
     ...extra,
   });
   router.get('/admin/server', (req, res) => renderServer(req, res));
+  // Guessing the password from a hijacked admin session gets throttled, like changing a password.
+  const serverPasswordFailures = createFailureTracker({ windowMs: 15 * 60 * 1000, max: 5 });
   router.post('/admin/server', async (req, res, next) => {
     try {
       if (!serverSettings) return renderServer(req, res, 404);
       const values = Object.fromEntries(serverSettings.FIELDS.map((f) => [f.key, String(req.body[f.key] ?? '').slice(0, 300)]));
       // Changing server settings needs the admin's password, not just a signed-in session.
       const me = players.findById(req.player.id);
+      const key = String(me.id);
+      const locked = serverPasswordFailures.lockedFor(key);
+      if (locked) return renderServer(req, res, 429, { values, errors: { password: `Too many wrong attempts. Try again in ${locked} min.` } });
       if (!(await bcrypt.compare(String(req.body.password || ''), me.password_hash))) {
+        serverPasswordFailures.fail(key);
         return renderServer(req, res, 422, { values, errors: { password: 'That password isn’t right.' } });
       }
+      serverPasswordFailures.clear(key);
       const out = serverSettings.save(values);
       if (out.errors) return renderServer(req, res, 422, { values, errors: out.errors });
       if (!out.changed.length) {

@@ -22,6 +22,7 @@ function createHealthService(db, players, { push = null, backupStatusFile = defa
     admins: db.prepare('SELECT id FROM users WHERE is_admin = 1 AND banned_at IS NULL'),
     ping: db.prepare('SELECT 1 AS ok'),
   };
+  const MAX_PER_HOUR = 300; // errors stored per hour at most
   let lastAlertAt = 0;
 
   return {
@@ -29,6 +30,8 @@ function createHealthService(db, players, { push = null, backupStatusFile = defa
     record(err, req = null, now = Date.now()) {
       try {
         const where = req ? `${req.method} ${req.originalUrl || req.url}` : 'background job';
+        // A flood of errors (say, someone hammering a broken page) keeps the first few hundred an hour, not all of them.
+        if (stmts.since.get(now - 60 * 60 * 1000).n >= MAX_PER_HOUR) return;
         stmts.insert.run(req ? req.method : null, req ? String(req.originalUrl || req.url).slice(0, 300) : null,
           String((err && err.message) || err).slice(0, 500), String((err && err.stack) || '').slice(0, 4000),
           req && req.session ? req.session.userId || null : null, now);

@@ -13,7 +13,8 @@ const when = (ms) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', 
  */
 function createSupporterService(db, players, { onLapse = () => {} } = {}) {
   const stmts = {
-    user: db.prepare('SELECT id, username, email, supporter_until, supporter_since, supporter_status, supporter_source, supporter_sub_id, supporter_portal FROM users WHERE id = ?'),
+    user: db.prepare('SELECT id, username, email, supporter_until, supporter_since, supporter_status, supporter_source, supporter_sub_id, supporter_portal, supporter_event_at FROM users WHERE id = ?'),
+    eventAt: db.prepare('UPDATE users SET supporter_event_at = ? WHERE id = ?'),
     bySub: db.prepare('SELECT id FROM users WHERE supporter_sub_id = ?'),
     event: db.prepare(`INSERT OR IGNORE INTO payment_events (id, provider, event, user_id, subscription_id, status, amount, currency, created_at)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`),
@@ -58,9 +59,16 @@ function createSupporterService(db, players, { onLapse = () => {} } = {}) {
         if (!change || change.invoiceOnly || !userId) return { ok: true, ignored: !change || !userId };
         const before = stmts.user.get(userId);
         const wasActive = supporter.isActive(before, now);
+        const sameSub = !before.supporter_sub_id || before.supporter_sub_id === change.subscriptionId;
+        // Deliveries can arrive out of order: an older update never undoes a newer one.
+        if (sameSub && change.updatedAt && before.supporter_event_at && change.updatedAt < before.supporter_event_at) return { ok: true, ignored: true, stale: true };
+        // Anyone can buy a membership naming another player's account. A second
+        // subscription may extend a membership, but never shorten or end one.
+        if (!sameSub && wasActive && change.until <= before.supporter_until) return { ok: true, ignored: true, otherSubscription: true };
         // A gift from HQ that runs longer than the paid membership isn't cut short.
         const until = before.supporter_source === 'admin' && before.supporter_until > change.until ? before.supporter_until : change.until;
         stmts.set.run({ id: userId, until, status: change.status, source: 'lemonsqueezy', sub: change.subscriptionId, portal: change.portal || before.supporter_portal, since: now });
+        if (change.updatedAt) stmts.eventAt.run(change.updatedAt, userId);
         const nowActive = until > now;
         if (nowActive && !wasActive) players.notify(userId, 'system', 'Thank you for becoming a Supporter! Your Supporter tag, looks and extra medal pins are on.', '/supporter');
         else if (change.status === 'cancelled' && before.supporter_status !== 'cancelled' && nowActive) players.notify(userId, 'system', `Your Supporter membership is cancelled and ends on ${when(until)}. Thanks for your support.`, '/supporter');

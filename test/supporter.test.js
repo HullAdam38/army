@@ -12,9 +12,9 @@ const SECRET = 'whsec-test';
 const sign = (body, secret = SECRET) => crypto.createHmac('sha256', secret).update(body).digest('hex');
 
 // A Lemon Squeezy subscription webhook body.
-const subEvent = (event, { userId, id = '501', status = 'active', renewsAt = null, endsAt = null, extra = '' } = {}) => JSON.stringify({
+const subEvent = (event, { userId, id = '501', status = 'active', renewsAt = null, endsAt = null, updatedAt = null, extra = '' } = {}) => JSON.stringify({
   meta: { event_name: event, custom_data: userId ? { user_id: String(userId) } : undefined, extra },
-  data: { type: 'subscriptions', id, attributes: { status, renews_at: renewsAt, ends_at: endsAt, user_email: 'x@x.com', urls: { customer_portal: 'https://store.lemonsqueezy.com/billing?x=1' } } },
+  data: { type: 'subscriptions', id, attributes: { status, renews_at: renewsAt, ends_at: endsAt, updated_at: updatedAt, user_email: 'x@x.com', urls: { customer_portal: 'https://store.lemonsqueezy.com/billing?x=1' } } },
 });
 
 test('supporter rules: who is a member, signatures and webhooks', () => {
@@ -160,15 +160,27 @@ test('Supporter membership: checkout, webhooks, perks, lapsing and HQ gifts', as
     assert.match(page, /subscription_payment_success/);
     assert.match(page, /href="\/admin\/players\/\d+#supporter">Ace</);
 
+    // Someone else's subscription naming Ace's account can't end Ace's membership.
+    const untilNow = user(ace.id).supporter_until;
+    assert.equal((await hook(subEvent('subscription_expired', { userId: ace.id, id: '999', status: 'expired' }))).status, 200);
+    assert.equal(user(ace.id).supporter_until, untilNow);
+    assert.equal(user(ace.id).supporter_sub_id, '501');
+    // Deliveries out of order: an older update doesn't undo a newer one.
+    const later = new Date(Date.now() + 40 * DAY).toISOString();
+    await hook(subEvent('subscription_updated', { renewsAt: later, updatedAt: '2026-10-20T12:00:00Z' }));
+    assert.equal(user(ace.id).supporter_until, Date.parse(later) + supporter.GRACE_MS);
+    await hook(subEvent('subscription_updated', { status: 'expired', updatedAt: '2026-10-20T11:00:00Z' }));
+    assert.equal(user(ace.id).supporter_until, Date.parse(later) + supporter.GRACE_MS, 'the stale "expired" is ignored');
+
     // Cancelling keeps the perks to the end of the paid month (found by subscription id, no custom data).
     const ends = new Date(Date.now() + 10 * DAY).toISOString();
-    assert.equal((await hook(subEvent('subscription_cancelled', { status: 'cancelled', endsAt: ends }))).status, 200);
+    assert.equal((await hook(subEvent('subscription_cancelled', { status: 'cancelled', endsAt: ends, updatedAt: '2026-10-20T13:00:00Z' }))).status, 200);
     assert.equal(user(ace.id).supporter_until, Date.parse(ends));
     assert.match(lastNote(ace.id), /cancelled and ends on/);
     assert.match((await ace.request('/supporter')).text, /Cancelled: your perks last until/);
 
     // Expired: perks off at once, and Supporter-only looks come off.
-    assert.equal((await hook(subEvent('subscription_expired', { status: 'expired' }))).status, 200);
+    assert.equal((await hook(subEvent('subscription_expired', { status: 'expired', updatedAt: '2026-10-20T14:00:00Z' }))).status, 200);
     u = user(ace.id);
     assert.equal(supporter.isActive(u), false);
     assert.equal(u.profile_banner, null);
@@ -216,5 +228,29 @@ test('Supporter membership: checkout, webhooks, perks, lapsing and HQ gifts', as
   } finally {
     server.close();
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+});
+
+test('the site address never takes an odd Host header', async () => {
+  const saved = process.env.SITE_URL;
+  delete process.env.SITE_URL;
+  const app = createApp({ db: openDatabase(':memory:'), secret: 'test-secret', tutorial: false });
+  const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
+  const port = server.address().port;
+  const get = (host) => new Promise((resolve, reject) => {
+    require('node:http').get({ host: '127.0.0.1', port, path: '/sitemap.xml', headers: { host } }, (res) => {
+      let body = '';
+      res.on('data', (d) => { body += d; });
+      res.on('end', () => resolve(body));
+    }).on('error', reject);
+  });
+  try {
+    assert.match(await get('play.example.com:8080'), /<loc>http:\/\/play\.example\.com:8080\/<\/loc>/);
+    const evil = await get('x"><evil>');
+    assert.doesNotMatch(evil, /evil/);
+    assert.match(evil, /<loc>http:\/\/localhost\/<\/loc>/);
+  } finally {
+    server.close();
+    if (saved === undefined) delete process.env.SITE_URL; else process.env.SITE_URL = saved;
   }
 });

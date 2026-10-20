@@ -71,7 +71,7 @@ function readWebhook(body, now = Date.now()) {
     else if (status === 'cancelled') until = time(a.ends_at) || now; // paid up to the end of the period
     else until = 0; // expired, unpaid, paused
     return {
-      event, userId, subscriptionId: String(data.id), status, until,
+      event, userId, subscriptionId: String(data.id), status, until, updatedAt: time(a.updated_at),
       portal: a.urls && typeof a.urls.customer_portal === 'string' ? a.urls.customer_portal : null,
       email: a.user_email || null,
     };

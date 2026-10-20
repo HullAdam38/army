@@ -113,6 +113,23 @@ Looked at and fine as it is:
 - **`/healthz`** says only `ok` or `database unavailable`, never versions or internals.
 - **Game pages** carry `noindex` for signed-in players, and `robots.txt` only allows the public pages, so search engines don't crawl the game.
 
+## Review of the launch features (Supporter payments, vehicles, workshop, service record)
+
+Fixed:
+- **Someone else's subscription could end a membership.** Checkout links carry the player's id, so anyone could buy a membership naming another player and then let it expire, which ended that player's paid membership. A second subscription can now only extend a membership, never shorten or end it.
+- **Webhooks delivered out of order** could undo a newer change (an old "expired" after a renewal). Each subscription event's `updated_at` is stored and older ones are ignored.
+- **Admin › Server settings** asks for the admin's password; guesses from a hijacked admin session are now throttled (5 per 15 minutes per admin), like changing a password.
+- **Host header:** without `SITE_URL`, the site address came from the request's Host header and went unescaped into the sitemap and into share links. Only a plain host name is accepted now (anything else reads as `localhost`). Set `SITE_URL` in production anyway (Admin › Server settings).
+- **Server error flood:** a page that fails repeatedly could fill the database with error records. At most 300 an hour are kept.
+
+Checked and fine:
+- Money: every new cash change (vehicles, repairs, sales, workshop fees, Supporter perks) goes through the ledger inside a transaction; selling, salvaging and upgrading check ownership inside it, so double submits can't pay twice. Buying to sell or salvage always loses (40% back in cash, about 20% in materials, no cores).
+- Materials, vehicles and upgrades can't be traded, so they can't move value between linked accounts. Vehicle pay bonuses (with upgrades) are allowed for in anti-cheat's mission pay limits.
+- Recruit-a-friend pays once, never for linked or suspended accounts, and is capped per month. The invite link only sets a session value; it redirects to fixed pages.
+- Unit invitations are tied to the invited player; crests, cosmetics and badge packs are checked against what the player or unit owns on the server; colours and banners come from a fixed list, never from player text.
+- The service record shows money, casino and training totals only to the soldier themselves; PvP records ignore fights that paid nothing or were reversed.
+- New admin actions (Supporter gifts, cosmetics, vehicles, materials) are admin-only, need a reason and are audit-logged.
+
 ## Known limits (fine for launch, worth revisiting)
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.

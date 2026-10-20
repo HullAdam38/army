@@ -143,3 +143,13 @@ test('health check, error page recording, the checklist page and the sign-up lim
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a flood of server errors keeps only the first few hundred an hour', () => {
+  const { createHealthService } = require('../src/health-service');
+  const { createPlayerRepo } = require('../src/players');
+  const db = openDatabase(':memory:');
+  const health = createHealthService(db, createPlayerRepo(db));
+  const now = Date.now();
+  for (let i = 0; i < 400; i += 1) health.record(new Error(`boom ${i}`), null, now);
+  assert.equal(health.countSince(now - 1000), 300);
+});

@@ -903,6 +903,7 @@ const ADDED_COLUMNS = [
   ['users', 'supporter_sub_id', 'TEXT'], // the provider's subscription id
   ['users', 'supporter_portal', 'TEXT'], // link to manage or cancel the subscription
   ['users', 'supporter_lapsed_at', 'INTEGER'], // when Supporter-only looks were taken off after it ended
+  ['users', 'supporter_event_at', 'INTEGER'], // the provider's updated_at of the last subscription event applied
   ['users', 'name_color', 'TEXT'], // cosmetic id of the callsign colour worn (src/cosmetics.js)
   ['users', 'profile_banner', 'TEXT'], // cosmetic id of the profile banner
   ['units', 'crest', 'TEXT'], // cosmetic id of the unit's crest style

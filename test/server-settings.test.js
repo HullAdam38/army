@@ -105,6 +105,15 @@ test('Admin › Server settings: password to save, live terms, audit log', async
     assert.match(r.text, /That password isn’t right/);
     assert.match(r.text, /value="Hull Games"/, 'what they typed is kept');
     assert.ok(!fs.existsSync(file));
+    // Guessing is throttled: five wrong tries lock the form for a while, even with the right password.
+    const deputy = client();
+    await deputy.register('Deputy');
+    db.prepare("UPDATE users SET is_admin = 1 WHERE username = 'Deputy'").run();
+    for (let i = 0; i < 5; i += 1) await deputy.request('/admin/server', { method: 'POST', form: { _csrf: await deputy.csrf('/admin/server'), password: `guess${i}` } });
+    r = await deputy.request('/admin/server', { method: 'POST', form: { _csrf: await deputy.csrf('/admin/server'), LEGAL_OPERATOR: 'Hull Games', password: 'password123' } });
+    assert.equal(r.res.status, 429);
+    assert.match(r.text, /Too many wrong attempts/);
+    assert.ok(!fs.existsSync(file));
 
     // Saved: the terms show it at once, and it's in the audit log.
     r = await boss.request('/admin/server', { method: 'POST', form: { _csrf: await boss.csrf('/admin/server'), LEGAL_OPERATOR: 'Hull Games', LEGAL_CONTACT_EMAIL: 'support@generalforces.com', LEGAL_JURISDICTION: 'England and Wales', SESSION_SECRET: 'ignored', password: 'password123' } });
