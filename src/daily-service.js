@@ -11,7 +11,7 @@ const tuning = require('./tuning');
  * Daily orders and supply drops backed by the database. Claims must be called
  * inside players.transaction(); progress() can be called from any game action.
  */
-function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
+function createDailyService(db, players, { effects = () => NEUTRAL, hasVehicle = () => false } = {}) {
   const stmts = {
     orders: db.prepare('SELECT * FROM daily_orders WHERE user_id = ? AND day = ? ORDER BY slot'),
     insert: db.prepare(`INSERT OR IGNORE INTO daily_orders (user_id, day, slot, type, param, target, reward_xp, reward_cash)
@@ -34,7 +34,7 @@ function createDailyService(db, players, { effects = () => NEUTRAL } = {}) {
     const day = daily.dayKey(now);
     let rows = stmts.orders.all(user.id, day);
     if (!rows.length) {
-      for (const o of daily.generateOrders(user.id, user.level, day)) {
+      for (const o of daily.generateOrders(user.id, user.level, day, { hasVehicle: hasVehicle(user.id) })) {
         stmts.insert.run(user.id, day, o.slot, o.type, o.param, o.target, o.rewardXp, o.rewardCash);
       }
       const weekAgo = daily.dayKey(now - 7 * 86_400_000);

@@ -899,6 +899,7 @@ const ADDED_COLUMNS = [
   ['users', 'profile_banner', 'TEXT'], // cosmetic id of the profile banner
   ['units', 'crest', 'TEXT'], // cosmetic id of the unit's crest style
   ['users', 'vehicle_id', 'TEXT'], // the vehicle the player takes out (src/vehicles.js)
+  ['users', 'vehicle_missions', 'INTEGER NOT NULL DEFAULT 0'], // missions won with a vehicle out (Driver's Badge)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
   ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
   ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players

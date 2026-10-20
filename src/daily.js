@@ -30,7 +30,10 @@ function msUntilReset(now = Date.now()) {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - now;
 }
 
-/** Order types. `make` returns { target, param } for a player's level, or null if it doesn't fit. */
+/**
+ * Order types. `make(level, rand, ctx)` returns { target, param } for a player, or null if it
+ * doesn't fit. `ctx.hasVehicle`: they own a vehicle in the motor pool.
+ */
 const ORDER_TYPES = {
   missions_won: {
     make: (level) => ({ target: Math.min(8, 3 + Math.floor(level / 4)) }),
@@ -60,6 +63,14 @@ const ORDER_TYPES = {
     make: (level) => (level >= 3 ? { target: 1 } : null),
     text: () => 'Scout another player',
   },
+  vehicle_missions: {
+    make: (level, rand, ctx) => (ctx.hasVehicle ? { target: Math.min(6, 2 + Math.floor(level / 8)) } : null),
+    text: (o) => `Complete ${o.target} missions with a vehicle taken out`,
+  },
+  vehicle_deploy: {
+    make: (level, rand, ctx) => (ctx.hasVehicle ? { target: 1 } : null),
+    text: () => 'Come back from a deployment with a vehicle taken out',
+  },
 };
 
 /** Reward for one order at `level`. Finishing all three pays one more as a bonus. */
@@ -78,14 +89,14 @@ function seededRandom(seed) {
   };
 }
 
-/** Today's three orders for a player: distinct types that fit their level. */
-function generateOrders(userId, level, day) {
+/** Today's three orders for a player: distinct types that fit their level (and `ctx`, see ORDER_TYPES). */
+function generateOrders(userId, level, day, ctx = {}) {
   const rand = seededRandom(`${userId}:${day}`);
   const pool = Object.keys(ORDER_TYPES);
   const picked = [];
   while (picked.length < ORDERS_PER_DAY && pool.length) {
     const type = pool.splice(Math.floor(rand() * pool.length), 1)[0];
-    const made = ORDER_TYPES[type].make(level, rand);
+    const made = ORDER_TYPES[type].make(level, rand, ctx);
     if (made) picked.push({ type, param: made.param || null, target: made.target });
   }
   const reward = orderReward(level);

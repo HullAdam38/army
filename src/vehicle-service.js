@@ -13,6 +13,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
 function createVehicleService(db, players) {
   const stmts = {
     owned: db.prepare('SELECT vehicle_id, condition FROM vehicles WHERE user_id = ? ORDER BY acquired_at'),
+    countMission: db.prepare('UPDATE users SET vehicle_missions = vehicle_missions + 1 WHERE id = ?'),
     one: db.prepare('SELECT condition FROM vehicles WHERE user_id = ? AND vehicle_id = ?'),
     assigned: db.prepare(`SELECT u.vehicle_id, u.is_bot, v.condition FROM users u
                           LEFT JOIN vehicles v ON v.user_id = u.id AND v.vehicle_id = u.vehicle_id WHERE u.id = ?`),
@@ -143,16 +144,18 @@ function createVehicleService(db, players) {
 
     /**
      * Wears the assigned vehicle for `times` uses of `event` (a key of
-     * vehicles.WEAR), telling the player when it drops below 50% or 15%.
-     * Reserve soldiers' vehicles don't wear. Returns { before, after } or null.
+     * vehicles.WEAR), telling the player when it drops below 50% or 15%, and
+     * counts missions won with it (for the Driver's Badge). Reserve soldiers'
+     * vehicles don't wear. Returns { vehicle, before, after } if a vehicle was out, else null.
      */
     wear(userId, event, times = 1) {
       const points = (vehicles.WEAR[event] || 0) * times;
-      const a = points ? assigned(userId) : null;
+      const a = assigned(userId);
       if (!a || a.bot) return null;
+      if (event === 'mission') stmts.countMission.run(userId);
       const before = a.condition;
       const after = vehicles.worn(before, points);
-      if (after === before) return null;
+      if (after === before) return { vehicle: a.vehicle, before, after };
       stmts.setCondition.run(after, userId, a.vehicle.id);
       const crossed = [gear.BROKEN_AT, gear.WORN_AT].find((t) => before >= t && after < t);
       if (crossed) {

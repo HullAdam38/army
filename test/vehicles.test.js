@@ -6,6 +6,8 @@ const vehicles = require('../src/vehicles');
 const raids = require('../src/raids');
 const game = require('../src/game');
 const tuning = require('../src/tuning');
+const daily = require('../src/daily');
+const medals = require('../src/medals');
 const { createApp } = require('../src/server');
 const { openDatabase } = require('../src/db');
 
@@ -106,8 +108,8 @@ test('the motor pool: buying, taking out, wear, repairs, selling and admin grant
     assert.match(f.message, /requires level 10/);
     f = await ace.flash('/armory/motor-pool/buy/trail-bike');
     assert.match(f.message, /Trail Bike bought and taken out/);
-    assert.equal(user(ace.id).cash, 20000 - 1200);
-    assert.deepEqual({ ...lastLedger(ace.id) }, { reason: 'vehicle', ref: 'trail-bike', delta_cash: -1200 });
+    assert.equal(user(ace.id).cash, 20000 - 1200 + 250, 'less the bike, plus the Fleet Commander bronze');
+    assert.deepEqual({ ...db.prepare("SELECT reason, ref, delta_cash FROM ledger WHERE user_id = ? AND reason = 'vehicle'").get(ace.id) }, { reason: 'vehicle', ref: 'trail-bike', delta_cash: -1200 });
     assert.equal(user(ace.id).vehicle_id, 'trail-bike');
     f = await ace.flash('/armory/motor-pool/buy/trail-bike');
     assert.match(f.message, /already own/);
@@ -123,6 +125,13 @@ test('the motor pool: buying, taking out, wear, repairs, selling and admin grant
     await ace.post(`/missions/${game.MISSIONS[0].id}`);
     assert.ok([99.85, 99.7].includes(condition(ace.id, 'trail-bike')), 'wears 0.15 points on success, 0.3 on failure');
     assert.equal(condition(ace.id, 'utility-pickup'), 100, 'only the vehicle taken out wears');
+    // A won mission with the bike out counts towards a motor pool daily order.
+    const day = daily.dayKey(Date.now());
+    db.prepare("UPDATE daily_orders SET type = 'vehicle_missions', target = 1, param = NULL WHERE user_id = ? AND day = ? AND slot = 0").run(ace.id, day);
+    const order = () => db.prepare('SELECT progress FROM daily_orders WHERE user_id = ? AND day = ? AND slot = 0').get(ace.id, day).progress;
+    for (let i = 0; i < 8 && !order(); i += 1) await ace.post(`/missions/${game.MISSIONS[0].id}`);
+    assert.equal(order(), 1);
+    assert.match((await ace.request('/hq')).text, /Complete 1 missions with a vehicle taken out/);
 
     // Take the pickup out: more mission pay, more deployment pay.
     f = await ace.flash('/armory/motor-pool/assign/utility-pickup');
@@ -197,5 +206,58 @@ test('the motor pool: buying, taking out, wear, repairs, selling and admin grant
   } finally {
     tuning.reset();
     server.close();
+  }
+});
+
+test('motor pool daily orders and medals', async () => {
+  // Vehicle orders only go to players who own a vehicle.
+  for (let d = 1; d <= 28; d += 1) {
+    const day = `2026-02-${String(d).padStart(2, '0')}`;
+    const types = daily.generateOrders(5, 20, day).map((o) => o.type);
+    assert.ok(!types.includes('vehicle_missions') && !types.includes('vehicle_deploy'), types.join());
+  }
+  const seen = new Set();
+  for (let d = 1; d <= 28; d += 1) for (const o of daily.generateOrders(5, 20, `2026-02-${String(d).padStart(2, '0')}`, { hasVehicle: true })) seen.add(o.type);
+  assert.ok(seen.has('vehicle_missions') && seen.has('vehicle_deploy'));
+  assert.equal(daily.orderText({ type: 'vehicle_missions', target: 4 }), 'Complete 4 missions with a vehicle taken out');
+  assert.equal(daily.ORDER_TYPES.vehicle_missions.make(40, Math.random, { hasVehicle: true }).target, 6);
+  assert.ok(['driver', 'fleet'].every((id) => medals.MEDALS_BY_ID.has(id)));
+
+  const db = openDatabase(':memory:');
+  const app = createApp({ db, secret: 'test-secret', tutorial: false });
+  try {
+    const now = Date.now();
+    const id = Number(db.prepare(`INSERT INTO users (username, email, password_hash, energy_updated_at, health_updated_at, created_at, level, energy, max_energy, cash)
+                                  VALUES ('Ace', 'a@x.com', 'x', ?, ?, ?, 20, 200, 200, 100000)`).run(now, now, now).lastInsertRowid);
+    const notes = () => db.prepare('SELECT message FROM notifications WHERE user_id = ? ORDER BY id').all(id).map((r) => r.message).join('\n');
+
+    // Buying a first vehicle earns the Fleet Commander bronze.
+    assert.ok(app.vehicles.buy(id, 'trail-bike').vehicle);
+    app.medals.check(id);
+    assert.match(notes(), /Fleet Commander/);
+    assert.equal(app.medals.metrics(id).vehicles, 1);
+
+    // Today's orders for this player, with both vehicle orders swapped in to test progress.
+    const day = daily.dayKey(now);
+    app.daily.ordersFor(app.players.findById(id), now);
+    db.prepare("UPDATE daily_orders SET type = 'vehicle_missions', target = 2, param = NULL WHERE user_id = ? AND day = ? AND slot = 0").run(id, day);
+    db.prepare("UPDATE daily_orders SET type = 'vehicle_deploy', target = 1, param = NULL WHERE user_id = ? AND day = ? AND slot = 1").run(id, day);
+    const progress = (slot) => db.prepare('SELECT progress FROM daily_orders WHERE user_id = ? AND day = ? AND slot = ?').get(id, day, slot).progress;
+
+    // Winning with the bike out counts for the order and the Driver's Badge; parked, it doesn't.
+    app.players.transaction(() => app.vehicles.wear(id, 'mission'));
+    assert.equal(app.medals.metrics(id).vehicleMissions, 1);
+    app.vehicles.park(id);
+    assert.equal(app.players.transaction(() => app.vehicles.wear(id, 'mission')), null);
+    assert.equal(app.medals.metrics(id).vehicleMissions, 1);
+
+    // A deployment brought home with a vehicle out completes the deployment order.
+    app.vehicles.assign(id, 'trail-bike');
+    app.deployments.start(id, 'patrol', now - 2 * 3600e3);
+    app.deployments.completeDue(now, id);
+    assert.equal(progress(1), 1);
+    assert.match(notes(), /Daily order complete: Come back from a deployment with a vehicle taken out/);
+  } finally {
+    tuning.reset();
   }
 });

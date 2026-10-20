@@ -150,7 +150,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       players.save(out.player, { reason: 'mission', ref: req.params.id });
       const r = out.result;
       gear.wear(players, fresh.id, r.success ? 'mission' : 'missionFailed');
-      if (vehicleService) vehicleService.wear(fresh.id, r.success ? 'mission' : 'missionFailed');
+      const drove = vehicleService ? vehicleService.wear(fresh.id, r.success ? 'mission' : 'missionFailed') : null;
       players.log(
         fresh.id,
         r.success ? 'success' : 'failure',
@@ -165,6 +165,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       announceLevels(players, fresh.id, r.levelsGained);
       if (r.success) {
         daily.progress(fresh.id, 'missions_won', 1);
+        if (drove) daily.progress(fresh.id, 'vehicle_missions', 1);
         daily.progress(fresh.id, 'mission_specific', 1, { param: req.params.id });
         daily.progress(fresh.id, 'mission_cash', r.cash);
       }
@@ -206,7 +207,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       const out = operationService.run(fresh.id, String(req.params.id), { stats: statsOf(fresh), ...bonusesFor(fresh) });
       if (!out.error) {
         gear.wear(players, fresh.id, out.result.success ? 'mission' : 'missionFailed');
-        if (vehicleService) vehicleService.wear(fresh.id, out.result.success ? 'mission' : 'missionFailed');
+        if (vehicleService) out.drove = Boolean(vehicleService.wear(fresh.id, out.result.success ? 'mission' : 'missionFailed'));
       }
       return out;
     });
@@ -216,6 +217,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       const { op, stage, result: r, completed, bonus } = outcome;
       res.locals.gains = { xp: r.xp + (bonus ? bonus.xp : 0), cash: r.cash + (bonus ? bonus.cash : 0) }; // for anti-cheat
       if (r.success) daily.progress(req.player.id, 'missions_won', 1);
+      if (r.success && outcome.drove) daily.progress(req.player.id, 'vehicle_missions', 1);
       req.flash(r.success ? 'success' : 'error', r.success
         ? `${op.name} · ${stage.name}: done. +${r.xp} XP, +$${r.cash.toLocaleString('en-US')}.`
         : `${op.name} · ${stage.name}: failed. You took ${r.damage} damage but earned ${r.xp} XP. Try the stage again.`);

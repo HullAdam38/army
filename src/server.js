@@ -164,7 +164,8 @@ function createApp({
   });
   eventService.schedule();
   const effects = (now) => eventService.effects(now);
-  const daily = createDailyService(db, players, { effects });
+  const daily = createDailyService(db, players, { effects, hasVehicle: (userId) => vehicleService.owned(userId).size > 0 });
+  app.daily = daily; // exposed for tests
   const unitRepo = createUnitRepo(db, { rankCacheMs: 60 * 1000 });
   // Weekly unit objectives count the same actions as daily orders, plus deployments and donations.
   const objectiveService = createObjectiveService(db, players, unitRepo);
@@ -203,6 +204,7 @@ function createApp({
   const deploymentService = createDeploymentService(db, players, { effects, vehicles: vehicleService, onReturn: (userId, now) => {
     objectiveService.track(userId, 'deployments', 1, now);
     theatreService.track(userId, 'deployments', 1, now);
+    if (vehicleService.assigned(userId)) daily.progress(userId, 'vehicle_deploy', 1, { now }); // a motor pool daily order
   } });
   deploymentService.schedule();
   app.deployments = deploymentService; // exposed for tests

@@ -2230,7 +2230,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .medal-score__value small { font-size: 0.45em; color: var(--text-faint); }
 .medal-score__label { font-family: var(--font-ui); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
 
-.medal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; padding: 0; list-style: none; }
+.medal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; padding: 0; list-style: none; }
 .medal-card { display: grid; gap: 14px; align-content: start; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--line-strong); border-radius: var(--radius); }
 .medal-card--bronze { border-top-color: #a8642b; }
 .medal-card--silver { border-top-color: #a9b2b9; }
@@ -2241,7 +2241,7 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .medal-card .progress-line { margin-top: 0; }
 .medal-card__pin { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer; }
 .medal-card__pin input { width: 18px; height: 18px; accent-color: var(--accent); }
-.medal-tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0; list-style: none; }
+.medal-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0; list-style: none; }
 .medal-tiers__tier { display: grid; gap: 1px; padding: 6px 8px; text-align: center; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); opacity: 0.6; }
 .medal-tiers__tier.is-earned { opacity: 1; }
 .medal-tiers__tier--bronze.is-earned { border-color: #a8642b; }
@@ -2253,10 +2253,11 @@ h1, h2, h3 { font-family: var(--font-ui); line-height: 1.15; font-weight: 700; l
 .medal-tiers__tier--gold.is-earned .medal-tiers__label { color: #f2c230; }
 .medal-tiers__need { font-family: var(--font-ui); font-weight: 700; font-variant-numeric: tabular-nums; }
 .medal-tiers__rare { font-size: 0.7rem; color: var(--text-faint); }
+.medal-tiers__need { overflow-wrap: anywhere; }
 .medal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 24px; }
 
 @media (max-width: 640px) {
-  .medal-grid { grid-template-columns: 1fr; }
+  .medal-grid { grid-template-columns: minmax(0, 1fr); }
   .medal-score { justify-items: start; }
 }
 .medal-card .progress-line__label > span:first-child { white-space: nowrap; }

@@ -569,7 +569,7 @@ Rules live in `src/events.js`; scheduling, live effects and announcements are in
 
 ## Daily orders and supply drops
 
-- **Daily orders:** three orders each UTC day, picked to fit your level. They might be "Complete 4 missions", "Complete Convoy Escort twice", "Earn $580 from missions", "Win a PvP fight", "Train 3 sessions" or "Scout another player". PvP and scouting orders only appear from level 3.
+- **Daily orders:** three orders each UTC day, picked to fit your level. They might be "Complete 4 missions", "Complete Convoy Escort twice", "Earn $580 from missions", "Win a PvP fight", "Train 3 sessions" or "Scout another player". PvP and scouting orders only appear from level 3. Players who own a vehicle can also get motor pool orders: "Complete 2–6 missions with a vehicle taken out" (operation stages count) or "Come back from a deployment with a vehicle taken out".
   - Progress tracks automatically. You get a notification when an order is complete, then claim it at HQ.
   - Each order pays `15 + 8 × level` XP and `$40 + $35 × level`. Claiming all three earns a **Commendation** worth one more order.
   - Unclaimed rewards expire at 00:00 UTC.
@@ -720,7 +720,7 @@ The parts are in `src/avatars.js`, the picture checks in `src/images.js`, and st
 
 ## Medals
 
-Seventeen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Nineteen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -741,11 +741,13 @@ Seventeen medals, each with **Bronze, Silver and Gold** tiers. Each tier pays on
 | High Roller | dollars bet at the casino (any game, win or lose) | $100,000 / $2.5M / $50M |
 | Big Winner | casino wins of 20× the bet or more | 1 / 10 / 50 |
 | Card Sharp | blackjacks dealt at the casino | 5 / 50 / 250 |
+| Driver’s Badge | missions and operation stages won with a vehicle taken out | 25 / 150 / 600 |
+| Fleet Commander | vehicles in your motor pool at the same time | 1 / 5 / 12 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
 - **Casino medals** use career totals kept on the player (`casino_wagered`, `casino_big_wins`, `casino_blackjacks`), since plays are only kept 30 days. Every game has a house edge, so betting to earn High Roller always costs more than it pays.
 - **Farming protection:** PvP medals only count fights that paid XP and weren't reversed by an admin, so wins against linked alt accounts earn nothing.
-- **Where they show:** `/medals` is your medal case, with progress to the next tier and the share of players holding each tier. Pin up to 3 medals to feature them at the top of your profile. Profiles show every medal a soldier holds.
+- **Where they show:** `/medals` is your medal case, with progress to the next tier and the share of players holding each tier. Pin up to 3 medals (6 for Supporters) to feature them at the top of your profile. Profiles show every medal a soldier holds.
 
 Rules live in `src/medals.js`; awarding and storage are in `src/medal-service.js`.
 
