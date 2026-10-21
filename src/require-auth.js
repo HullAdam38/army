@@ -41,6 +41,7 @@ function createRequireAuth(players) {
       user.last_seen_at = now;
     }
     players.markActive(user.id, now);
+    if (!req.path.endsWith('/poll')) players.trackPlay(user, now); // time played (admins only); background polls don't count
     req.player = user;
     res.locals.player = game.playerView(user);
     res.locals.isAdmin = Boolean(user.is_admin);

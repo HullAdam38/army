@@ -24,6 +24,8 @@
     <div><dt>Active 7 days</dt><dd><%= k.wau.toLocaleString('en-US') %></dd></div>
     <div><dt>Active 30 days</dt><dd><%= k.mau.toLocaleString('en-US') %></dd></div>
     <div title="Active today as a share of active this month. 20%+ is healthy for a browser game."><dt>Daily / monthly</dt><dd><%= k.stickiness %>%</dd></div>
+    <div title="Total time played so far, averaged over players active in the last 30 days"><dt>Time played each</dt><dd><%= duration(k.play.perPlayer) %></dd></div>
+    <div title="How long a visit lasts on average (a break of over 10 minutes ends it)"><dt>Average session</dt><dd><%= duration(k.play.perSession) %></dd></div>
   </dl>
 
   <div class="stats-grid">

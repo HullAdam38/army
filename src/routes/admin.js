@@ -40,6 +40,9 @@ const REASON_LABELS = {
 };
 const DEFAULT_WARNING = 'HQ has noticed activity on your account that may break the rules of engagement (one account per player, no farming other players). Further activity may lead to suspension.';
 
+/** A date and time for admin pages, in UTC so every admin reads the same thing: "21 Oct 2026, 14:05 UTC". */
+const utc = (ms) => (ms ? `${new Date(ms).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC` : '—');
+
 function adminRoutes(players, adminRepo, anti, messages, seasonService, chatService, avatarService, push = null, unitRepo = null, raidService = null, theatreService = null, supportService = null, { health = null, reserve = null, legal = null, production = false, serverSettings = null, onServerSettings = null, cosmetics = null, supporters = null, vehicles = null, workshop = null } = {}) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
@@ -87,13 +90,14 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
     const now = Date.now();
     const q = String(req.query.q || '').trim().slice(0, 254);
     const page = Math.max(1, Math.floor(Number(req.query.page)) || 1);
-    const { rows, total } = adminRepo.searchUsers(q, PAGE_SIZE, (page - 1) * PAGE_SIZE);
+    const sort = ['newest', 'oldest', 'played', 'active'].includes(req.query.sort) ? req.query.sort : 'newest';
+    const { rows, total } = adminRepo.searchUsers(q, PAGE_SIZE, (page - 1) * PAGE_SIZE, sort);
     res.render('admin/players', {
       title: 'Admin · Players',
       nav: 'admin',
-      q, page, total,
+      q, page, total, sort,
       pages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
-      rows: rows.map((u) => ({ ...u, seen: presence.timeAgo(u.last_seen_at, now) })),
+      rows: rows.map((u) => ({ ...u, seen: presence.timeAgo(u.last_seen_at, now), signedUp: utc(u.created_at), played: presence.duration(u.play_ms) })),
     });
   });
 
@@ -112,7 +116,8 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
       maxLevel: admin.MAX_LEVEL,
       bioHtml: bbcode.render(t.bio || ''),
       isSelf: t.id === req.player.id,
-      fmt: (ms) => (ms ? new Date(ms).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '—'),
+      fmt: utc,
+      duration: presence.duration,
       ago: (ms) => presence.timeAgo(ms, now),
       history: adminRepo.actionsFor(t.id).map((a) => ({ ...a, ago: presence.timeAgo(a.created_at, now) })),
       links: anti.linkedAccounts(t.id, now).map((l) => ({ ...l, ago: presence.timeAgo(l.last_at, now) })),
@@ -547,7 +552,7 @@ function adminRoutes(players, adminRepo, anti, messages, seasonService, chatServ
   });
   router.get('/admin/stats', (req, res) => {
     const range = req.query.range === 'all' ? 'all' : 'month';
-    res.render('admin/stats', { title: 'Admin · Player stats', nav: 'admin', s: stats.overview(Date.now(), { range }), RETENTION: stats.RETENTION });
+    res.render('admin/stats', { title: 'Admin · Player stats', nav: 'admin', s: stats.overview(Date.now(), { range }), RETENTION: stats.RETENTION, duration: presence.duration });
   });
 
   // ----- Units -----

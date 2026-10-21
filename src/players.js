@@ -2,6 +2,7 @@
 
 const { newPlayerDefaults } = require('./game');
 const tuning = require('./tuning');
+const presence = require('./presence');
 
 const MUTABLE_FIELDS = [
   'level', 'xp', 'cash', 'energy', 'max_energy', 'health', 'max_health',
@@ -35,6 +36,7 @@ function createPlayerRepo(db) {
     save: db.prepare(`UPDATE users SET ${MUTABLE_FIELDS.map((f) => `${f} = @${f}`).join(', ')} WHERE id = @id`),
     touchLogin: db.prepare('UPDATE users SET last_login_at = ?1, last_seen_at = ?1 WHERE id = ?2'),
     touchSeen: db.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?'),
+    play: db.prepare('UPDATE users SET play_ms = play_ms + @add, play_sessions = play_sessions + @session, last_active_at = @now WHERE id = @id'),
     activeDay: db.prepare('INSERT OR IGNORE INTO player_days (user_id, day) VALUES (?, ?)'),
     appSeen: db.prepare('UPDATE users SET app_seen_at = ? WHERE id = ?'),
     signOut: db.prepare('UPDATE users SET signed_out_at = ? WHERE id = ?'),
@@ -200,6 +202,13 @@ function createPlayerRepo(db) {
     findByUsername: (username) => stmts.byUsername.get(username),
     touchLogin: (id) => stmts.touchLogin.run(Date.now(), id),
     touchSeen: (id, now = Date.now()) => stmts.touchSeen.run(now, id),
+    /** Adds to a player's time played (see presence.playTick). */
+    trackPlay(user, now = Date.now()) {
+      const tick = presence.playTick(user.last_active_at, now);
+      if (!tick) return;
+      stmts.play.run({ id: user.id, add: tick.addMs, session: tick.newSession ? 1 : 0, now });
+      user.last_active_at = now;
+    },
     /** Records that a player was active today (UTC), for player stats. */
     markActive(id, now = Date.now()) {
       const day = new Date(now).toISOString().slice(0, 10);

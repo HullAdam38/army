@@ -949,6 +949,9 @@ const ADDED_COLUMNS = [
   ['users', 'upgrades_made', 'INTEGER NOT NULL DEFAULT 0'], // workshop upgrades, for the Master Mechanic medal
   ['users', 'contracts_done', 'INTEGER NOT NULL DEFAULT 0'], // contracts completed as a mercenary (src/contracts.js)
   ['users', 'contracts_failed', 'INTEGER NOT NULL DEFAULT 0'], // …and failed (ran out of time or abandoned)
+  ['users', 'play_ms', 'INTEGER NOT NULL DEFAULT 0'], // time played, for admins (src/presence.js playTick)
+  ['users', 'play_sessions', 'INTEGER NOT NULL DEFAULT 0'],
+  ['users', 'last_active_at', 'INTEGER'], // last page view or action (polls don't count)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
   ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
   ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players

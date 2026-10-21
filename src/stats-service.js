@@ -27,6 +27,8 @@ function createStatsService(db) {
     active: db.prepare('SELECT day, COUNT(*) AS n FROM player_days WHERE day >= ? GROUP BY day'),
     activeSince: db.prepare('SELECT COUNT(DISTINCT user_id) AS n FROM player_days WHERE day >= ?'),
     players: db.prepare('SELECT COUNT(*) AS n FROM users WHERE banned_at IS NULL AND is_bot = 0'),
+    // Time played by players active in the window (see presence.playTick).
+    play: db.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(play_ms), 0) AS ms, COALESCE(SUM(play_sessions), 0) AS sessions FROM users WHERE is_bot = 0 AND last_active_at >= ?'),
     joinedSince: db.prepare('SELECT COUNT(*) AS n FROM users WHERE created_at >= ? AND is_bot = 0'),
     cohort: db.prepare('SELECT id, created_at FROM users WHERE created_at >= ? AND created_at < ? AND is_bot = 0'),
     returned: db.prepare('SELECT COUNT(DISTINCT p.user_id) AS n FROM player_days p JOIN users u ON u.id = p.user_id WHERE u.created_at >= ?1 AND u.created_at < ?2 AND julianday(p.day) - julianday(strftime(\'%Y-%m-%d\', u.created_at / 1000, \'unixepoch\')) BETWEEN ?3 AND ?4'),
@@ -152,6 +154,10 @@ function createStatsService(db) {
           newWeek: stmts.joinedSince.get(now - 7 * DAY).n,
           dau, wau, mau,
           stickiness: mau ? Math.round((dau / mau) * 100) : 0,
+          play: (() => {
+            const p = stmts.play.get(now - 30 * DAY);
+            return { perPlayer: p.n ? p.ms / p.n : 0, perSession: p.sessions ? p.ms / p.sessions : 0 };
+          })(),
         },
         daily: daily(now),
         cohorts: cohorts(now),

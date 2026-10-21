@@ -3929,3 +3929,4 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .contract-kinds legend { margin-bottom: 6px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
 .contract-kinds .contract-kind { margin: 0; font-family: inherit; font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--text); cursor: pointer; }
 .contract-kinds .contract-kind input { width: 22px; height: 22px; min-height: 0; padding: 0; border-radius: 50%; }
+.directory td[data-label="Played"] { white-space: nowrap; }

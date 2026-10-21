@@ -67,7 +67,8 @@ Admins see an **Admin** link in the menu. `/admin` is a 404 for everyone else. F
 
 - see game stats: players, new today, online, battles, hospital, suspended, money in circulation
 - broadcast an announcement to every player
-- search players by callsign or email
+- search players by callsign or email, and sort them by newest or oldest sign-up, most time played or most recently active. Each player shows when they **signed up** (date and time, UTC) and **how long they've played**
+- **time played:** the time between a player's page views and actions. Background polls from an open tab don't count, and a break of over 10 minutes ends a session. A player's admin page shows the total, how many sessions it took and the average session; Player stats shows the average per active player and per session. Tracking started on 21 October 2026, so earlier play isn't counted (`src/presence.js` › `playTick`)
 - adjust cash, set level, restore energy and health, or release from hospital
 - **edit a player:** change their callsign (they're told why) or email, adjust their bank balance, grant XP (levels up as if earned), set trained stats (Endurance also changes max health), give or take gear (taken gear is unequipped first), remove them from their unit (not its Commander), clear their title, clear their notifications (the page shows how many they have), or sign them out on every device. Another admin's callsign and email can only be changed on the server. Every change needs a reason and goes in the audit log; money changes go through the ledger as `admin-cash` / `admin-bank`.
 - **Units** (`/admin/units`): search every unit, see members, treasury, upgrades and war record, and add to or take from a treasury (noted in the unit's log). Rename or disband from the unit's own page.

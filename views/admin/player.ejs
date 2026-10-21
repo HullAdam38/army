@@ -30,9 +30,10 @@
     <div><dt>Health</dt><dd><%= t.health %> / <%= t.max_health %><%= view.hospitalized ? ' · hospital' : '' %></dd></div>
     <div><dt>Missions W–L</dt><dd><%= t.missions_completed %>–<%= t.missions_failed %></dd></div>
     <div><dt>PvP W–L</dt><dd><%= t.pvp_wins %>–<%= t.pvp_losses %></dd></div>
-    <div><dt>Enlisted</dt><dd class="small"><%= fmt(t.created_at) %></dd></div>
+    <div><dt>Signed up</dt><dd class="small"><%= fmt(t.created_at) %> <span class="muted">(<%= ago(t.created_at) %>)</span></dd></div>
+    <div title="Time between their page views and actions; a break of over 10 minutes ends a session. Background polls from an open tab don't count."><dt>Time played</dt><dd class="small"><%= duration(t.play_ms) %><% if (t.play_sessions) { %> <span class="muted">· <%= t.play_sessions %> session<%= t.play_sessions === 1 ? '' : 's' %>, about <%= duration(t.play_ms / t.play_sessions) %> each</span><% } %></dd></div>
     <div><dt>Last sign-in</dt><dd class="small"><%= fmt(t.last_login_at) %></dd></div>
-    <div><dt>Last seen</dt><dd class="small"><%= ago(t.last_seen_at) %></dd></div>
+    <div><dt>Last active</dt><dd class="small"><%= t.last_active_at ? `${fmt(t.last_active_at)} (${ago(t.last_active_at)})` : ago(t.last_seen_at) %></dd></div>
   </dl>
 
   <div class="admin-grid">

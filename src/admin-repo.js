@@ -14,11 +14,12 @@ function createAdminRepo(db) {
         COALESCE(SUM(bank_balance), 0) AS banked
       FROM users`),
     battlesToday: db.prepare('SELECT COUNT(*) AS n FROM battles WHERE created_at >= ?'),
-    search: db.prepare(`
-      SELECT id, username, email, level, cash, bank_balance, created_at, last_seen_at, banned_at, is_admin, is_bot
+    // One statement per sort order (column names can't be parameters).
+    search: Object.fromEntries(Object.entries({ newest: 'id DESC', oldest: 'id ASC', played: 'play_ms DESC, id DESC', active: 'last_active_at IS NULL, last_active_at DESC' }).map(([key, order]) => [key, db.prepare(`
+      SELECT id, username, email, level, cash, bank_balance, created_at, last_seen_at, last_active_at, play_ms, play_sessions, banned_at, is_admin, is_bot
       FROM users
       WHERE (?1 = '' OR username LIKE ?2 ESCAPE '\\' OR email LIKE ?2 ESCAPE '\\')
-      ORDER BY id DESC LIMIT ?3 OFFSET ?4`),
+      ORDER BY ${order} LIMIT ?3 OFFSET ?4`)])),
     searchCount: db.prepare(`
       SELECT COUNT(*) AS n FROM users
       WHERE (?1 = '' OR username LIKE ?2 ESCAPE '\\' OR email LIKE ?2 ESCAPE '\\')`),
@@ -99,9 +100,10 @@ function createAdminRepo(db) {
       const s = stmts.stats.get(dayStart, onlineSince, now);
       return { ...s, battlesToday: stmts.battlesToday.get(dayStart).n };
     },
-    searchUsers(q = '', limit = 25, offset = 0) {
+    /** `sort`: newest, oldest, played (most time played) or active (most recently active). */
+    searchUsers(q = '', limit = 25, offset = 0, sort = 'newest') {
       return {
-        rows: stmts.search.all(q, like(q), limit, offset),
+        rows: (stmts.search[sort] || stmts.search.newest).all(q, like(q), limit, offset),
         total: stmts.searchCount.get(q, like(q)).n,
       };
     },

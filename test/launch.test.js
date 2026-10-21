@@ -153,3 +153,52 @@ test('a flood of server errors keeps only the first few hundred an hour', () => 
   for (let i = 0; i < 400; i += 1) health.record(new Error(`boom ${i}`), null, now);
   assert.equal(health.countSince(now - 1000), 300);
 });
+
+test('time played: page views and actions count, long breaks and background polls don’t', async () => {
+  const presence = require('../src/presence');
+  assert.deepEqual(presence.playTick(null, 1000), { addMs: 0, newSession: true });
+  assert.equal(presence.playTick(1000, 1000 + 10_000), null, 'not worth a write yet');
+  assert.deepEqual(presence.playTick(1000, 1000 + 120_000), { addMs: 120_000, newSession: false });
+  assert.deepEqual(presence.playTick(1000, 1000 + 11 * 60_000), { addMs: 0, newSession: true }, 'a long break starts a new session');
+  assert.equal(presence.duration(0), '—');
+  assert.equal(presence.duration(30_000), 'under a minute');
+  assert.equal(presence.duration(3 * 3600e3 + 12 * 60e3), '3h 12m');
+  assert.equal(presence.duration(50 * 3600e3), '2d 2h');
+
+  const { createApp } = require('../src/server');
+  const db = openDatabase(':memory:');
+  const app = createApp({ db, secret: 'test-secret', tutorial: false });
+  const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const jar = new Map();
+  const request = async (p, { method = 'GET', form } = {}) => {
+    const res = await fetch(base + p, { method, redirect: 'manual', headers: { ...(jar.size ? { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; ') } : {}), ...(form ? { 'content-type': 'application/x-www-form-urlencoded' } : {}) }, body: form ? new URLSearchParams(form) : undefined });
+    for (const ck of res.headers.getSetCookie()) { const [pair] = ck.split(';'); const i = pair.indexOf('='); jar.set(pair.slice(0, i), pair.slice(i + 1)); }
+    return { res, text: await res.text() };
+  };
+  try {
+    const csrf = (await request('/login')).text.match(/name="_csrf" value="([^"]+)"/)[1];
+    await request('/register', { method: 'POST', form: { _csrf: csrf, username: 'Boss', email: 'b@x.com', password: 'password123', confirm: 'password123', adult: 'on', terms: 'on' } });
+    const id = db.prepare("SELECT id FROM users WHERE username = 'Boss'").get().id;
+    db.prepare('UPDATE users SET is_admin = 1 WHERE id = ?').run(id);
+    await request('/hq');
+    const row = () => db.prepare('SELECT play_ms, play_sessions, last_active_at FROM users WHERE id = ?').get(id);
+    assert.equal(row().play_sessions, 1);
+    // Five minutes ago they loaded a page; a poll now doesn't count, a page view does.
+    db.prepare('UPDATE users SET last_active_at = ? WHERE id = ?').run(Date.now() - 5 * 60e3, id);
+    await request('/notifications/poll');
+    assert.equal(row().play_ms, 0);
+    await request('/hq');
+    assert.ok(Math.abs(row().play_ms - 5 * 60e3) < 5000);
+    // Admins see it, with the sign-up date and time.
+    const page = (await request(`/admin/players/${id}`)).text;
+    assert.match(page, /<dt>Signed up<\/dt><dd class="small">\d{1,2} \w{3} \d{4}, \d{2}:\d{2} UTC/);
+    assert.match(page, /<dt>Time played<\/dt><dd class="small">5m/);
+    const list = (await request('/admin/players?sort=played')).text;
+    assert.match(list, /<option value="played" selected>/);
+    assert.match(list, /data-label="Played"[^>]*>5m</);
+    assert.match((await request('/admin/stats')).text, /Time played each/);
+  } finally {
+    server.close();
+  }
+});

@@ -7,18 +7,22 @@
   <div class="page-head">
     <div>
       <h1 class="page-head__title">Players</h1>
-      <p class="page-head__sub"><%= total %> <%= total === 1 ? 'account' : 'accounts' %><%= q ? ` matching “${q}”` : '' %>, newest first. Search covers callsigns and emails.</p>
+      <p class="page-head__sub"><%= total %> <%= total === 1 ? 'account' : 'accounts' %><%= q ? ` matching “${q}”` : '' %>. Search covers callsigns and emails. Times are UTC; time played counts page views and actions, with breaks of over 10 minutes left out.</p>
     </div>
   </div>
   <form class="directory-search admin-search" method="get" action="/admin/players" role="search">
     <label class="visually-hidden" for="q">Callsign or email</label>
     <input id="q" name="q" type="search" value="<%= q %>" placeholder="Callsign or email…" autocomplete="off">
+    <label class="visually-hidden" for="sort">Sort by</label>
+    <select id="sort" name="sort">
+      <% [['newest', 'Newest sign-ups'], ['oldest', 'Oldest sign-ups'], ['played', 'Most time played'], ['active', 'Recently active']].forEach(function ([v, l]) { %><option value="<%= v %>" <%- sort === v ? 'selected' : '' %>><%= l %></option><% }) %>
+    </select>
     <button class="btn btn--ghost btn--sm" type="submit">Search</button>
   </form>
 
   <table class="directory">
     <thead>
-      <tr><th scope="col">Player</th><th scope="col">Email</th><th scope="col" class="num">Level</th><th scope="col" class="num">Cash</th><th scope="col" class="num">Bank</th><th scope="col">Last seen</th></tr>
+      <tr><th scope="col">Player</th><th scope="col">Email</th><th scope="col" class="num">Level</th><th scope="col" class="num">Cash</th><th scope="col" class="num">Bank</th><th scope="col">Signed up</th><th scope="col" class="num">Played</th><th scope="col">Last seen</th></tr>
     </thead>
     <tbody>
       <% rows.forEach(function (u) { %>
@@ -28,6 +32,8 @@
           <td class="num" data-label="Level"><%= u.level %></td>
           <td class="num" data-label="Cash"><%= money(u.cash) %></td>
           <td class="num" data-label="Bank"><%= money(u.bank_balance) %></td>
+          <td data-label="Signed up" class="small"><%= u.signedUp %></td>
+          <td class="num" data-label="Played" title="<%= u.play_sessions %> session<%= u.play_sessions === 1 ? '' : 's' %>"><%= u.played %></td>
           <td data-label="Last seen"><%= u.seen %></td>
         </tr>
       <% }) %>
@@ -36,7 +42,7 @@
 
   <% if (pages > 1) { %>
     <nav class="pager" aria-label="Pages">
-      <% const link = (p) => `/admin/players?${new URLSearchParams({ ...(q && { q }), page: String(p) })}`; %>
+      <% const link = (p) => `/admin/players?${new URLSearchParams({ ...(q && { q }), ...(sort !== 'newest' && { sort }), page: String(p) })}`; %>
       <% if (page > 1) { %><a class="btn btn--ghost btn--sm" href="<%= link(page - 1) %>" rel="prev">Previous</a><% } else { %><span></span><% } %>
       <span class="pager__info">Page <%= page %> of <%= pages %></span>
       <% if (page < pages) { %><a class="btn btn--ghost btn--sm" href="<%= link(page + 1) %>" rel="next">Next</a><% } else { %><span></span><% } %>
