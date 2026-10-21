@@ -1,6 +1,7 @@
 'use strict';
 
 const tutorial = require('./tutorial');
+const guide = require('./field-guide');
 const game = require('./game');
 const { announceLevels } = require('./notify');
 
@@ -15,11 +16,22 @@ function createTutorialService(db, players, { enabled = true } = {}) {
              (SELECT COUNT(*) FROM equipment e WHERE e.user_id = u.id) AS equipped,
              (SELECT COUNT(*) FROM bank_transactions t WHERE t.user_id = u.id AND t.type = 'deposit') AS deposits,
              (SELECT COUNT(*) FROM unit_applications a WHERE a.user_id = u.id) AS applications,
+             (SELECT COUNT(*) FROM vehicles v WHERE v.user_id = u.id) AS vehicles,
              (SELECT COUNT(*) FROM battles b WHERE b.attacker_id = u.id AND b.attacker_won = 1 AND b.attacker_xp > 0 AND b.reversed_at IS NULL) AS pvpWins
       FROM users u WHERE u.id = ?`),
     done: db.prepare('SELECT step FROM tutorial_progress WHERE user_id = ?'),
     mark: db.prepare('INSERT OR IGNORE INTO tutorial_progress (user_id, step, done_at) VALUES (?, ?, ?)'),
     dismiss: db.prepare('UPDATE users SET tutorial_dismissed = ? WHERE id = ?'),
+    // What the field guide needs to know: which later features they've tried.
+    guide: db.prepare(`
+      SELECT u.level, u.guide_hidden, u.upgrades_made AS upgrades,
+             EXISTS (SELECT 1 FROM deployments d WHERE d.user_id = u.id) AS deployments,
+             EXISTS (SELECT 1 FROM vehicles v WHERE v.user_id = u.id) AS vehicles,
+             EXISTS (SELECT 1 FROM market_listings l WHERE l.seller_id = u.id) OR EXISTS (SELECT 1 FROM market_listings l WHERE l.buyer_id = u.id) AS trades,
+             EXISTS (SELECT 1 FROM contracts c WHERE c.client_id = u.id) OR EXISTS (SELECT 1 FROM contracts c WHERE c.merc_id = u.id) AS contracts,
+             EXISTS (SELECT 1 FROM special_runs r WHERE r.user_id = u.id) AS specials
+      FROM users u WHERE u.id = ?`),
+    hideTip: db.prepare('UPDATE users SET guide_hidden = ? WHERE id = ?'),
   };
 
   const doneSet = (userId) => new Set(stmts.done.all(userId).map((r) => r.step));
@@ -65,6 +77,21 @@ function createTutorialService(db, players, { enabled = true } = {}) {
     },
 
     setDismissed: (userId, dismissed) => stmts.dismiss.run(dismissed ? 1 : 0, userId),
+
+    /** The field guide tip for HQ (src/field-guide.js), or null. */
+    guideTip(userId) {
+      const s = stmts.guide.get(userId);
+      return s ? guide.nextTip(s.level, s, guide.parseHidden(s.guide_hidden)) : null;
+    },
+    /** Hides one field guide tip for good. */
+    hideTip(userId, tipId) {
+      if (!guide.IDS.has(tipId)) return false;
+      const s = stmts.guide.get(userId);
+      const hidden = guide.parseHidden(s && s.guide_hidden);
+      hidden.add(tipId);
+      stmts.hideTip.run([...hidden].join(','), userId);
+      return true;
+    },
 
     /** Middleware: after a successful POST, tick off whatever it completed. */
     tracker() {

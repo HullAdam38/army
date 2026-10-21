@@ -6,17 +6,17 @@ const tutorial = require('../src/tutorial');
 const { createApp } = require('../src/server');
 const { openDatabase } = require('../src/db');
 
-const blank = { level: 1, missions: 0, training: 0, inUnit: 0, supplyDrops: 0, equipped: 0, deposits: 0, applications: 0, pvpWins: 0 };
+const blank = { level: 1, missions: 0, training: 0, inUnit: 0, supplyDrops: 0, equipped: 0, deposits: 0, applications: 0, pvpWins: 0, vehicles: 0 };
 
 test('steps are detected from real state', () => {
   assert.deepEqual(tutorial.newlyDone(blank, new Set()), []);
   const some = { ...blank, missions: 2, equipped: 1, applications: 1 };
   assert.deepEqual(tutorial.newlyDone(some, new Set(['mission'])).map((s) => s.id), ['gear', 'unit']);
-  const all = { ...blank, level: 3, missions: 1, training: 1, inUnit: 1, supplyDrops: 1, equipped: 1, deposits: 1, pvpWins: 1 };
+  const all = { ...blank, level: 3, missions: 1, training: 1, inUnit: 1, supplyDrops: 1, equipped: 1, deposits: 1, pvpWins: 1, vehicles: 1 };
   assert.equal(tutorial.newlyDone(all, new Set()).length, tutorial.STEPS.length);
 
   const v = tutorial.view(new Set(['mission', 'gear']));
-  assert.deepEqual([v.count, v.total, v.pct, v.next.id, v.complete, v.graduated], [2, 8, 25, 'train', false, false]);
+  assert.deepEqual([v.count, v.total, v.pct, v.next.id, v.complete, v.graduated], [2, 9, 22, 'train', false, false]);
   assert.equal(tutorial.view(new Set([...tutorial.STEP_IDS, 'graduate'])).graduated, true);
 });
 
@@ -44,7 +44,7 @@ test('basic training: a new player works through the checklist and graduates onc
 
     let hq = (await request('/hq')).text;
     assert.match(hq, /Basic training/);
-    assert.match(hq, /0<small>\/8<\/small>/);
+    assert.match(hq, /0<small>\/9<\/small>/);
     assert.match(hq, /Next: <strong>Run your first mission<\/strong>/);
 
     // Doing the thing ticks the step off and pays for it.
@@ -52,14 +52,14 @@ test('basic training: a new player works through the checklist and graduates onc
     assert.equal(tutorialCash(), 100);
     assert.match(db.prepare("SELECT message FROM notifications WHERE user_id = ? AND kind = 'tutorial'").get(id).message, /Run your first mission/);
     hq = (await request('/hq')).text;
-    assert.match(hq, /1<small>\/8<\/small>/);
+    assert.match(hq, /1<small>\/9<\/small>/);
     assert.match(hq, /Next: <strong>Equip gear/);
 
     // Hiding it leaves a way back.
     await post('/tutorial/hide');
     hq = (await request('/hq')).text;
     assert.doesNotMatch(hq, /id="training-title"/);
-    assert.match(hq, /Show basic training \(1\/8\)/);
+    assert.match(hq, /Show basic training \(1\/9\)/);
     await post('/tutorial/show');
     assert.match((await request('/hq')).text, /id="training-title"/);
 
@@ -71,6 +71,7 @@ test('basic training: a new player works through the checklist and graduates onc
     db.prepare("INSERT INTO battles (attacker_id, defender_id, attacker_won, knockout, attacker_xp, report, created_at) VALUES (?, ?, 1, 0, 10, '{}', 0)").run(id, other);
     db.prepare("INSERT INTO units (name, tag, created_at) VALUES ('Iron Wolves', 'IW', 0)").run();
     db.prepare('INSERT INTO unit_applications (unit_id, user_id, created_at) VALUES (1, ?, 0)').run(id);
+    db.prepare("INSERT INTO vehicles (user_id, vehicle_id, acquired_at) VALUES (?, 'trail-bike', 0)").run(id);
     hq = (await request('/hq')).text;
     const all = tutorial.STEPS.reduce((n, s) => n + s.cash, 0) + tutorial.GRADUATION.cash;
     assert.equal(tutorialCash(), all);
@@ -83,4 +84,15 @@ test('basic training: a new player works through the checklist and graduates onc
   } finally {
     server.close();
   }
+});
+
+test('the field guide: one tip at a time for unlocked, untried features', () => {
+  const guide = require('../src/field-guide');
+  const none = { deployments: 0, vehicles: 0, upgrades: 0, trades: 0, contracts: 0, specials: 0 };
+  assert.equal(guide.nextTip(1, none).id, 'deploy');
+  assert.equal(guide.nextTip(4, { ...none, deployments: 1 }).id, 'vehicle');
+  assert.equal(guide.nextTip(5, { ...none, deployments: 1, vehicles: 1 }).id, 'market', 'the workshop waits for level 6');
+  assert.equal(guide.nextTip(12, { ...none, deployments: 1, vehicles: 1 }, new Set(['workshop', 'market'])).id, 'contracts');
+  assert.equal(guide.nextTip(12, { deployments: 1, vehicles: 1, upgrades: 1, trades: 1, contracts: 1, specials: 1 }), null);
+  assert.deepEqual([...guide.parseHidden('market,nope,deploy')], ['market', 'deploy']);
 });

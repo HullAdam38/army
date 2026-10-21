@@ -22,6 +22,13 @@
       <span>New update: <a href="/updates#u-<%= update.id %>"><strong><%= update.title %></strong></a>. Read what’s changed.</span>
     </p>
   <% } %>
+  <% if (tip && (training.graduated || training.dismissed)) { %>
+    <div class="field-tip reveal" style="--i:1">
+      <svg aria-hidden="true"><use href="#i-star"/></svg>
+      <p class="field-tip__text"><strong><%= tip.title %>.</strong> <%= tip.text %> <a href="<%= tip.link %>"><%= tip.cta %></a></p>
+      <form method="post" action="/guide/hide/<%= tip.id %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn--ghost btn--sm" type="submit" aria-label="Hide this tip">Got it</button></form>
+    </div>
+  <% } %>
   <% if (upcomingEvents.length) { %>
     <p class="event-upcoming reveal" style="--i:1">
       <svg aria-hidden="true"><use href="#i-star"/></svg>

@@ -14,6 +14,7 @@ const STEPS = [
   { id: 'supply', title: 'Collect a supply drop', hint: 'Free cash every day. Keep a streak going for bigger drops.', link: '/hq#supply-title', cta: 'Supply drop', xp: 15, cash: 50, done: (s) => s.supplyDrops >= 1 },
   { id: 'bank', title: 'Bank some cash', hint: 'Cash in the bank can’t be taken when you lose a fight.', link: '/bank', cta: 'Bank', xp: 15, cash: 50, done: (s) => s.deposits >= 1 },
   { id: 'level', title: 'Reach level 3', hint: 'Level 3 unlocks PvP: you can attack, and be attacked.', link: '/missions', cta: 'Missions', xp: 0, cash: 200, done: (s) => s.level >= 3 },
+  { id: 'vehicle', title: 'Get a vehicle from the motor pool', hint: 'A Trail Bike costs $1,200 from level 3 and raises your chance on every mission.', link: '/armory/motor-pool', cta: 'Motor pool', xp: 20, cash: 300, done: (s) => s.vehicles >= 1 },
   { id: 'unit', title: 'Apply to or join a unit', hint: 'Unit members can’t attack each other and share upgrades.', link: '/units', cta: 'Units', xp: 30, cash: 250, done: (s) => s.inUnit || s.applications >= 1 },
   { id: 'pvp', title: 'Win a PvP fight', hint: 'Find a target on the players list. Bank your cash first!', link: '/players?filter=targets', cta: 'Find a target', xp: 40, cash: 300, done: (s) => s.pvpWins >= 1 },
 ];

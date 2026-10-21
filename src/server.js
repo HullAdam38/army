@@ -351,10 +351,12 @@ function createApp({
     facts: { missions: game.MISSIONS.length, ranks: game.RANKS.length },
     shots: [
       { file: 'missions', caption: 'Run missions.', text: 'Six campaigns, from perimeter patrols to the enemy capital.', alt: 'The missions page, with mission cards showing energy cost and chance of success' },
+      { file: 'special', caption: 'Special operations.', text: 'Every 6 hours: three stages, stealth or assault, big rewards.', alt: 'A special operation with a choice of stealth or assault for its next stage' },
       { file: 'battle', caption: 'Fight other players.', text: 'Every attack is fought blow by blow, with a full battle report.', alt: 'A battle report between two soldiers, round by round' },
       { file: 'unit', caption: 'Join a unit.', text: 'A chain of command, a treasury, raids and a unit board.', alt: 'A unit page with its roster, treasury and an active raid' },
       { file: 'theatre', caption: 'Take the map.', text: 'Units fight weekly for regions that pay out every day.', alt: 'The theatre of war map, with regions held by different units' },
-      { file: 'leaderboards', caption: 'Climb the rankings.', text: 'Levels, PvP wins, missions and the weekly race.', alt: 'The leaderboards' },
+      { file: 'motorpool', caption: 'Build a motor pool.', text: 'Jeeps, trucks and tanks, upgraded in the workshop.', alt: 'The motor pool, with vehicles, their bonuses and condition' },
+      { file: 'market', caption: 'Trade.', text: 'Buy and sell gear, vehicles and materials with other soldiers.', alt: 'The market, with gear, a vehicle and materials for sale' },
       { file: 'casino', caption: 'Try your luck.', text: 'Slots, roulette and multiplayer blackjack, for in-game cash only.', alt: 'The roulette table at the casino' },
     ],
   }));

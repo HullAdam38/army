@@ -33,10 +33,12 @@ const OUT = path.join(__dirname, '..', 'public', 'img');
 // `at`: an element to scroll to the top of the shot.
 const SHOTS = [
   { file: 'missions', url: '/missions' },
+  { file: 'special', url: '/missions', at: '#special' }, // a special operation, open
   { file: 'battle', url: null }, // the demo fight's report
   { file: 'unit', url: null, at: '#raid' }, // the demo unit
   { file: 'theatre', url: '/theatre' },
-  { file: 'leaderboards', url: '/leaderboards' },
+  { file: 'motorpool', url: '/armory/motor-pool', at: '.motor-out' },
+  { file: 'market', url: '/armory/market', at: '#for-sale' },
   { file: 'casino', url: '/casino/roulette' },
 ];
 const DAY = 24 * 60 * 60 * 1000;
@@ -108,6 +110,24 @@ async function main() {
     if (hq[1]) app.theatre.setHolder('desert', hq[1]);
     if (hq[2]) app.theatre.setHolder('pass', hq[2]);
 
+    // A motor pool (the jeep taken out, upgraded), and a market with reserve soldiers' wares on it.
+    for (const [v, c] of [['trail-bike', 100], ['patrol-jeep', 86], ['utility-pickup', 64], ['supply-truck', 92], ['light-tank', 100]]) {
+      app.vehicles.grant(id, v);
+      app.vehicles.setCondition(id, v, c);
+    }
+    app.vehicles.assign(id, 'patrol-jeep');
+    app.vehicles.setUpgrade(id, 'patrol-jeep', 1);
+    app.workshop.add(id, { scrap: 240, circuits: 31, composite: 18, core: 2 });
+    const sellers = db.prepare('SELECT id FROM users WHERE is_bot = 1 AND banned_at IS NULL ORDER BY level DESC LIMIT 4').all().map((r) => r.id);
+    const list = db.prepare(`INSERT INTO market_listings (seller_id, kind, ref_id, qty, condition, upgrade, price, fee, created_at, expires_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    [['gear', 'battle-rifle', 1, 78, 2, 31000], ['vehicle', 'ifv', 1, 91, 0, 104000], ['material', 'core', 3, 100, 0, 4200], ['gear', 'smart-rifle', 1, 100, 0, 150000], ['material', 'circuits', 40, 100, 0, 5600]]
+      .forEach(([kind, ref, qty, cond, up, price], i) => list.run(sellers[i % sellers.length], kind, ref, qty, cond, up, price, Math.ceil(price * 0.02), now - i * 3600e3, now + 2 * DAY));
+    // Special operations are open 3 hours in 6: pin the clock inside one.
+    const ops = require('../src/special-ops');
+    const w = ops.windowAt(now);
+    app.specialOps.clock = () => (w.open ? now : ops.nextOpening(now) + 30 * 60 * 1000);
+
     // A fight, and a few spins of the roulette wheel.
     const foe = db.prepare('SELECT username FROM users WHERE is_bot = 1 AND banned_at IS NULL AND level BETWEEN 21 AND 27 AND (unit_id IS NULL OR unit_id != ?) ORDER BY level DESC LIMIT 1').get(unit.id)
       || db.prepare('SELECT username FROM users WHERE is_bot = 1 AND banned_at IS NULL AND level >= 21 LIMIT 1').get();
@@ -125,7 +145,8 @@ async function main() {
     for (const s of SHOTS) {
       const url = s.file === 'battle' ? battleUrl.replace(/^https?:\/\/[^/]+/, '') : s.file === 'unit' ? `/units/${unit.id}` : s.url;
       await page.goto(base + url);
-      await page.addStyleTag({ content: '.tabbar, .flash, .statbar { display: none !important; } .site-header { position: static !important; }' });
+      // (the clock on a special operation reads oddly when the shot pins one open, so it's left out)
+      await page.addStyleTag({ content: '.tabbar, .flash, .statbar, .ward-banner, .special-op__clock { display: none !important; } .site-header { position: static !important; }' });
       await page.evaluate(() => document.fonts.ready);
       if (s.at) {
         await page.evaluate((sel) => {

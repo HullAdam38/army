@@ -138,6 +138,7 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_market_open ON market_listings(status, kind, price);
   CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_id, status);
+  CREATE INDEX IF NOT EXISTS idx_market_buyer ON market_listings(buyer_id) WHERE buyer_id IS NOT NULL;
 
   -- Patch notes (src/patch-notes.js), written by admins in BBCode and shown on /updates.
   CREATE TABLE IF NOT EXISTS patch_notes (
@@ -997,6 +998,7 @@ const ADDED_COLUMNS = [
   ['users', 'play_ms', 'INTEGER NOT NULL DEFAULT 0'], // time played, for admins (src/presence.js playTick)
   ['users', 'specials_done', 'INTEGER NOT NULL DEFAULT 0'], // special operations completed (src/special-ops.js)
   ['users', 'updates_seen_at', 'INTEGER'], // when they last opened the patch notes (/updates)
+  ['users', 'guide_hidden', 'TEXT'], // field guide tips they've hidden, comma-separated (src/field-guide.js)
   ['users', 'play_sessions', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'last_active_at', 'INTEGER'], // last page view or action (polls don't count)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)

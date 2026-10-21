@@ -66,7 +66,11 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       daily: daily.view(req.player),
       medalCount: medalService.rackFor(req.player.id).length,
       recruitReward: tuning.get('referralCash'),
-      training: tutorialService.view(req.player.id),
+      ...(() => {
+        const training = tutorialService.view(req.player.id);
+        // The field guide, once basic training is out of the way.
+        return { training, tip: training.graduated || training.dismissed ? tutorialService.guideTip(req.player.id) : null };
+      })(),
       nextRank: game.nextRankFor(req.player.level),
       nextPerk: perks.nextPerk(req.player.level),
       update: patchNotes ? patchNotes.unseenFor(req.player) : null, // patch notes they haven't read
@@ -95,6 +99,12 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         return invites || recommended.length ? { invites, recommended, looking: Boolean(req.player.lfu_at) } : null;
       })() : null,
     });
+  });
+
+  // The field guide: hide a tip for good.
+  router.post('/guide/hide/:tip', requireAuth, (req, res) => {
+    tutorialService.hideTip(req.player.id, String(req.params.tip));
+    res.redirect('/hq');
   });
 
   // Basic training checklist: hide it, or bring it back.

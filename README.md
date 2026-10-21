@@ -481,13 +481,16 @@ A checklist at the top of HQ walks new players through the game. Each step ticks
 | Collect a supply drop | $50 · 15 XP |
 | Bank some cash | $50 · 15 XP |
 | Reach level 3 (PvP unlocks) | $200 |
+| Get a vehicle from the motor pool | $300 · 20 XP |
 | Apply to or join a unit | $250 · 30 XP |
 | Win a PvP fight (one that paid XP) | $300 · 40 XP |
 
 - **Graduation:** finishing every step pays a **$500 + 100 XP** graduation bonus, and the checklist then disappears for good.
-- **Hiding:** players can hide the checklist. HQ then shows a "Show basic training (n/8)" link to bring it back.
+- **Hiding:** players can hide the checklist. HQ then shows a "Show basic training (n/9)" link to bring it back.
 - **Notifications and the ledger:** each step sends a notification, and all rewards go through the ledger as `tutorial`.
 - **Players who started before this update:** they get the steps they've already done ticked off and paid at once the next time they open HQ.
+
+- **Field guide:** once basic training is done or hidden, HQ shows one tip at a time for the next feature a player has unlocked but not tried: deployments, the motor pool (level 3), the market and contracts (level 5), the workshop (level 6) and special operations (level 10). A tip goes when they try the feature or press *Got it* (`src/field-guide.js`).
 
 Rules live in `src/tutorial.js`; detection and payouts are in `src/tutorial-service.js`. `createApp({ tutorial: false })` turns tutorial rewards off, which tests of other systems use so their cash checks stay exact.
 
