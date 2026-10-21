@@ -1,0 +1,48 @@
+<%- include('../partials/head', { bodyClass: 'page-game page-admin' }) %>
+<%- include('../partials/header') %>
+
+<main id="main" class="container game-main">
+  <%- include('../partials/admin-nav', { active: 'updates' }) %>
+  <div class="page-head">
+    <div>
+      <h1 class="page-head__title">Patch notes</h1>
+      <p class="page-head__sub">Tell players what’s changed. Updates show on the public <a href="/updates">Updates page</a>, and players see a notice at HQ until they’ve read the latest. Short, plain and regular works best: what’s new, what’s fixed, what you’d like feedback on.</p>
+    </div>
+  </div>
+
+  <section class="card" id="write" aria-labelledby="write-title">
+    <h2 id="write-title" class="card__title"><%= editing ? `Edit “${editing.title}”` : 'Post an update' %></h2>
+    <form method="post" action="/admin/updates" class="form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (editing) { %><input type="hidden" name="id" value="<%= editing.id %>"><% } %>
+      <div class="field"><label for="u-title">Title</label><input id="u-title" name="title" maxlength="<%= limits.title %>" required value="<%= draft.title || '' %>" placeholder="Update 0.4: the market opens"></div>
+      <%- include('../partials/bb-editor', { id: 'u-body', name: 'body', label: 'What changed', value: draft.body || '', max: limits.body, rows: 10, required: true, placeholder: '[b]New[/b]\n[list]\n[*]...\n[/list]' }) %>
+      <button class="btn btn--primary" type="submit"><%= editing ? 'Save changes' : 'Post update' %></button>
+      <% if (editing) { %> <a class="btn btn--ghost" href="/admin/updates">Cancel</a><% } %>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="past-title">
+    <h2 id="past-title" class="card__title">Posted</h2>
+    <% if (list.length) { %>
+      <ul class="admin-list">
+        <% list.forEach(function (n) { %>
+          <li class="admin-update">
+            <span><strong><%= n.title %></strong> <span class="muted small">· <%= n.date %><%= n.author ? ` · ${n.author}` : '' %></span></span>
+            <span class="admin-update__actions">
+              <a class="btn btn--ghost btn--sm" href="/admin/updates?edit=<%= n.id %>#write">Edit</a>
+              <form method="post" action="/admin/updates/<%= n.id %>/delete" data-confirm="Delete “<%= n.title %>”? It can’t be undone.">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn--ghost btn--danger btn--sm" type="submit">Delete</button>
+              </form>
+            </span>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="muted">Nothing posted yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

@@ -59,6 +59,8 @@ const { createWorkshopService } = require('./workshop-service');
 const { createServiceRecord } = require('./service-record');
 const { createSpecialOpService } = require('./special-op-service');
 const { createMarketService } = require('./market-service');
+const { createPatchNotes } = require('./patch-notes');
+const { updateRoutes } = require('./routes/updates');
 const { createTheatreService } = require('./theatre-service');
 const { createSupportService } = require('./support-service');
 const { createCasinoService } = require('./casino-service');
@@ -148,6 +150,7 @@ function createApp({
   // Special operations: every 6 hours, open for 3 (src/special-ops.js).
   const specialOpService = createSpecialOpService(db, players, { vehicleService, workshopService });
   app.specialOps = specialOpService; // exposed for tests
+  const patchNotes = createPatchNotes(db); // Admin › Patch notes and /updates
   // Recruit a friend: invite links, and rewards once a recruit has really played.
   const referralService = createReferralService(db, players, anti);
   app.referrals = referralService; // exposed for tests
@@ -283,11 +286,11 @@ function createApp({
   });
   // For search engines: what to crawl (the public pages), and where they are.
   app.get('/robots.txt', (req, res) => {
-    res.type('text/plain').send(['User-agent: *', 'Allow: /$', 'Allow: /register', 'Allow: /login', 'Allow: /terms', 'Allow: /img/', 'Allow: /css/', 'Allow: /js/',
+    res.type('text/plain').send(['User-agent: *', 'Allow: /$', 'Allow: /register', 'Allow: /login', 'Allow: /terms', 'Allow: /updates', 'Allow: /img/', 'Allow: /css/', 'Allow: /js/',
       'Disallow: /', '', `Sitemap: ${res.locals.siteUrl}/sitemap.xml`, ''].join('\n'));
   });
   app.get('/sitemap.xml', (req, res) => {
-    const urls = ['/', '/register', '/login', '/terms'].map((p) => `  <url><loc>${res.locals.siteUrl}${p}</loc></url>`).join('\n');
+    const urls = ['/', '/register', '/login', '/terms', '/updates'].map((p) => `  <url><loc>${res.locals.siteUrl}${p}</loc></url>`).join('\n');
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
   });
   // The payment provider's webhook: raw body for its signature, no session or CSRF (see routes/supporter.js).
@@ -357,7 +360,7 @@ function createApp({
   }));
   app.use(authRoutes(players, anti, referralService));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService, createServiceRecord(db), specialOpService));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService, createServiceRecord(db), specialOpService, patchNotes));
   app.use(armoryRoutes(players, vehicleService, workshopService, marketService));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService, contractService));
@@ -385,6 +388,7 @@ function createApp({
   app.use(accountRoutes(players, medalService, referralService, cosmeticService));
   app.use(supporterRoutes(players, supporterService));
   app.use(eventRoutes(players, eventService, adminRepo));
+  app.use(updateRoutes(players, patchNotes, adminRepo));
   app.use(adminRoutes(players, adminRepo, anti, messageService, seasonService, chatService, avatarService, pushService, unitRepo, raidService, theatreService, supportService, {
     health: healthService,
     reserve: reserveService,

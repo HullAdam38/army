@@ -16,6 +16,12 @@
     <a class="btn btn--primary" href="/missions">View missions <svg class="btn__icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
   </div>
 
+  <% if (update) { %>
+    <p class="event-upcoming hq-update reveal" style="--i:1">
+      <svg aria-hidden="true"><use href="#i-mail"/></svg>
+      <span>New update: <a href="/updates#u-<%= update.id %>"><strong><%= update.title %></strong></a>. Read what’s changed.</span>
+    </p>
+  <% } %>
   <% if (upcomingEvents.length) { %>
     <p class="event-upcoming reveal" style="--i:1">
       <svg aria-hidden="true"><use href="#i-star"/></svg>

@@ -3979,3 +3979,16 @@ section[id], li[id] { scroll-margin-top: 190px; }
   .market-item { grid-template-columns: minmax(0, 1fr); }
   .market-item__buy { justify-items: start; text-align: left; }
 }
+
+/* ----- Updates (/updates) and Admin › Patch notes ----- */
+.updates { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; max-width: 52rem; }
+.update { display: grid; gap: 6px; }
+.update__date { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+.update__title { margin: 0; font-size: 1.35rem; overflow-wrap: anywhere; }
+.update__title a { color: inherit; text-decoration: none; }
+.update__body { overflow-wrap: anywhere; }
+.hq-update svg { color: var(--xp); }
+.admin-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.admin-update { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.admin-update:last-child { border-bottom: 0; }
+.admin-update__actions { display: flex; gap: 8px; }

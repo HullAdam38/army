@@ -29,7 +29,7 @@ const workshopRules = require('../workshop');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null, workshopService = null, record = null, specialOps = null) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null, workshopService = null, record = null, specialOps = null, patchNotes = null) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -69,6 +69,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       training: tutorialService.view(req.player.id),
       nextRank: game.nextRankFor(req.player.level),
       nextPerk: perks.nextPerk(req.player.level),
+      update: patchNotes ? patchNotes.unseenFor(req.player) : null, // patch notes they haven't read
       // A special operation they can still run right now.
       special: (() => {
         const v = specialOps ? specialOps.view(req.player) : null;

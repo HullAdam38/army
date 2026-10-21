@@ -1,0 +1,28 @@
+<%- include('partials/head', { bodyClass: player ? 'page-game' : 'page-auth' }) %>
+<%- include('partials/header') %>
+
+<main id="main" class="container game-main">
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">From HQ</p>
+      <h1 class="page-head__title">Updates</h1>
+      <p class="page-head__sub">What’s new and what’s been fixed in GeneralForces, newest first. Found a bug or have an idea? Tell us through <a href="/support">Help &amp; support</a>.</p>
+    </div>
+  </div>
+
+  <% if (notes.length) { %>
+    <ol class="updates">
+      <% notes.forEach(function (n, i) { %>
+        <li class="card update reveal" style="--i:<%= Math.min(i + 1, 6) %>" id="u-<%= n.id %>">
+          <p class="update__date"><time datetime="<%= new Date(n.created_at).toISOString() %>"><%= n.date %></time><% if (n.edited) { %> <span class="muted">· edited <%= n.edited %></span><% } %></p>
+          <h2 class="update__title"><a href="#u-<%= n.id %>"><%= n.title %></a></h2>
+          <div class="bb-content update__body"><%- n.html %></div>
+        </li>
+      <% }) %>
+    </ol>
+  <% } else { %>
+    <p class="card muted">No updates posted yet.</p>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

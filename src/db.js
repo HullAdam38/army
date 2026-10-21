@@ -139,6 +139,16 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_market_open ON market_listings(status, kind, price);
   CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_id, status);
 
+  -- Patch notes (src/patch-notes.js), written by admins in BBCode and shown on /updates.
+  CREATE TABLE IF NOT EXISTS patch_notes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT    NOT NULL,
+    body        TEXT    NOT NULL,
+    author_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS battles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -986,6 +996,7 @@ const ADDED_COLUMNS = [
   ['users', 'contracts_failed', 'INTEGER NOT NULL DEFAULT 0'], // …and failed (ran out of time or abandoned)
   ['users', 'play_ms', 'INTEGER NOT NULL DEFAULT 0'], // time played, for admins (src/presence.js playTick)
   ['users', 'specials_done', 'INTEGER NOT NULL DEFAULT 0'], // special operations completed (src/special-ops.js)
+  ['users', 'updates_seen_at', 'INTEGER'], // when they last opened the patch notes (/updates)
   ['users', 'play_sessions', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'last_active_at', 'INTEGER'], // last page view or action (polls don't count)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
