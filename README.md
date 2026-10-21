@@ -998,6 +998,8 @@ src/
   contract-service.js escrow, progress from PvP wins, expiry
   special-ops.js     special operations: openings, stages, approaches
   special-op-service.js runs, rewards and captured vehicles
+  market.js          market rules: price ranges, fees, who can trade
+  market-service.js  listings held in escrow, buying, returns
   routes/armory.js   armory pages and actions
   pvp.js             attack rules, fight simulation, rewards
   routes/pvp.js      attack + battle reports
@@ -1130,6 +1132,11 @@ The markup is in `views/partials/tabbar.ejs`.
   - Materials can't be traded, sold or given, so they never pass value between accounts. Reserve soldiers find none. The *Master Mechanic* medal counts upgrades (1 / 10 / 40).
   - Upgrades show as a Mk tag in the Armory, the loadout, profiles and the motor pool. Admins see a player's materials and give or take them on the player's admin page (audit-logged). Game settings › Armory has *Workshop material drops* and *Upgrade cost*. Rules: `src/workshop.js`; service: `src/workshop-service.js`.
 - `/profile/:name/record`: the **service record**, linked from every profile. A soldier's career on one page: service (enlisted, days on duty, rank, medals, titles, orders, best streak), missions and operations (won, failed, success rate, operations completed, deployments and hours deployed), combat (PvP wins and losses, longest winning streak attacking or defending, biggest haul linking to its battle report, bounties, seasons and best finish), unit service (wars, war points, raids joined and won, strikes, damage) and the motor pool and workshop. A **milestones** timeline lists new ranks, medals, titles, the first PvP win and first vehicle, newest first. Like the medals, PvP records only count fights that paid XP and weren't reversed, so farming linked accounts builds nothing. Soldiers see an extra private card on their own record: earnings by source, PvP takings, raid loot, casino betting and their training. Code: `src/service-record.js`.
+- `/armory/market`: the **market** (last tab of the Armory menu). From level 5, players sell gear, vehicles and workshop materials to each other; wear and workshop upgrades go with the item.
+  - A listed thing leaves the seller (equipped gear comes off, the vehicle taken out is parked) and is held until it sells, the seller withdraws it, or **3 days** pass. If they've bought another of the same since, the Armory buys the returned one at its usual price instead.
+  - **Prices** must be between what the Armory pays for the item and 1.5× its shop price (+25% per upgrade level); materials between 0.5× and 3× their worth. That keeps a cheap sale from handing a friend much value.
+  - **Fees:** listing costs 2% (at least $10) and sales are taxed 5%, both destroyed (Game settings › Economy: *Market listing fee*, *Market sales tax*). Ledger reasons `market-fee`, `market-buy`, `market-sale`, `market-return`.
+  - Buyers need the item's level, can't already own one, and can't trade with accounts that share their device or network. Up to 10 listings per seller. Sellers are told when something sells; the page shows recent sales for pricing. Rules: `src/market.js`; service: `src/market-service.js`.
 - `/hospital`: your status, with treatment or early discharge, and everyone currently on the ward
 - `/battles/:id`: round-by-round battle report
 - `/notifications`: your notification history; unread items are highlighted

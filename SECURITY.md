@@ -134,6 +134,10 @@ Checked and fine:
 
 Contracts move money from one player to another, so they're built like bounties: the client pays a fee that's destroyed, only full-reward PvP wins count (never between linked accounts or repeat wins in a day), and the client, mercenary and target must be three different players with no shared device or network. Unearned pay goes back to the client only. Escrow is checked in the tests: everything posted is paid out, refunded or burned as fees. Three colluding real players could still pass money along at a 10% loss, the same as with bounties.
 
+## The market
+
+Trading between players is the classic way to move value between accounts, so: linked accounts (shared device or network) can't buy from each other; prices are held between what the Armory pays and 1.5× the shop price (materials 0.5–3× their worth), which bounds how much a cheap or dear sale can pass on; listing fees and sales tax are destroyed; and listed things are held by the market inside transactions, so they can't be sold, used or listed twice. A test checks that buyers' payments equal sellers' proceeds plus tax. Unlinked friends can still trade at the edges of the price range, at a cost of about 7%.
+
 ## Known limits (fine for launch, worth revisiting)
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.

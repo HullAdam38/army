@@ -1,0 +1,128 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Math.round(n).toLocaleString('en-US'); %>
+<% const kindName = { gear: 'Gear', vehicle: 'Vehicle', material: 'Materials' }; %>
+<% const statusText = { open: 'For sale', sold: 'Sold', cancelled: 'Withdrawn', expired: 'Didn’t sell' }; %>
+
+<main id="main" class="container game-main">
+  <%- include('partials/armory-subnav', { shops, active }) %>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Armory</p>
+      <h1 class="page-head__title"><svg class="page-head__icon" aria-hidden="true"><use href="#i-cash"/></svg>Market</h1>
+      <p class="page-head__sub">Buy and sell gear, vehicles and workshop materials with other soldiers. Upgrades and wear go with the item. Listing costs <%= rules.feePct %>% (at least $10) and sales are taxed <%= rules.taxPct %>%; both are destroyed. Things that don’t sell in <%= rules.days %> days come back to you. Accounts that share a device or network can’t trade with each other.</p>
+    </div>
+  </div>
+
+  <% if (level < rules.minLevel) { %>
+    <p class="card muted reveal" style="--i:1">The market opens at level <%= rules.minLevel %>. Have a look around in the meantime.</p>
+  <% } %>
+
+  <form class="directory-search market-filter reveal" style="--i:1" method="get" action="/armory/market">
+    <label class="visually-hidden" for="m-kind">Show</label>
+    <select id="m-kind" name="kind" data-autosubmit>
+      <% [['all', 'Everything'], ['gear', 'Gear'], ['vehicle', 'Vehicles'], ['material', 'Materials']].forEach(function ([v, l]) { %><option value="<%= v %>" <%- kind === v ? 'selected' : '' %>><%= l %></option><% }) %>
+    </select>
+    <label class="visually-hidden" for="m-sort">Sort</label>
+    <select id="m-sort" name="sort" data-autosubmit>
+      <% [['newest', 'Newest'], ['cheapest', 'Cheapest'], ['dearest', 'Most expensive']].forEach(function ([v, l]) { %><option value="<%= v %>" <%- sort === v ? 'selected' : '' %>><%= l %></option><% }) %>
+    </select>
+    <button class="btn btn--ghost btn--sm" type="submit">Show</button>
+    <span class="muted small">Cash on hand: <strong><%= money(cash) %></strong></span>
+  </form>
+
+  <div class="market-grid">
+    <section class="reveal" style="--i:2" aria-labelledby="for-sale">
+      <h2 id="for-sale" class="section-title">For sale</h2>
+      <% if (listings.length) { %>
+        <ul class="market-list">
+          <% listings.forEach(function (l) { %>
+            <li class="card market-item market-item--<%= l.kind %>" id="l-<%= l.id %>">
+              <div class="market-item__body">
+                <p class="market-item__name"><%= l.name %> <span class="tag"><%= kindName[l.kind] %></span><% if (l.upgrade) { %> <span class="tag tag--mk">Upgraded</span><% } %></p>
+                <p class="muted small">
+                  <% if (l.level) { %>Lv <%= l.level %>+ · <% } %><% if (l.shopPrice) { %>new in the shop <%= money(l.shopPrice) %> · <% } %><% if (l.unit) { %><%= money(l.unit) %> each · <% } %>from <a href="/profile/<%= encodeURIComponent(l.seller) %>"><%= l.seller %></a>
+                </p>
+              </div>
+              <div class="market-item__buy">
+                <span class="market-item__price"><%= money(l.price) %></span>
+                <% if (l.mine) { %>
+                  <span class="muted small">Your listing</span>
+                <% } else if (l.blocker) { %>
+                  <span class="muted small market-item__why"><%= l.blocker %></span>
+                <% } else { %>
+                  <form method="post" action="/armory/market/<%= l.id %>/buy" data-confirm="Buy <%= l.name %> for <%= money(l.price) %>?">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn--primary btn--sm" type="submit">Buy</button>
+                  </form>
+                <% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="card muted">Nothing for sale<%= kind === 'all' ? '' : ' of that kind' %> right now.</p>
+      <% } %>
+
+      <% if (sold.length) { %>
+        <h2 class="section-title">Recent sales</h2>
+        <ol class="feed card">
+          <% sold.forEach(function (s) { %><li class="feed__row"><span class="feed__text"><%= s.name %> sold for <strong><%= money(s.price) %></strong></span></li><% }) %>
+        </ol>
+      <% } %>
+    </section>
+
+    <section class="card market-sell reveal" style="--i:3" id="sell" aria-labelledby="sell-title">
+      <h2 id="sell-title" class="card__title">Sell something</h2>
+      <% if (sellable.length && level >= rules.minLevel) { %>
+        <form method="post" action="/armory/market" class="form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field"><label for="s-thing">What</label>
+            <select id="s-thing" name="thing" required>
+              <% sellable.forEach(function (g) { %>
+                <optgroup label="<%= g.label %>">
+                  <% g.items.forEach(function (i) { %><option value="<%= i.kind %>:<%= i.id %>"><%= i.name %><%= i.inUse ? (i.kind === 'vehicle' ? ' · taken out' : ' · equipped') : '' %> · <%= i.kind === 'material' ? `${money(i.range.min)}–${money(i.range.max)} each` : `${money(i.range.min)}–${money(i.range.max)}` %></option><% }) %>
+                </optgroup>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field"><label for="s-qty">How many <span class="muted small">(materials only)</span></label><input id="s-qty" name="qty" type="number" min="1" max="100000" value="1"></div>
+          <div class="field"><label for="s-price">Price <span class="muted small">(for materials, the whole lot)</span></label><input id="s-price" name="price" inputmode="numeric" required placeholder="$5,000"></div>
+          <button class="btn btn--primary" type="submit">Put up for sale</button>
+          <p class="muted small">The range next to each item is what it can sell for: from what the Armory would pay, to half again the shop price (more for upgraded gear). Equipped gear and the vehicle you’ve taken out come off you while they’re listed. Up to <%= rules.maxListings %> listings at once (you have <%= listingCount %>).</p>
+        </form>
+      <% } else if (level < rules.minLevel) { %>
+        <p class="muted">You can sell from level <%= rules.minLevel %>.</p>
+      <% } else { %>
+        <p class="muted">You don’t have anything to sell yet.</p>
+      <% } %>
+    </section>
+  </div>
+
+  <% if (mine.length) { %>
+    <section class="reveal" style="--i:4" id="mine" aria-labelledby="mine-title">
+      <h2 id="mine-title" class="section-title">Your listings</h2>
+      <ul class="market-list">
+        <% mine.forEach(function (l) { %>
+          <li class="card market-item market-item--<%= l.status %>">
+            <div class="market-item__body">
+              <p class="market-item__name"><%= l.name %></p>
+              <p class="muted small"><%= statusText[l.status] %><% if (l.status === 'sold') { %> to <%= l.buyer || 'a former soldier' %><% } %><% if (l.status === 'open') { %> · comes back in <%= Math.max(1, Math.ceil((l.expires_at - Date.now()) / 3600000)) %>h if it doesn’t sell<% } %></p>
+            </div>
+            <div class="market-item__buy">
+              <span class="market-item__price"><%= money(l.price) %></span>
+              <% if (l.status === 'open') { %>
+                <form method="post" action="/armory/market/<%= l.id %>/cancel">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn--ghost btn--sm" type="submit">Withdraw</button>
+                </form>
+              <% } %>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

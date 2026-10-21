@@ -50,6 +50,7 @@ function createVehicleService(db, players) {
     owned,
     upgrades,
     setUpgrade: (userId, vehicleId, upgrade) => stmts.setUpgrade.run(upgrade, userId, vehicleId),
+    setCondition: (userId, vehicleId, condition) => stmts.setCondition.run(condition, userId, vehicleId),
     assigned,
     bonuses,
 

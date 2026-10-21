@@ -118,6 +118,27 @@ const SCHEMA = `
     PRIMARY KEY (user_id, window_key)
   );
 
+  -- The market (src/market.js): things players have put up for sale, held until sold.
+  -- kind: gear, vehicle or material. status: open, sold, cancelled or expired.
+  CREATE TABLE IF NOT EXISTS market_listings (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    seller_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind        TEXT    NOT NULL,
+    ref_id      TEXT    NOT NULL,
+    qty         INTEGER NOT NULL DEFAULT 1,
+    condition   REAL    NOT NULL DEFAULT 100,
+    upgrade     INTEGER NOT NULL DEFAULT 0,
+    price       INTEGER NOT NULL,
+    fee         INTEGER NOT NULL,
+    status      TEXT    NOT NULL DEFAULT 'open',
+    buyer_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at  INTEGER NOT NULL,
+    expires_at  INTEGER NOT NULL,
+    settled_at  INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_market_open ON market_listings(status, kind, price);
+  CREATE INDEX IF NOT EXISTS idx_market_seller ON market_listings(seller_id, status);
+
   CREATE TABLE IF NOT EXISTS battles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

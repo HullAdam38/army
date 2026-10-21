@@ -9,13 +9,15 @@ const gear = require('../gear');
 const { createRequireAuth } = require('../require-auth');
 const vehicles = require('../vehicles');
 const workshop = require('../workshop');
+const market = require('../market');
+const tuning = require('../tuning');
 
 /**
  * The Armory: your loadout and inventory on /armory, a shop per gear slot
  * (plus supplies) on /armory/shop/:shop, the motor pool on /armory/motor-pool
- * and the workshop on /armory/workshop.
+ * the workshop on /armory/workshop and the market on /armory/market.
  */
-function armoryRoutes(players, vehicleService = null, workshopService = null) {
+function armoryRoutes(players, vehicleService = null, workshopService = null, marketService = null) {
   const router = express.Router();
   const requireAuth = createRequireAuth(players);
   const toInventory = (res, slot) => res.redirect(slot ? `/armory#inv-${slot}` : '/armory');
@@ -243,6 +245,44 @@ function armoryRoutes(players, vehicleService = null, workshopService = null) {
       const out = workshopService.salvage(req.player.id, kind, String(req.params.id));
       req.flash(out.error ? 'error' : 'success', out.error || `${out.name} salvaged${out.bag && Object.keys(out.bag).length ? ` for ${workshop.describe(out.bag)}` : ', but nothing usable came off it'}.`);
       back(res);
+    });
+  }
+
+  // ----- Market: players selling to each other (src/market.js) -----
+  if (marketService) {
+    const KINDS = ['all', 'gear', 'vehicle', 'material'];
+    const SORTS = ['newest', 'cheapest', 'dearest'];
+    router.get('/armory/market', requireAuth, (req, res) => {
+      marketService.expireDue();
+      const kind = KINDS.includes(req.query.kind) ? req.query.kind : 'all';
+      const sort = SORTS.includes(req.query.sort) ? req.query.sort : 'newest';
+      res.render('market', {
+        title: 'Market',
+        nav: 'armory',
+        shops: SHOPS,
+        active: 'market',
+        kind, sort,
+        cash: req.player.cash,
+        rules: { minLevel: market.MIN_LEVEL, maxListings: market.MAX_LISTINGS, days: market.DAYS, feePct: Math.round(tuning.get('marketListingFee') * 100), taxPct: Math.round(tuning.get('marketTaxRate') * 100) },
+        level: req.player.level,
+        ...marketService.view(req.player, { kind, sort }),
+      });
+    });
+    router.post('/armory/market', requireAuth, (req, res) => {
+      const out = marketService.list(req.player.id, req.body);
+      req.flash(out.error ? 'error' : 'success', out.error || `Listed: ${out.name} for $${out.listing.price.toLocaleString('en-US')} (fee $${out.fee.toLocaleString('en-US')}). It’s on the market for ${market.DAYS} days.`);
+      res.redirect(out.error ? '/armory/market#sell' : '/armory/market#mine');
+    });
+    router.post('/armory/market/:id/:action', requireAuth, (req, res, next) => {
+      const id = Number(req.params.id);
+      const action = String(req.params.action);
+      if (!Number.isInteger(id) || !['buy', 'cancel'].includes(action)) return next();
+      const out = marketService[action](req.player.id, id);
+      const done = action === 'buy'
+        ? () => `Bought: ${out.name} for $${out.listing.price.toLocaleString('en-US')}.`
+        : () => (out.sold ? `${out.name} withdrawn. You’d bought another since, so the Armory bought it for $${out.sold.toLocaleString('en-US')}.` : `${out.name} withdrawn and back with you (the fee isn’t refunded).`);
+      req.flash(out.error ? 'error' : 'success', out.error || done());
+      res.redirect(action === 'cancel' ? '/armory/market#mine' : '/armory/market');
     });
   }
 

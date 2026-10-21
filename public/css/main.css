@@ -3957,3 +3957,25 @@ section[id], li[id] { scroll-margin-top: 190px; }
 }
 .dossier__special { color: var(--energy); }
 .special-op__head .special-op__clock { margin: 0 0 4px; color: var(--energy); font-size: 0.9rem; }
+
+/* ----- Market (Armory › Market) ----- */
+.market-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 16px; }
+.market-filter .muted { align-self: center; }
+.market-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px; align-items: start; }
+.market-grid .section-title:first-child { margin-top: 0; }
+.market-list { display: grid; gap: 10px; margin: 0 0 16px; padding: 0; list-style: none; }
+.market-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 12px 16px; }
+.market-item__body p { margin: 0; }
+.market-item__name { font-weight: 700; overflow-wrap: anywhere; }
+.market-item__buy { display: grid; justify-items: end; gap: 4px; text-align: right; }
+.market-item__price { font-family: var(--font-display); font-size: 1.2rem; color: var(--health); }
+.market-item__why { max-width: 14rem; }
+.market-item--sold, .market-item--cancelled, .market-item--expired { opacity: 0.75; }
+.market-sell .form { display: grid; gap: 4px; }
+@media (max-width: 860px) {
+  .market-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 420px) {
+  .market-item { grid-template-columns: minmax(0, 1fr); }
+  .market-item__buy { justify-items: start; text-align: left; }
+}
