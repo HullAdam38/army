@@ -29,7 +29,7 @@ const workshopRules = require('../workshop');
 const PLAYER_FILTERS = ['all', 'targets', 'online', 'war'];
 const PAGE_SIZE = 25;
 
-function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null, workshopService = null, record = null) {
+function gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService = null, theatreService = null, vehicleService = null, workshopService = null, record = null, specialOps = null) {
   const router = express.Router();
 
   const requireAuth = createRequireAuth(players);
@@ -69,6 +69,11 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       training: tutorialService.view(req.player.id),
       nextRank: game.nextRankFor(req.player.level),
       nextPerk: perks.nextPerk(req.player.level),
+      // A special operation they can still run right now.
+      special: (() => {
+        const v = specialOps ? specialOps.view(req.player) : null;
+        return v && v.open && !v.locked && !v.blocker ? v : null;
+      })(),
       base: (() => {
         const p = req.player;
         const building = p.base_build && p.base_build_until > Date.now() ? baseRules.FACILITIES_BY_ID.get(p.base_build) : null;
@@ -132,6 +137,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         };
       }),
       perks: { unlocked: perks.unlocked(me.level), next: perks.nextPerk(me.level), bonus },
+      special: specialOps ? specialOps.view(me, undefined, stats, bonus.chanceBonus) : null,
       vehicle: (() => {
         const a = vehicleService && vehicleService.assigned(me.id);
         if (!a) return null;
@@ -202,6 +208,38 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
       }
     }
     res.redirect('/missions');
+  });
+
+  // Special operations: one run per opening, a choice of approach at each stage.
+  router.post('/special/:approach', requireAuth, (req, res, next) => {
+    if (!specialOps) return next();
+    const outcome = players.transaction(() => {
+      const fresh = players.findById(req.player.id);
+      const out = specialOps.run(fresh.id, String(req.params.approach), { stats: statsOf(fresh), ...bonusesFor(fresh) });
+      if (out.error) return out;
+      const r = out.result;
+      gear.wear(players, fresh.id, r.success ? 'mission' : 'missionFailed');
+      if (vehicleService) vehicleService.wear(fresh.id, r.success ? 'mission' : 'missionFailed');
+      out.foundText = r.success && workshopService ? workshopRules.describe(workshopService.find(fresh.id, r.cash)) : '';
+      if (r.success) daily.progress(fresh.id, 'missions_won', 1);
+      announceLevels(players, fresh.id, out.levelsGained);
+      return out;
+    });
+    if (outcome.error) {
+      req.flash('error', outcome.error);
+      return res.redirect('/missions#special');
+    }
+    const { op, mission, approach, result: r, completed, bonus, found, vehicle } = outcome;
+    res.locals.gains = { xp: r.xp + (bonus ? bonus.xp : 0), cash: r.cash + (bonus ? bonus.cash : 0) }; // for anti-cheat
+    req.flash(r.success ? 'success' : 'error', r.success
+      ? `${mission.name} (${approach.name.toLowerCase()}): done. +${r.xp} XP, +$${r.cash.toLocaleString('en-US')}.${outcome.foundText ? ` Found ${outcome.foundText}.` : ''}`
+      : `${mission.name} (${approach.name.toLowerCase()}): failed. You took ${r.damage} damage, and this run is over.`);
+    if (completed) {
+      const extra = [workshopRules.describe(found), vehicle ? `a captured ${vehicle.name}` : ''].filter(Boolean).join(' and ');
+      req.flash('success', `${op.name} complete! Bonus +$${bonus.cash.toLocaleString('en-US')} and +${bonus.xp} XP${extra ? `, plus ${extra}` : ''}.`);
+    }
+    if (outcome.levelsGained.length) req.flash('success', `Promotion! You are now level ${outcome.levelsGained.at(-1)}.`);
+    res.redirect('/missions#special');
   });
 
   router.post('/operations/:id', requireAuth, (req, res) => {

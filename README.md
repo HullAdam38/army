@@ -443,6 +443,16 @@ Three more campaigns take the game to level 100. Each opens with a notification:
 
 Levels have no hard cap. XP keeps counting past 100, and Grand Marshal X stays the top rank. Admins can set any level up to 120 for testing.
 
+## Special operations
+
+Rare, time-limited missions (`src/special-ops.js`, shown at the top of the Missions page and on HQ while one is open). Every 6 hours (00:00, 06:00, 12:00 and 18:00 UTC) one of eight special operations opens for **3 hours**, the same one for everyone. From level 10, each player gets **one run** per opening:
+
+- **Three stages in a row**, and at each one a choice: **stealth** (+12% chance, normal pay; Agility training helps) or **assault** (−8% chance, 1.6× pay, more damage if it fails; Strength helps). A failed stage ends the run.
+- Stages are built from the newest mission open to the player's level (same energy, 1.3× its pay), so a run is worth the same effort at every level. Rank perks, unit bonuses, vehicles, events and admin pay settings apply as for missions.
+- **Clearing all three** pays a bonus of about four missions' pay (+15% for each assault taken), two hauls of workshop materials rich in prototype cores, and a 15% chance of a vehicle they don't own yet that's open to their level.
+- The **Special Forces Tab** medal counts completed runs (1 / 10 / 50); the service record shows them too. Ledger reason `special-op`.
+- Game settings › Economy: *Special operations* (on/off) and *Special operation pay & XP*. Runs are stored in `special_runs`.
+
 ## Training and scouting
 
 - **Training** (`/training`): three stats raised one point per session, at 5 energy plus cash that rises with the stat ($25, $30, $35…). Each stat can reach 10 × your level.
@@ -721,7 +731,7 @@ The parts are in `src/avatars.js`, the picture checks in `src/images.js`, and st
 
 ## Medals
 
-Twenty-one medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Twenty-two medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -746,6 +756,7 @@ Twenty-one medals, each with **Bronze, Silver and Gold** tiers. Each tier pays o
 | Fleet Commander | vehicles in your motor pool at the same time | 1 / 5 / 12 |
 | Master Mechanic | upgrades made in the workshop | 1 / 10 / 40 |
 | Soldier of Fortune | contracts completed as a mercenary | 1 / 10 / 50 |
+| Special Forces Tab | special operations completed | 1 / 10 / 50 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
 - **Casino medals** use career totals kept on the player (`casino_wagered`, `casino_big_wins`, `casino_blackjacks`), since plays are only kept 30 days. Every game has a house edge, so betting to earn High Roller always costs more than it pays.
@@ -985,6 +996,8 @@ src/
   service-record.js  the career page and its milestones
   contracts.js       contract rules: terms, who can post and take them
   contract-service.js escrow, progress from PvP wins, expiry
+  special-ops.js     special operations: openings, stages, approaches
+  special-op-service.js runs, rewards and captured vehicles
   routes/armory.js   armory pages and actions
   pvp.js             attack rules, fight simulation, rewards
   routes/pvp.js      attack + battle reports

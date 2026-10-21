@@ -104,6 +104,20 @@ const SCHEMA = `
     PRIMARY KEY (contract_id, battle_id)
   );
 
+  -- Special operations (src/special-ops.js): one run per player per opening (window_key).
+  -- status: active, done or failed.
+  CREATE TABLE IF NOT EXISTS special_runs (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    window_key  TEXT    NOT NULL,
+    op_id       TEXT    NOT NULL,
+    stage       INTEGER NOT NULL DEFAULT 1,
+    assaults    INTEGER NOT NULL DEFAULT 0,
+    status      TEXT    NOT NULL DEFAULT 'active',
+    started_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, window_key)
+  );
+
   CREATE TABLE IF NOT EXISTS battles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -950,6 +964,7 @@ const ADDED_COLUMNS = [
   ['users', 'contracts_done', 'INTEGER NOT NULL DEFAULT 0'], // contracts completed as a mercenary (src/contracts.js)
   ['users', 'contracts_failed', 'INTEGER NOT NULL DEFAULT 0'], // …and failed (ran out of time or abandoned)
   ['users', 'play_ms', 'INTEGER NOT NULL DEFAULT 0'], // time played, for admins (src/presence.js playTick)
+  ['users', 'specials_done', 'INTEGER NOT NULL DEFAULT 0'], // special operations completed (src/special-ops.js)
   ['users', 'play_sessions', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'last_active_at', 'INTEGER'], // last page view or action (polls don't count)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)

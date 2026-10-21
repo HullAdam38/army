@@ -3930,3 +3930,30 @@ section[id], li[id] { scroll-margin-top: 190px; }
 .contract-kinds .contract-kind { margin: 0; font-family: inherit; font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--text); cursor: pointer; }
 .contract-kinds .contract-kind input { width: 22px; height: 22px; min-height: 0; padding: 0; border-radius: 50%; }
 .directory td[data-label="Played"] { white-space: nowrap; }
+
+/* ----- Special operations (Missions page) ----- */
+.special-op { display: grid; gap: 12px; margin-bottom: 20px; border-left: 3px solid var(--line-strong); }
+.special-op.is-open { border-left-color: var(--energy); box-shadow: 0 0 0 1px rgb(245 196 66 / 0.15); }
+.special-op__title { margin: 2px 0 4px; font-size: 1.4rem; overflow-wrap: anywhere; }
+.special-op__head p { margin: 0; }
+.special-op__stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.special-op__stage { display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-size: 0.9rem; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); overflow-wrap: anywhere; min-width: 0; }
+.special-op__n { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 0.8rem; font-weight: 700; background: var(--line); }
+.special-op__stage--now { border-color: var(--energy); }
+.special-op__stage--now .special-op__n { background: var(--energy); color: var(--bg); }
+.special-op__stage--done .special-op__n { background: var(--health); color: var(--bg); }
+.special-op__stage--failed .special-op__n { background: var(--danger); color: var(--bg); }
+.special-op__stage--later { opacity: 0.6; }
+.special-op__now, .special-op__end { margin: 0; }
+.special-op__choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.special-op__choice { display: grid; gap: 4px; align-content: start; padding: 12px; background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); }
+.special-op__choice p { margin: 0; }
+.special-op__choice-name { font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.special-op__choice--assault .special-op__choice-name { color: var(--accent); }
+.special-op__choice-label { font-weight: 700; }
+.special-op__choice .btn { justify-self: start; margin-top: 4px; }
+@media (max-width: 560px) {
+  .special-op__stages, .special-op__choices { grid-template-columns: minmax(0, 1fr); }
+}
+.dossier__special { color: var(--energy); }
+.special-op__head .special-op__clock { margin: 0 0 4px; color: var(--energy); font-size: 0.9rem; }

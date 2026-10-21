@@ -57,6 +57,7 @@ const { createRaidService } = require('./raid-service');
 const { createVehicleService } = require('./vehicle-service');
 const { createWorkshopService } = require('./workshop-service');
 const { createServiceRecord } = require('./service-record');
+const { createSpecialOpService } = require('./special-op-service');
 const { createTheatreService } = require('./theatre-service');
 const { createSupportService } = require('./support-service');
 const { createCasinoService } = require('./casino-service');
@@ -143,6 +144,9 @@ function createApp({
   // The workshop: materials, upgrades and salvage (src/workshop.js).
   const workshopService = createWorkshopService(db, players, vehicleService);
   app.workshop = workshopService; // exposed for tests
+  // Special operations: every 6 hours, open for 3 (src/special-ops.js).
+  const specialOpService = createSpecialOpService(db, players, { vehicleService, workshopService });
+  app.specialOps = specialOpService; // exposed for tests
   // Recruit a friend: invite links, and rewards once a recruit has really played.
   const referralService = createReferralService(db, players, anti);
   app.referrals = referralService; // exposed for tests
@@ -348,7 +352,7 @@ function createApp({
   }));
   app.use(authRoutes(players, anti, referralService));
   app.use(termsRoutes(players));
-  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService, createServiceRecord(db)));
+  app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService, createServiceRecord(db), specialOpService));
   app.use(armoryRoutes(players, vehicleService, workshopService));
   app.use(hospitalRoutes(players));
   app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService, contractService));

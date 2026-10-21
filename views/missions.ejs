@@ -33,6 +33,49 @@
     </p>
   <% } %>
 
+  <% const leftText = (at) => { const m = Math.max(1, Math.round((at - Date.now()) / 60000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; }; %>
+  <% if (special && !special.locked && (special.open || special.run)) { const sp = special; %>
+    <section class="card special-op reveal<%= sp.open ? ' is-open' : '' %>" style="--i:1" id="special" aria-labelledby="special-title">
+      <div class="special-op__head">
+        <p class="eyebrow">Special operation</p>
+        <h2 id="special-title" class="special-op__title"><%= sp.op.name %> <span class="muted small"><%= sp.op.theatre %></span></h2>
+        <% if (sp.open) { %><p class="special-op__clock">Closes in <strong data-until="<%= sp.closesAt %>"><%= leftText(sp.closesAt) %></strong></p><% } %>
+        <p class="muted"><%= sp.op.brief %></p>
+      </div>
+      <ol class="special-op__stages" aria-label="Stages">
+        <% sp.op.stages.forEach(function (st, i) { const n = i + 1; const state = sp.run && (sp.run.status === 'done' || n < sp.stage) ? 'done' : sp.run && sp.run.status === 'failed' && n === sp.stage ? 'failed' : n === sp.stage ? 'now' : 'later'; %>
+          <li class="special-op__stage special-op__stage--<%= state %>"><span class="special-op__n"><%= n %></span><%= st.name %></li>
+        <% }) %>
+      </ol>
+      <% if (sp.run && sp.run.status === 'done') { %>
+        <p class="special-op__end">Operation complete. <%= sp.completedBy %> soldier<%= sp.completedBy === 1 ? '' : 's' %> finished it this time. The next one opens in <span data-until="<%= sp.nextAt %>"><%= leftText(sp.nextAt) %></span>.</p>
+      <% } else if (sp.run && sp.run.status === 'failed') { %>
+        <p class="special-op__end">Your run ended at stage <%= sp.stage %>. The next special operation opens in <span data-until="<%= sp.nextAt %>"><%= leftText(sp.nextAt) %></span>.</p>
+      <% } else if (sp.blocker) { %>
+        <p class="special-op__end"><%= sp.blocker %>.</p>
+      <% } else { %>
+        <p class="special-op__now">Stage <%= sp.stage %> of 3: <strong><%= sp.stageName %></strong>. How do you go in?</p>
+        <div class="special-op__choices">
+          <% sp.choices.forEach(function (c) { %>
+            <form method="post" action="/special/<%= c.id %>" class="special-op__choice special-op__choice--<%= c.id %>">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <p class="special-op__choice-name"><%= c.name %></p>
+              <p class="special-op__choice-label"><%= c.label %></p>
+              <p class="muted small"><%= c.chancePct %>% chance · $<%= c.cash[0].toLocaleString('en-US') %>–$<%= c.cash[1].toLocaleString('en-US') %> · <%= c.energy %> energy<%= c.id === 'assault' ? ' · hurts more if it fails' : '' %></p>
+              <button class="btn <%= c.id === 'assault' ? 'btn--primary' : 'btn--ghost' %> btn--sm" type="submit" <%- sp.missionBlocker ? 'disabled' : '' %>><%= c.name %></button>
+            </form>
+          <% }) %>
+        </div>
+        <p class="muted small"><% if (sp.missionBlocker) { %><%= sp.missionBlocker %>. <% } %>A failed stage ends the run. Clear all three for a bonus of about $<%= sp.bonus.cash.toLocaleString('en-US') %> and <%= sp.bonus.xp.toLocaleString('en-US') %> XP (more for each assault), workshop materials rich in prototype cores, and a chance at a vehicle.</p>
+      <% } %>
+    </section>
+  <% } else if (special && !special.locked) { %>
+    <p class="perk-strip perk-strip--hint reveal muted" style="--i:1" id="special">
+      <svg aria-hidden="true"><use href="#i-target"/></svg>
+      <span>Next special operation in <span data-until="<%= special.nextAt %>"><%= leftText(special.nextAt) %></span>. They open every 6 hours, for 3.</span>
+    </p>
+  <% } %>
+
   <% campaigns.forEach(function (c) { %>
     <% if (c.state === 'teaser') { %>
       <section class="campaign campaign--teaser" aria-labelledby="campaign-<%= c.id %>">

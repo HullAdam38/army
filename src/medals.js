@@ -36,6 +36,7 @@ const MEDALS = [
   { id: 'fleet', name: 'Fleet Commander', icon: 'i-tank', metric: 'vehicles', unit: 'vehicles in your motor pool', thresholds: [1, 5, 12], blurb: 'Own vehicles. Every vehicle in your motor pool at the same time counts.' },
   { id: 'mechanic', name: 'Master Mechanic', icon: 'i-kit', metric: 'upgrades', unit: 'workshop upgrades', thresholds: [1, 10, 40], blurb: 'Upgrade gear and vehicles in the workshop.' },
   { id: 'fortune', name: 'Soldier of Fortune', icon: 'i-target', metric: 'contracts', unit: 'contracts completed', thresholds: [1, 10, 50], blurb: 'Complete contracts for other players. Only full-reward wins count towards them.' },
+  { id: 'specialforces', name: 'Special Forces Tab', icon: 'i-target', metric: 'specials', unit: 'special operations completed', thresholds: [1, 10, 50], blurb: 'Complete special operations: all three stages in one run.' },
   { id: 'cardsharp', name: 'Card Sharp', icon: 'i-crest', metric: 'casinoBlackjacks', unit: 'blackjacks', thresholds: [5, 50, 250], blurb: 'Get dealt blackjack at the casino’s blackjack tables.' },
 ];
 

@@ -117,6 +117,7 @@ function createServiceRecord(db) {
         ['Missions failed', user.missions_failed],
         ['Success rate', missions ? `${Math.round((user.missions_completed / missions) * 100)}%` : '–'],
         ['Operations completed', stmts.operations.get(id).n],
+        ['Special operations completed', user.specials_done || 0],
         ['Deployments completed', dep.n],
         ['Hours deployed', Math.round(dep.ms / HOUR)],
       ] },

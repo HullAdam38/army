@@ -13,7 +13,7 @@ const money = (n) => `$${Number(n).toLocaleString('en-US')}`;
  */
 function createMedalService(db, players) {
   const stmts = {
-    user: db.prepare('SELECT level, missions_completed, stat_str, stat_agi, stat_end, streak_best, orders_completed, wars_won, base_barracks, base_medbay, base_vault, base_intel, base_range, base_comms, casino_wagered, casino_big_wins, casino_blackjacks, vehicle_missions, upgrades_made, contracts_done FROM users WHERE id = ?'),
+    user: db.prepare('SELECT level, missions_completed, stat_str, stat_agi, stat_end, streak_best, orders_completed, wars_won, base_barracks, base_medbay, base_vault, base_intel, base_range, base_comms, casino_wagered, casino_big_wins, casino_blackjacks, vehicle_missions, upgrades_made, contracts_done, specials_done FROM users WHERE id = ?'),
     vehicles: db.prepare('SELECT COUNT(*) AS n FROM vehicles WHERE user_id = ?'),
     // Only fights that paid XP count, and reversed (farmed) fights never do.
     battles: db.prepare(`
@@ -67,6 +67,7 @@ function createMedalService(db, players) {
       vehicles: stmts.vehicles.get(userId).n,
       upgrades: u.upgrades_made,
       contracts: u.contracts_done,
+      specials: u.specials_done,
     };
   }
 
