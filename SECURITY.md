@@ -130,6 +130,10 @@ Checked and fine:
 - The service record shows money, casino and training totals only to the soldier themselves; PvP records ignore fights that paid nothing or were reversed.
 - New admin actions (Supporter gifts, cosmetics, vehicles, materials) are admin-only, need a reason and are audit-logged.
 
+## Contracts
+
+Contracts move money from one player to another, so they're built like bounties: the client pays a fee that's destroyed, only full-reward PvP wins count (never between linked accounts or repeat wins in a day), and the client, mercenary and target must be three different players with no shared device or network. Unearned pay goes back to the client only. Escrow is checked in the tests: everything posted is paid out, refunded or burned as fees. Three colluding real players could still pass money along at a 10% loss, the same as with bounties.
+
 ## Known limits (fine for launch, worth revisiting)
 
 - **Rate limits live in memory** and reset when the server restarts. Run a single game process (the default). If you ever run several, move them to the database or Redis.

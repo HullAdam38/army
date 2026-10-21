@@ -394,6 +394,7 @@ function gameRoutes(players, daily, unitRepo, warService, medalService, bountySe
         nameColor: user.name_color,
         banner: user.profile_banner,
         isSupporter: supporter.isActive(user),
+        contracts: { done: user.contracts_done || 0, failed: user.contracts_failed || 0 },
         vehicle: (() => {
           const a = vehicleService && vehicleService.assigned(user.id);
           return a ? { name: a.vehicle.name, icon: vehicles.CLASSES_BY_ID.get(a.vehicle.cls).icon, cls: vehicles.CLASSES_BY_ID.get(a.vehicle.cls).name } : null;

@@ -126,6 +126,7 @@ function createServiceRecord(db) {
         ['Longest winning streak', longestStreak(fights)],
         ['Biggest haul', haul ? { text: `$${haul.cash_taken.toLocaleString('en-US')}`, href: `/battles/${haul.id}` } : '–'],
         ['Bounties collected', stmts.bounties.get(id).n],
+        ['Contracts completed', `${user.contracts_done || 0}${user.contracts_failed ? ` (${user.contracts_failed} failed)` : ''}`],
         ['PvP seasons played', season.n],
         ['Best season finish', season.best ? `#${season.best}${bestDivision ? ` · ${seasons.DIVISIONS_BY_ID.get(bestDivision).name}` : ''}` : '–'],
       ] },

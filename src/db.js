@@ -69,6 +69,41 @@ const SCHEMA = `
     PRIMARY KEY (user_id, material_id)
   );
 
+  -- Contracts (src/contracts.js): mercenary work paid from escrow. status: open, active,
+  -- completed, failed (ran out of time or abandoned), expired (never taken), cancelled, declined.
+  CREATE TABLE IF NOT EXISTS contracts (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind         TEXT    NOT NULL,
+    client_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    offered_to   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    merc_id      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    jobs         INTEGER NOT NULL,
+    knockout     INTEGER NOT NULL DEFAULT 0,
+    amount       INTEGER NOT NULL,
+    fee          INTEGER NOT NULL,
+    paid         INTEGER NOT NULL DEFAULT 0,
+    progress     INTEGER NOT NULL DEFAULT 0,
+    hours        INTEGER NOT NULL,
+    status       TEXT    NOT NULL DEFAULT 'open',
+    created_at   INTEGER NOT NULL,
+    accepted_at  INTEGER,
+    deadline     INTEGER,
+    settled_at   INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status, created_at);
+  CREATE INDEX IF NOT EXISTS idx_contracts_client ON contracts(client_id, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_contracts_merc ON contracts(merc_id, status);
+  -- Each fight that counted towards a contract (for bodyguard duty, each foe once).
+  CREATE TABLE IF NOT EXISTS contract_hits (
+    contract_id  INTEGER NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+    battle_id    INTEGER NOT NULL,
+    foe_id       INTEGER NOT NULL,
+    cash         INTEGER NOT NULL DEFAULT 0,
+    created_at   INTEGER NOT NULL,
+    PRIMARY KEY (contract_id, battle_id)
+  );
+
   CREATE TABLE IF NOT EXISTS battles (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     attacker_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -912,6 +947,8 @@ const ADDED_COLUMNS = [
   ['inventory', 'upgrade', 'INTEGER NOT NULL DEFAULT 0'], // workshop upgrade, Mk I–III (src/workshop.js)
   ['vehicles', 'upgrade', 'INTEGER NOT NULL DEFAULT 0'],
   ['users', 'upgrades_made', 'INTEGER NOT NULL DEFAULT 0'], // workshop upgrades, for the Master Mechanic medal
+  ['users', 'contracts_done', 'INTEGER NOT NULL DEFAULT 0'], // contracts completed as a mercenary (src/contracts.js)
+  ['users', 'contracts_failed', 'INTEGER NOT NULL DEFAULT 0'], // …and failed (ran out of time or abandoned)
   ['users', 'is_bot', 'INTEGER NOT NULL DEFAULT 0'], // a reserve soldier run by the game (src/reserve-service.js)
   ['users', 'bot_pace', 'REAL'], // how fast a reserve soldier progresses (about 0.4–1.4)
   ['units', 'hq', 'INTEGER NOT NULL DEFAULT 0'], // 1: an HQ-run starter unit; 2: one that has passed to its players

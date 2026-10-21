@@ -720,7 +720,7 @@ The parts are in `src/avatars.js`, the picture checks in `src/images.js`, and st
 
 ## Medals
 
-Twenty medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
+Twenty-one medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once: Bronze +50 XP and $250, Silver +150 XP and $1,000, Gold +400 XP and $5,000. Every payout goes through the ledger as `medal`.
 
 | Medal | Earned by | Bronze / Silver / Gold |
 |---|---|---|
@@ -744,6 +744,7 @@ Twenty medals, each with **Bronze, Silver and Gold** tiers. Each tier pays once:
 | Driver’s Badge | missions and operation stages won with a vehicle taken out | 25 / 150 / 600 |
 | Fleet Commander | vehicles in your motor pool at the same time | 1 / 5 / 12 |
 | Master Mechanic | upgrades made in the workshop | 1 / 10 / 40 |
+| Soldier of Fortune | contracts completed as a mercenary | 1 / 10 / 50 |
 
 - **Awarding:** medals are checked after every action, and when you open HQ or the medal case, so things that happened while you were away (defences, war wins) are caught too. Each new medal arrives as a notification.
 - **Casino medals** use career totals kept on the player (`casino_wagered`, `casino_big_wins`, `casino_blackjacks`), since plays are only kept 30 days. Every game has a house edge, so betting to earn High Roller always costs more than it pays.
@@ -769,6 +770,21 @@ Rules live in `src/medals.js`; awarding and storage are in `src/medal-service.js
 - **Medal:** the **Bounty Hunter** medal (1 / 10 / 50 bounties collected).
 
 Rules live in `src/bounties.js`; storage and payouts are in `src/bounty-service.js`.
+
+## Contracts
+
+Mercenary work between players (`/contracts`, under Players; profiles have **Hire** and **Contract** buttons). Bounties are open to anyone and paid to the first soldier who wins; a contract is a deal with one mercenary, against a deadline.
+
+- **Two jobs:**
+  - **Hit:** beat a named soldier 1–3 times, optionally by knockout. Only the first win on a soldier each day pays full rewards, so each win needs a day (2 wins need 48 hours). Paid on the last win.
+  - **Bodyguard:** while the contract runs, beat the soldiers who attack the client, each one once, up to 1–5 of them. Paid an even share for each.
+- **Posting:** $1,000 to $1,000,000 from cash, plus a **10% fee that's destroyed** (Game settings › Economy › *Contract fee*). Post it on the open board, or offer it to one soldier. Each player can have 3 open or under way.
+- **Taking it:** a mercenary takes a contract and gets 24, 48 or 72 hours, chosen by the client. They can work 2 at once. The client is told; a hit's target is told that someone is after them (not who). Targets never see hits on themselves on the board, and offers only show to the soldier they're for.
+- **Money:** the pay is held in escrow. Whatever isn't earned goes back to the client: when a hit runs out of time, a bodyguard job ends with shares unpaid, a mercenary abandons it or turns down an offer, a contract nobody takes within 7 days, or one the client withdraws before it's taken. The fee is never refunded. Ledger reasons: `contract-posted`, `contract-pay`, `contract-refund`.
+- **Fair play:** only full-reward PvP wins count (no linked accounts, no repeat wins on one soldier in a day). The client, mercenary and target can't be the same player or accounts that share a device or network. Reserve soldiers can be targets but don't take contracts.
+- **Reputation:** completed and failed contracts show on a mercenary's profile and service record (a hit that runs out or is abandoned is a failure; bodyguard duty that earned anything is done, since nobody may have attacked the client). The **Soldier of Fortune** medal counts completed contracts (1 / 10 / 50).
+
+Rules: `src/contracts.js`; escrow and progress: `src/contract-service.js`.
 
 ## PvP and the hospital
 
@@ -966,6 +982,8 @@ src/
   workshop.js        materials, drops, upgrade recipes and salvage
   workshop-service.js materials held, upgrades and salvage
   service-record.js  the career page and its milestones
+  contracts.js       contract rules: terms, who can post and take them
+  contract-service.js escrow, progress from PvP wins, expiry
   routes/armory.js   armory pages and actions
   pvp.js             attack rules, fight simulation, rewards
   routes/pvp.js      attack + battle reports

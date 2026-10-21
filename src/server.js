@@ -29,6 +29,8 @@ const { createMedalService } = require('./medal-service');
 const { medalRoutes } = require('./routes/medals');
 const { createBountyService } = require('./bounty-service');
 const { bountyRoutes } = require('./routes/bounties');
+const { createContractService } = require('./contract-service');
+const { contractRoutes } = require('./routes/contracts');
 const { createTutorialService } = require('./tutorial-service');
 const { termsRoutes } = require('./routes/terms');
 const { legalSettings } = require('./legal');
@@ -198,6 +200,9 @@ function createApp({
   const warService = createWarService(db, players, unitRepo, { effects });
   warService.schedule();
   const bountyService = createBountyService(db, players, (a, b, now) => anti.linked(a, b, now), { effects });
+  const contractService = createContractService(db, players, (a, b, now) => anti.linked(a, b, now));
+  contractService.schedule();
+  app.contracts = contractService; // exposed for tests
   bountyService.schedule();
   const medalService = createMedalService(db, players);
   app.medals = medalService; // exposed for tests
@@ -346,7 +351,7 @@ function createApp({
   app.use(gameRoutes(players, daily, unitRepo, warService, medalService, bountyService, tutorialService, operationService, eventService, seasonService, targetService, theatreService, vehicleService, workshopService, createServiceRecord(db)));
   app.use(armoryRoutes(players, vehicleService, workshopService));
   app.use(hospitalRoutes(players));
-  app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService));
+  app.use(pvpRoutes(players, anti, daily, warService, bountyService, seasonService, targetService, contractService));
   app.use(notificationRoutes(players, pushService));
   app.use(bankRoutes(players));
   app.use(trainingRoutes(players, daily));
@@ -354,6 +359,7 @@ function createApp({
   app.use(dailyRoutes(players, daily));
   app.use(medalRoutes(players, medalService));
   app.use(bountyRoutes(players, bountyService, effects));
+  app.use(contractRoutes(players, contractService));
   app.use(formatRoutes(players));
   app.use(baseRoutes(players, baseService));
   app.use(deploymentRoutes(players, deploymentService));

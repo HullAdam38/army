@@ -1,0 +1,130 @@
+<%- include('partials/head', { bodyClass: 'page-game' }) %>
+<%- include('partials/header') %>
+<% const money = (n) => '$' + Number(n).toLocaleString('en-US'); %>
+<% const statusText = { open: 'Waiting for a mercenary', active: 'Under way', completed: 'Completed', failed: 'Failed', expired: 'Nobody took it', cancelled: 'Withdrawn', declined: 'Turned down' }; %>
+<% const offers = board.filter((c) => c.offered_to === meId); const open = board.filter((c) => !c.offered_to); %>
+<% const progressOf = (c) => `${c.progress} of ${c.jobs}`; %>
+
+<main id="main" class="container game-main">
+  <%- include('partials/players-subnav', { active: 'contracts' }) %>
+  <div class="page-head reveal" style="--i:0">
+    <div>
+      <p class="eyebrow">Mercenary work</p>
+      <h1 class="page-head__title">Contracts</h1>
+      <p class="page-head__sub">Hire a soldier for a job, or take one on. The pay is held until the work is done, and whatever isn’t earned goes back to the client. Posting costs a <%= rules.feePct %>% fee that isn’t returned. Only full-reward PvP wins count, and nobody can work a contract with or against an account that shares their device or network.</p>
+    </div>
+  </div>
+
+  <p class="contract-rep reveal" style="--i:1">
+    <svg aria-hidden="true"><use href="#i-target"/></svg>
+    <span>Your mercenary record: <strong><%= reputation.done %></strong> completed · <strong><%= reputation.failed %></strong> failed. Jobs under way: <%= jobs %> of <%= rules.maxJobs %>. Your contracts open or under way: <%= posted %> of <%= rules.maxPosted %>.</span>
+  </p>
+
+  <% const card = function (c, role) { %>
+    <li class="card contract contract--<%= c.kind %> contract--<%= c.status %>" id="c-<%= c.id %>">
+      <div class="contract__head">
+        <span class="tag"><%= c.kindName %></span>
+        <% if (c.offered_to && c.status === 'open') { %><span class="tag tag--offer"><%= role === 'client' ? `Offered to ${c.offered}` : 'Offered to you' %></span><% } %>
+        <span class="contract__pay"><%= money(c.amount) %></span>
+      </div>
+      <p class="contract__text"><%= c.text %></p>
+      <p class="muted small contract__meta">
+        <% if (role === 'board') { %>Client: <a href="/profile/<%= encodeURIComponent(c.client) %>"><%= c.client %></a> · <%= c.hours %> hours once taken<% if (c.target) { %> · target level <%= c.target_level %><% } %>
+        <% } else if (role === 'client') { %><%= statusText[c.status] %><% if (c.merc) { %> · mercenary <a href="/profile/<%= encodeURIComponent(c.merc) %>"><%= c.merc %></a><% } %><% if (c.status === 'active' || c.progress) { %> · <%= progressOf(c) %> done<% } %><% if (c.status === 'active') { %> · <%= hoursLeft(c.left) %> left<% } %><% if (c.paid) { %> · paid out <%= money(c.paid) %><% } %>
+        <% } else { %><%= statusText[c.status] %> · client <a href="/profile/<%= encodeURIComponent(c.client) %>"><%= c.client %></a> · <%= progressOf(c) %> done<% if (c.status === 'active') { %> · <strong><%= hoursLeft(c.left) %> left</strong><% } %><% if (c.paid) { %> · earned <%= money(c.paid) %><% } %><% } %>
+      </p>
+      <% if (role === 'working' && c.status === 'active') { %>
+        <span class="meter meter--xp contract__meter" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="<%= c.jobs %>" aria-valuenow="<%= c.progress %>"><span class="meter__fill" style="width:<%= Math.round((c.progress / c.jobs) * 100) %>%"></span></span>
+        <p class="muted small"><%= c.kind === 'hit' ? `Find ${c.target} and win${c.knockout ? ' by knockout' : ''}: one win a day counts. ${c.jobs > 1 ? 'Paid on the last win.' : 'Paid when you win.'}` : `Beat soldiers who attack ${c.client} from now on, each one once. Paid ${money(Math.floor(c.amount / c.jobs))} for each.` %></p>
+      <% } %>
+      <div class="contract__actions">
+        <% const act = function (action, label, cls, confirm) { %>
+          <form method="post" action="/contracts/<%= c.id %>/<%= action %>" <%- confirm ? `data-confirm="${confirm}"` : '' %>><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn <%= cls %> btn--sm" type="submit"><%= label %></button></form>
+        <% } %>
+        <% if (role === 'board') { %>
+          <% if (c.blocker) { %><span class="muted small"><%= c.blocker %></span><% } else { act('accept', 'Take the job', 'btn--primary'); } %>
+          <% if (c.offered_to === meId) { act('decline', 'Turn down', 'btn--ghost'); } %>
+          <% if (c.target) { %><a class="btn btn--ghost btn--sm" href="/profile/<%= encodeURIComponent(c.target) %>">View target</a><% } %>
+        <% } else if (role === 'client' && c.status === 'open') { act('cancel', 'Withdraw', 'btn--ghost btn--danger', 'Withdraw this contract? The pay comes back, the fee doesn’t.'); %>
+        <% } else if (role === 'working' && c.status === 'active') { %>
+          <% if (c.target) { %><a class="btn btn--primary btn--sm" href="/profile/<%= encodeURIComponent(c.target) %>">Find <%= c.target %></a><% } %>
+          <% act('abandon', 'Abandon', 'btn--ghost btn--danger', 'Walk away from this job? The client gets the rest of the pay back and it counts as a failed contract.'); %>
+        <% } %>
+      </div>
+    </li>
+  <% } %>
+
+  <% if (offers.length) { %>
+    <section class="reveal" style="--i:2" aria-labelledby="offers-title">
+      <h2 id="offers-title" class="section-title">Offers for you</h2>
+      <ul class="contract-list"><% offers.forEach((c) => card(c, 'board')) %></ul>
+    </section>
+  <% } %>
+
+  <% if (working.some((c) => c.status === 'active')) { %>
+    <section class="reveal" style="--i:3" aria-labelledby="jobs-title">
+      <h2 id="jobs-title" class="section-title">Your jobs</h2>
+      <ul class="contract-list"><% working.filter((c) => c.status === 'active').forEach((c) => card(c, 'working')) %></ul>
+    </section>
+  <% } %>
+
+  <div class="contract-grid">
+    <section class="reveal" style="--i:4" aria-labelledby="board-title">
+      <h2 id="board-title" class="section-title">Open contracts</h2>
+      <% if (open.length) { %>
+        <ul class="contract-list"><% open.forEach((c) => card(c, 'board')) %></ul>
+      <% } else { %>
+        <p class="card muted">No open contracts right now. Post one, or check back later.</p>
+      <% } %>
+      <% if (recent.length) { %>
+        <h2 class="section-title">Recently completed</h2>
+        <ol class="feed card">
+          <% recent.forEach(function (r) { %>
+            <li class="feed__row"><span class="feed__text"><strong><%= r.merc %></strong> completed <%= r.kind === 'hit' ? `a hit on ${r.target}` : `bodyguard duty for ${r.client}` %> for <strong><%= money(r.amount) %></strong></span><span class="feed__time"><%= ago(r.settled_at) %></span></li>
+          <% }) %>
+        </ol>
+      <% } %>
+    </section>
+
+    <section class="card contract-post reveal" style="--i:5" id="post" aria-labelledby="post-title">
+      <h2 id="post-title" class="card__title">Post a contract</h2>
+      <form method="post" action="/contracts" class="form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <fieldset class="field contract-kinds">
+          <legend>Job</legend>
+          <% Object.values(rules.kinds).forEach(function (k) { %>
+            <label class="check contract-kind"><input type="radio" name="kind" value="<%= k.id %>" <%- form.kind === k.id ? 'checked' : '' %>> <span><strong><%= k.name %></strong> <span class="muted small"><%= k.blurb %></span></span></label>
+          <% }) %>
+        </fieldset>
+        <div class="field"><label for="c-target">Target <span class="muted small">(hits only)</span></label><input id="c-target" name="target" maxlength="20" autocomplete="off" value="<%= form.target %>" placeholder="Callsign"></div>
+        <div class="field"><label for="c-jobs">Wins or soldiers to beat</label>
+          <select id="c-jobs" name="jobs"><% for (let n = 1; n <= 5; n += 1) { %><option value="<%= n %>"><%= n %></option><% } %></select>
+          <p class="muted small">Hits: 1–3 wins, one a day (so 2 wins need 48 hours). Bodyguard: 1–5 attackers beaten, paid a share for each.</p>
+        </div>
+        <label class="check"><input type="checkbox" name="knockout"> Hits must be by knockout</label>
+        <div class="field"><label for="c-amount">Pay</label><input id="c-amount" name="amount" inputmode="numeric" required placeholder="<%= money(rules.min) %>"><p class="muted small"><%= money(rules.min) %>–<%= money(rules.max) %>, from cash, plus the <%= rules.feePct %>% fee.</p></div>
+        <div class="field"><label for="c-hours">Time once taken</label>
+          <select id="c-hours" name="hours"><% rules.hours.forEach(function (h) { %><option value="<%= h %>" <%- h === 48 ? 'selected' : '' %>><%= h %> hours</option><% }) %></select>
+        </div>
+        <div class="field"><label for="c-offer">Offer it to <span class="muted small">(optional)</span></label><input id="c-offer" name="offer" maxlength="20" autocomplete="off" value="<%= form.offer %>" placeholder="Leave empty for the open board"></div>
+        <button class="btn btn--primary" type="submit">Post contract</button>
+        <p class="muted small">Nobody takes it within <%= rules.openDays %> days? The pay comes back. You can withdraw it until someone takes it.</p>
+      </form>
+    </section>
+  </div>
+
+  <% if (mine.length) { %>
+    <section class="reveal" style="--i:6" aria-labelledby="mine-title">
+      <h2 id="mine-title" class="section-title">Your contracts</h2>
+      <ul class="contract-list"><% mine.forEach((c) => card(c, 'client')) %></ul>
+    </section>
+  <% } %>
+  <% if (working.some((c) => c.status !== 'active')) { %>
+    <section class="reveal" style="--i:7" aria-labelledby="past-title">
+      <h2 id="past-title" class="section-title">Your past jobs</h2>
+      <ul class="contract-list"><% working.filter((c) => c.status !== 'active').forEach((c) => card(c, 'working')) %></ul>
+    </section>
+  <% } %>
+</main>
+
+<%- include('partials/foot') %>

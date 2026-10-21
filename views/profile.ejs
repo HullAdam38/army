@@ -42,6 +42,7 @@
         <% if (soldier.unit) { %><li><a class="unit-badge" href="/units/<%= soldier.unit.id %>"><svg aria-hidden="true"><use href="#i-flag"/></svg><span class="unit-tag">[<%= soldier.unit.tag %>]</span> <%= soldier.unit.name %></a> · <%= soldier.unit.role %></li><% } %>
         <% if (season) { %><li><a class="season-badge season-badge--<%= season.division.id %>" href="/seasons"><svg aria-hidden="true"><use href="#i-podium"/></svg>Season <%= season.number %> · <%= season.placed ? `${season.division.name} · #${season.rank}` : 'Placing' %> · <%= season.rating.toLocaleString('en-US') %></a></li><% } %>
         <li>Enlisted <time datetime="<%= soldier.enlistedIso %>"><%= soldier.enlisted %></time></li>
+        <% if (soldier.contracts.done || soldier.contracts.failed) { %><li>Mercenary: <%= soldier.contracts.done %> contract<%= soldier.contracts.done === 1 ? '' : 's' %> completed<%= soldier.contracts.failed ? `, ${soldier.contracts.failed} failed` : '' %></li><% } %>
         <li><a href="/profile/<%= encodeURIComponent(soldier.username) %>/record"><svg class="inline-icon" aria-hidden="true"><use href="#i-star"/></svg>Full service record</a></li>
       </ul>
     </div>
@@ -58,6 +59,8 @@
         </p>
         <div class="engage__social">
           <% if (!blocked && !soldier.isBot) { %><a class="btn btn--ghost btn--sm" href="/messages/new?to=<%= encodeURIComponent(soldier.username) %>"><svg class="btn__icon" aria-hidden="true"><use href="#i-mail"/></svg>Message</a><% } %>
+          <% if (!soldier.isBot) { %><a class="btn btn--ghost btn--sm" href="/contracts?offer=<%= encodeURIComponent(soldier.username) %>#post">Hire</a><% } %>
+          <a class="btn btn--ghost btn--sm" href="/contracts?target=<%= encodeURIComponent(soldier.username) %>#post">Contract</a>
           <form method="post" action="/messages/<%= blocked ? 'unblock' : 'block' %>" <%- blocked ? '' : `data-confirm="Block ${soldier.username}? They won’t be able to message you."` %>>
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="username" value="<%= soldier.username %>">

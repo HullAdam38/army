@@ -3904,3 +3904,28 @@ section[id], li[id] { scroll-margin-top: 190px; }
 @media (max-width: 420px) {
   .timeline__item { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ----- Contracts (/contracts) ----- */
+.contract-rep { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: var(--radius); }
+.contract-rep svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--accent); }
+.contract-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px; align-items: start; }
+.contract-grid .section-title:first-child { margin-top: 0; }
+.contract-list { display: grid; gap: 12px; margin: 0 0 16px; padding: 0; list-style: none; }
+.contract { display: grid; gap: 8px; }
+.contract__head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.contract__pay { margin-left: auto; font-family: var(--font-display); font-size: 1.3rem; color: var(--health); }
+.contract__text { margin: 0; font-weight: 700; font-size: 1.05rem; overflow-wrap: anywhere; }
+.contract__meta { margin: 0; overflow-wrap: anywhere; }
+.contract__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.contract--completed, .contract--failed, .contract--expired, .contract--cancelled, .contract--declined { opacity: 0.75; }
+.contract--hit { border-left: 3px solid var(--danger); }
+.contract--guard { border-left: 3px solid var(--xp); }
+.tag--offer { color: var(--bg); background: var(--energy); }
+.contract-kinds { display: grid; gap: 8px; border: 0; padding: 0; margin: 0 0 12px; }
+.contract-post .form { display: grid; gap: 4px; }
+@media (max-width: 860px) {
+  .contract-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.contract-kinds legend { margin-bottom: 6px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.contract-kinds .contract-kind { margin: 0; font-family: inherit; font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--text); cursor: pointer; }
+.contract-kinds .contract-kind input { width: 22px; height: 22px; min-height: 0; padding: 0; border-radius: 50%; }

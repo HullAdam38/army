@@ -34,7 +34,7 @@ const REASON_LABELS = {
   'season-reward': 'Season rewards', medal: 'Medal rewards', tutorial: 'Basic training rewards', 'unit-objective': 'Unit objectives',
   'target-bonus': 'High-value target', 'bounty-claim': 'Bounties collected', 'bounty-placed': 'Bounties posted', 'bounty-refund': 'Bounty refunds',
   armory: 'Armory (gear)', 'armory-repair': 'Armory (repairs)', 'armory-sale': 'Armory (gear sold)', supplies: 'Armory (supplies)',
-  vehicle: 'Motor pool (vehicles)', 'vehicle-repair': 'Motor pool (repairs)', 'vehicle-sale': 'Motor pool (vehicles sold)', workshop: 'Workshop (upgrade fees)', training: 'Training', scout: 'Scouting', base: 'Forward base', 'base-refund': 'Forward base refunds',
+  vehicle: 'Motor pool (vehicles)', 'vehicle-repair': 'Motor pool (repairs)', 'vehicle-sale': 'Motor pool (vehicles sold)', workshop: 'Workshop (upgrade fees)', 'contract-posted': 'Contracts posted (pay and fee)', 'contract-pay': 'Contracts paid out', 'contract-refund': 'Contract refunds', training: 'Training', scout: 'Scouting', base: 'Forward base', 'base-refund': 'Forward base refunds',
   'hospital-treatment': 'Hospital treatment', 'hospital-discharge': 'Hospital discharge', 'unit-donation': 'Unit donations', 'unit-founded': 'Units founded',
   signup: 'Starting cash', 'bank-deposit': 'Bank deposits (fees)', 'bank-withdraw': 'Bank withdrawals', reversal: 'Anti-cheat reversals', 'daily-order': 'Daily orders', 'daily-bonus': 'Daily commendation',
 };
